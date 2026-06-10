@@ -1,0 +1,288 @@
+/* ===== RESET ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== ROOT VARIABLES ===== */
+:root {
+  --font-ui: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
+  --color-gold: #8B6914;
+  --color-gold-light: #C4A35A;
+  --color-brown-dark: #3D2010;
+  --color-shelf: #5C3D1E;
+  --color-shelf-shadow: #3D2810;
+  --radius-book: 4px 6px 6px 4px;
+  --radius-card: 14px;
+  --radius-modal: 24px;
+  --shadow-book: -2px 2px 6px rgba(0,0,0,0.4), 2px 2px 10px rgba(0,0,0,0.25);
+  --shadow-card: 0 2px 16px rgba(0,0,0,0.08);
+  --shadow-modal: 0 -4px 40px rgba(0,0,0,0.15);
+  --transition-fast: 150ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-med: 300ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-slow: 500ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ===== BODY ===== */
+body {
+  font-family: var(--font-ui);
+  background: #0f0f0f;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== PHONE FRAME ===== */
+#phone-frame {
+  width: 393px;
+  height: 852px;
+  border-radius: 54px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.15),
+    0 0 0 10px #1a1a1a,
+    0 0 0 11px rgba(255,255,255,0.08),
+    0 50px 100px rgba(0,0,0,0.8);
+  background: var(--bg-primary, #EDE8DC);
+  transition: background var(--transition-med);
+}
+
+/* Dynamic island notch simulation */
+#phone-frame::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 126px;
+  height: 36px;
+  background: #0f0f0f;
+  border-radius: 20px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* ===== SCREEN CONTAINER ===== */
+.screen-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  transition: background var(--transition-med);
+}
+
+/* ===== SCROLLABLE AREA ===== */
+.screen-scroll {
+  flex: 1;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+.screen-scroll::-webkit-scrollbar { display: none; }
+
+/* ===== SAFE AREAS ===== */
+.safe-top {
+  padding-top: 64px; /* Status bar + dynamic island */
+}
+
+/* ===== TYPOGRAPHY ===== */
+.aurelia-wordmark {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  opacity: 0.8;
+}
+
+.screen-title {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.section-title {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  background: var(--accent-dark, #6B4E10);
+  color: #F5E6C0;
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-icon:active {
+  background: var(--border);
+  transform: scale(0.92);
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* ===== DIVIDER ===== */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 16px;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-track {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width var(--transition-med);
+}
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.modal-sheet {
+  background: var(--bg-primary);
+  border-radius: var(--radius-modal) var(--radius-modal) 0 0;
+  box-shadow: var(--shadow-modal);
+  max-height: 75%;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 12px auto 4px;
+  flex-shrink: 0;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 8px;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 0 0 40px;
+}
+.modal-scroll::-webkit-scrollbar { display: none; }
+
+/* ===== CONTEXT MENU ===== */
+.context-menu {
+  position: absolute;
+  background: var(--bg-card);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 6px 0;
+  z-index: 300;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.context-menu-item:active { background: var(--border); }
+.context-menu-item.danger { color: #E53935; }
+.context-menu-separator { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ===== UTILITY ===== */
+.text-secondary { color: var(--text-secondary); }
+.text-accent { color: var(--accent); }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 11px; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }

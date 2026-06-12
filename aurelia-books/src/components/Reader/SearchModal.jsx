@@ -14,29 +14,26 @@ export default function SearchModal({ epubBook, onJumpTo, onClose }) {
 
     try {
       const searchResults = await Promise.all(
-        epubBook.spine.spineItems.map(item =>
-          item.load(epubBook.load.bind(epubBook))
-            .then(() => {
-              const doc = item.document;
-              if (!doc) return [];
-              const text = doc.body?.innerText || doc.body?.textContent || '';
-              const found = [];
-              let idx = text.toLowerCase().indexOf(query.toLowerCase());
-              while (idx !== -1 && found.length < 3) {
-                found.push({
-                  cfi: item.cfiFromElement(doc.body) || '',
-                  excerpt: text.slice(Math.max(0, idx - 40), idx + query.length + 40).trim(),
-                  chapterHref: item.href,
-                  chapterTitle: item.label || item.href,
-                });
-                idx = text.toLowerCase().indexOf(query.toLowerCase(), idx + 1);
-              }
-              return found;
-            })
-            .catch(() => [])
-        )
+        epubBook.spine.spineItems.map(async (item) => {
+          try {
+            await item.load(epubBook.load.bind(epubBook));
+            const found = item.find(query);
+            
+            // Map to unified structure
+            const matches = found.map(f => ({
+              cfi: f.cfi,
+              excerpt: f.excerpt,
+              chapterTitle: item.idref || 'Content',
+            }));
+            
+            item.unload();
+            return matches;
+          } catch (err) {
+            return [];
+          }
+        })
       );
-      const flat = searchResults.flat().slice(0, 20);
+      const flat = searchResults.flat().slice(0, 40);
       setResults(flat);
     } catch (e) {
       setResults([]);

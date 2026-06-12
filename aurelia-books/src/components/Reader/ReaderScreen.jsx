@@ -7,6 +7,7 @@ import BookmarksModal from './BookmarksModal';
 import TOCModal from './TOCModal';
 import SearchModal from './SearchModal';
 import ReaderSettingsPanel from './ReaderSettingsPanel';
+import { StorageManager } from '../../utils/StorageManager';
 import styles from './ReaderScreen.module.css';
 
 export default function ReaderScreen({ book, settings, updateSetting, onClose }) {
@@ -22,6 +23,10 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkFeedback, setBookmarkFeedback] = useState(null); // 'added' | 'removed'
+  const [currentPage, setCurrentPage] = useState(null);
+  const [totalPages, setTotalPages] = useState(null);
+  const [timeLeftStr, setTimeLeftStr] = useState('');
+  const [animateClass, setAnimateClass] = useState('');
 
   const viewerRef = useRef(null);
   const bookRef = useRef(null);
@@ -30,21 +35,32 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const currentCfiRef = useRef(null);
 
   const {
-    saveProgress, getProgress,
-    addBookmark, removeBookmark, getBookmarks, isBookmarked,
-    startReading, stopReading,
+    progress,
+    saveProgress,
+    addBookmark,
+    removeBookmark,
+    bookmarks,
+    isBookmarked,
+    startReading,
+    stopReading,
   } = useReader(book.id);
 
-  // Determine epub URL
+  // Determine epub URL (from IndexedDB Blob or public URL)
   const getEpubUrl = () => {
-    if (book.blobUrl) return book.blobUrl;
+    if (book.fileBlob) {
+      return URL.createObjectURL(book.fileBlob);
+    }
     if (book.epubUrl) return book.epubUrl;
     return null;
   };
 
   useEffect(() => {
     const url = getEpubUrl();
-    if (!url || !viewerRef.current) return;
+    if (!url || !viewerRef.current) {
+      setError("Unable to find the EPUB resource URL.");
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -85,14 +101,15 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     // Load book and restore position
     epubBook.ready.then(() => {
       return epubBook.locations.generate(1024);
-    }).then(() => {
-      const savedProgress = getProgress();
+    }).then(async () => {
+      setTotalPages(epubBook.locations.total);
+      const savedProgress = await StorageManager.getProgress(book.id);
       return rendition.display(savedProgress?.cfi || undefined);
     }).then(() => {
       setIsLoading(false);
       startReading();
-    }).catch(() => {
-      const savedProgress = getProgress();
+    }).catch(async () => {
+      const savedProgress = await StorageManager.getProgress(book.id);
       const displayPromise = savedProgress?.cfi
         ? rendition.display(savedProgress.cfi).catch(() => rendition.display())
         : rendition.display();
@@ -113,7 +130,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       // Get chapter title from TOC
       epubBook.loaded.navigation.then(nav => {
         if (!nav?.toc || !cfi) return;
-        // Find which chapter we're in
         const spineItem = epubBook.spine?.get(cfi);
         if (spineItem?.href) {
           const chapter = nav.toc.find(t =>
@@ -125,14 +141,20 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         }
       }).catch(() => {});
 
-      // Calculate percentage
+      // Calculate percentage and relative locations
       try {
-        if (epubBook.locations?.percentageFromCfi && cfi) {
+        if (epubBook.locations && cfi) {
           const pct = epubBook.locations.percentageFromCfi(cfi) * 100;
           if (!isNaN(pct) && pct >= 0) {
             const rounded = Math.round(pct);
             setPercentage(rounded);
             saveProgress(cfi, rounded, currentChapterRef.current);
+          }
+          const currentLoc = epubBook.locations.locationFromCfi(cfi);
+          const totalLoc = epubBook.locations.total;
+          if (currentLoc !== -1) {
+            setCurrentPage(Math.max(1, currentLoc));
+            setTotalPages(totalLoc);
           }
         }
       } catch {}
@@ -146,6 +168,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     return () => {
       stopReading();
       try { epubBook.destroy(); } catch {}
+      if (url && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
     };
   }, [book.id]);
 
@@ -168,6 +193,41 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     } catch {}
   }, [settings.font, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.marginWidth]);
 
+  // Handle page animation triggers
+  useEffect(() => {
+    if (!currentCfi || settings.readingMode === 'scroll') return;
+    const effect = settings.pageTurnEffect === 'realistic' ? styles.curlAnim : styles.slideAnim;
+    setAnimateClass(effect);
+    const tid = setTimeout(() => setAnimateClass(''), 400);
+    return () => clearTimeout(tid);
+  }, [currentCfi, settings.pageTurnEffect, settings.readingMode]);
+
+  // Estimate remaining time in chapter
+  useEffect(() => {
+    if (!bookRef.current || !currentCfi) return;
+    const updateTimeLeft = async () => {
+      try {
+        const item = bookRef.current.spine.get(currentCfi);
+        if (item) {
+          await item.load(bookRef.current.load.bind(bookRef.current));
+          const doc = item.document;
+          const text = doc?.body?.innerText || doc?.body?.textContent || '';
+          const words = text.trim().split(/\s+/).filter(Boolean).length;
+          const minutes = Math.ceil(words / 200);
+          
+          if (minutes > 0) {
+            setTimeLeftStr(`${minutes} min left in chapter`);
+          } else {
+            setTimeLeftStr('');
+          }
+        }
+      } catch (err) {
+        console.warn("Could not calculate time left:", err);
+      }
+    };
+    updateTimeLeft();
+  }, [currentCfi]);
+
   // Page navigation
   const goNext = useCallback(() => renditionRef.current?.next(), []);
   const goPrev = useCallback(() => renditionRef.current?.prev(), []);
@@ -187,8 +247,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const handleBookmark = useCallback(() => {
     const cfi = currentCfiRef.current;
     if (!cfi) return;
-    const bms = getBookmarks();
-    const existing = bms.find(b => b.cfi === cfi);
+    const existing = bookmarks.find(b => b.cfi === cfi);
     if (existing) {
       removeBookmark(existing.id);
       setBookmarkFeedback('removed');
@@ -197,7 +256,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       setBookmarkFeedback('added');
     }
     setTimeout(() => setBookmarkFeedback(null), 1500);
-  }, [addBookmark, removeBookmark, getBookmarks]);
+  }, [addBookmark, removeBookmark, bookmarks]);
 
   const handleJumpTo = useCallback((cfi) => {
     if (!cfi) return;
@@ -275,14 +334,37 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         </div>
       )}
 
-      {/* EPUB Viewer */}
+      {/* EPUB Viewer Container with Animation class wrapper */}
       <div
         ref={viewerRef}
-        className={styles.viewer}
+        className={`${styles.viewer} ${animateClass}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onClick={() => setShowControls(prev => !prev)}
       />
+
+      {/* Tiny clean immersion footer at the bottom */}
+      {!showControls && (
+        <div style={{
+          position: 'absolute',
+          bottom: 12,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          fontSize: 10,
+          opacity: 0.35,
+          pointerEvents: 'none',
+          userSelect: 'none',
+          fontFamily: '-apple-system, system-ui, sans-serif',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 12
+        }}>
+          {currentPage && totalPages && <span>Page {currentPage} of {totalPages}</span>}
+          {percentage > 0 && <span>{percentage}%</span>}
+          {timeLeftStr && <span>• {timeLeftStr}</span>}
+        </div>
+      )}
 
       {/* Page navigation zones */}
       {settings.readingMode !== 'scroll' && (
@@ -330,7 +412,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                   <p style={{ fontSize: 11, opacity: 0.45, marginTop: 2 }}>{currentChapter}</p>
                 )}
               </div>
-              {/* Settings gear icon in top right */}
               <button
                 className={styles.backBtn}
                 onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
@@ -351,25 +432,32 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
               exit={{ opacity: 0, y: 50 }}
               transition={{ duration: 0.2 }}
             >
+              {timeLeftStr && (
+                <div style={{ fontSize: 11, textAlign: 'center', opacity: 0.5, marginBottom: 8, fontWeight: 500 }}>
+                  {timeLeftStr}
+                </div>
+              )}
               {/* Progress row */}
               <div className={styles.progressRow}>
-                <span style={{ fontSize: 11, opacity: 0.4 }}>0%</span>
+                <span style={{ fontSize: 11, opacity: 0.4 }}>
+                  {currentPage ? `Page ${currentPage}` : '0%'}
+                </span>
                 <div className={styles.progressTrack}>
                   <div className={styles.progressFill} style={{ width: `${percentage}%` }} />
                 </div>
-                <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500 }}>{percentage}%</span>
+                <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500 }}>
+                  {totalPages ? `${percentage}% (of ${totalPages})` : `${percentage}%`}
+                </span>
               </div>
 
               {/* Action buttons */}
               <div className={styles.actionRow}>
-                {/* TOC */}
                 <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowTOC(true); }} title="Table of Contents">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M4 6h16M4 10h12M4 14h16M4 18h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                   </svg>
                 </button>
 
-                {/* Bookmark this page */}
                 <button
                   className={`${styles.actionBtn} ${isCurrentBookmarked ? styles.actionActive : ''}`}
                   onClick={(e) => { e.stopPropagation(); handleBookmark(); }}
@@ -380,7 +468,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                   </svg>
                 </button>
 
-                {/* Bookmarks list */}
                 <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowBookmarks(true); }} title="View bookmarks">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M5 3h14v18l-7-4-7 4V3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
@@ -388,7 +475,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                   </svg>
                 </button>
 
-                {/* Search */}
                 <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowSearch(true); }} title="Search in book">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/>
@@ -405,7 +491,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       <AnimatePresence>
         {showBookmarks && (
           <BookmarksModal
-            bookmarks={getBookmarks()}
+            bookmarks={bookmarks}
             onJumpTo={handleJumpTo}
             onRemove={removeBookmark}
             onClose={() => setShowBookmarks(false)}

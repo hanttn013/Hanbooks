@@ -27,6 +27,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const [totalPages, setTotalPages] = useState(null);
   const [timeLeftStr, setTimeLeftStr] = useState('');
   const [animateClass, setAnimateClass] = useState('');
+  const [epubBook, setEpubBook] = useState(null);
 
   const viewerRef = useRef(null);
   const bookRef = useRef(null);
@@ -65,10 +66,11 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     setIsLoading(true);
     setError(null);
 
-    const epubBook = ePub(url);
-    bookRef.current = epubBook;
+    const epubBookInstance = ePub(url);
+    bookRef.current = epubBookInstance;
+    setEpubBook(epubBookInstance);
 
-    const rendition = epubBook.renderTo(viewerRef.current, {
+    const rendition = epubBookInstance.renderTo(viewerRef.current, {
       width: '100%',
       height: '100%',
       flow: settings.readingMode === 'scroll' ? 'scrolled-doc' : 'paginated',
@@ -94,15 +96,15 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     });
 
     // Get TOC
-    epubBook.loaded.navigation.then(nav => {
+    epubBookInstance.loaded.navigation.then(nav => {
       if (nav?.toc) setToc(nav.toc);
-    }).catch(() => {});
+    }).catch(() => { /* ignore navigation error */ });
 
     // Load book and restore position
-    epubBook.ready.then(() => {
-      return epubBook.locations.generate(1024);
+    epubBookInstance.ready.then(() => {
+      return epubBookInstance.locations.generate(1024);
     }).then(async () => {
-      setTotalPages(epubBook.locations.total);
+      setTotalPages(epubBookInstance.locations.total);
       const savedProgress = await StorageManager.getProgress(book.id);
       return rendition.display(savedProgress?.cfi || undefined);
     }).then(() => {
@@ -128,9 +130,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       }
 
       // Get chapter title from TOC
-      epubBook.loaded.navigation.then(nav => {
+      epubBookInstance.loaded.navigation.then(nav => {
         if (!nav?.toc || !cfi) return;
-        const spineItem = epubBook.spine?.get(cfi);
+        const spineItem = epubBookInstance.spine?.get(cfi);
         if (spineItem?.href) {
           const chapter = nav.toc.find(t =>
             t.href && spineItem.href.includes(t.href.split('#')[0])
@@ -139,25 +141,27 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
           setCurrentChapter(title);
           currentChapterRef.current = title;
         }
-      }).catch(() => {});
+      }).catch((_err) => { /* ignore nav load failure */ });
 
       // Calculate percentage and relative locations
       try {
-        if (epubBook.locations && cfi) {
-          const pct = epubBook.locations.percentageFromCfi(cfi) * 100;
+        if (epubBookInstance.locations && cfi) {
+          const pct = epubBookInstance.locations.percentageFromCfi(cfi) * 100;
           if (!isNaN(pct) && pct >= 0) {
             const rounded = Math.round(pct);
             setPercentage(rounded);
             saveProgress(cfi, rounded, currentChapterRef.current);
           }
-          const currentLoc = epubBook.locations.locationFromCfi(cfi);
-          const totalLoc = epubBook.locations.total;
+          const currentLoc = epubBookInstance.locations.locationFromCfi(cfi);
+          const totalLoc = epubBookInstance.locations.total;
           if (currentLoc !== -1) {
             setCurrentPage(Math.max(1, currentLoc));
             setTotalPages(totalLoc);
           }
         }
-      } catch {}
+      } catch (err) {
+        console.warn("Failed to calculate page locations:", err);
+      }
     });
 
     // Click inside iframe to toggle controls
@@ -167,7 +171,11 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
 
     return () => {
       stopReading();
-      try { epubBook.destroy(); } catch {}
+      try {
+        epubBookInstance.destroy();
+      } catch (err) {
+        console.warn("Error destroying EPUB instance:", err);
+      }
       if (url && url.startsWith('blob:')) {
         URL.revokeObjectURL(url);
       }
@@ -190,16 +198,25 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         },
         p: { 'margin-bottom': '1em' },
       });
-    } catch {}
+    } catch (err) {
+      console.warn("Failed to apply typography setting:", err);
+    }
   }, [settings.font, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.marginWidth]);
 
   // Handle page animation triggers
   useEffect(() => {
     if (!currentCfi || settings.readingMode === 'scroll') return;
     const effect = settings.pageTurnEffect === 'realistic' ? styles.curlAnim : styles.slideAnim;
-    setAnimateClass(effect);
+    
+    const aid = requestAnimationFrame(() => {
+      setAnimateClass(effect);
+    });
+    
     const tid = setTimeout(() => setAnimateClass(''), 400);
-    return () => clearTimeout(tid);
+    return () => {
+      cancelAnimationFrame(aid);
+      clearTimeout(tid);
+    };
   }, [currentCfi, settings.pageTurnEffect, settings.readingMode]);
 
   // Estimate remaining time in chapter
@@ -290,7 +307,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     'forest': '#E8F0E8', 'ocean': '#1A3040', 'midnight-blue': '#D8E0F0',
   }[settings.theme] || '#2C2416';
 
-  const isCurrentBookmarked = isBookmarked(currentCfiRef.current);
+  const isCurrentBookmarked = isBookmarked(currentCfi);
 
   return (
     <motion.div
@@ -507,7 +524,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         )}
         {showSearch && (
           <SearchModal
-            epubBook={bookRef.current}
+            epubBook={epubBook}
             onJumpTo={handleJumpTo}
             onClose={() => setShowSearch(false)}
           />

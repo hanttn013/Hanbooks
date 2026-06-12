@@ -36,7 +36,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const currentCfiRef = useRef(null);
 
   const {
-    progress,
     saveProgress,
     addBookmark,
     removeBookmark,
@@ -141,7 +140,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
           setCurrentChapter(title);
           currentChapterRef.current = title;
         }
-      }).catch((_err) => { /* ignore nav load failure */ });
+      }).catch(() => { /* ignore nav load failure */ });
 
       // Calculate percentage and relative locations
       try {

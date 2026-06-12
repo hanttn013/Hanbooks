@@ -29,13 +29,15 @@ export default function SearchModal({ epubBook, onJumpTo, onClose }) {
             item.unload();
             return matches;
           } catch (err) {
+            console.error("Spine item search failed:", err);
             return [];
           }
         })
       );
       const flat = searchResults.flat().slice(0, 40);
       setResults(flat);
-    } catch (e) {
+    } catch (err) {
+      console.error("Book search failed:", err);
       setResults([]);
     } finally {
       setSearching(false);

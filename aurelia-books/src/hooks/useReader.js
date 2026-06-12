@@ -52,7 +52,9 @@ export function useReader(bookId) {
     setProgress(record);
     try {
       localStorage.setItem(`aurelia_pct_${bookId}`, String(percentage));
-    } catch {}
+    } catch (e) {
+      console.warn("localStorage quota exceeded or blocked:", e);
+    }
   }, [bookId]);
 
   const addBookmark = useCallback(async (cfi, chapterTitle, excerpt) => {

@@ -72,7 +72,6 @@ export default function App() {
                       <LibraryScreen
                         library={library}
                         onOpenBook={handleOpenBook}
-                        settings={settings}
                       />
                     </motion.div>
                   )}
@@ -85,10 +84,9 @@ export default function App() {
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.22 }}
                     >
-                      <ContinueScreen
+                       <ContinueScreen
                         library={library}
                         onOpenBook={handleOpenBook}
-                        settings={settings}
                       />
                     </motion.div>
                   )}
@@ -114,7 +112,6 @@ export default function App() {
               <TabBar
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
-                settings={settings}
               />
             </motion.div>
           )}

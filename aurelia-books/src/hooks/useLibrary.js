@@ -44,7 +44,10 @@ export function useLibrary() {
   }, []);
 
   useEffect(() => {
-    refreshLibrary();
+    const timer = setTimeout(() => {
+      refreshLibrary();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [refreshLibrary]);
 
   useEffect(() => {

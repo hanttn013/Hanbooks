@@ -1,12 +1,10 @@
 // src/components/Library/LibraryScreen.jsx
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
 import BookCover from './BookCover';
 import BookDetailModal from './BookDetailModal';
 import styles from './LibraryScreen.module.css';
-
-const VIEW_MODES = ['bookshelf', 'grid', 'list'];
 
 const SORT_OPTIONS = [
   { value: 'lastOpenedAt', label: 'Recently Opened' },
@@ -239,7 +237,7 @@ function ListSection({ title, books, onOpenBook, onContextMenu }) {
   );
 }
 
-export default function LibraryScreen({ library, onOpenBook, settings }) {
+export default function LibraryScreen({ library, onOpenBook }) {
   const [viewMode, setViewMode] = useState('bookshelf');
   const [showSort, setShowSort] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -248,7 +246,7 @@ export default function LibraryScreen({ library, onOpenBook, settings }) {
   const [isImporting, setIsImporting] = useState(false);
   const fileRef = useRef(null);
 
-  const { books, allBooksRaw, isLoading, addBook, deleteBook, updateBook, sortBy, setSortBy, filterBy, setFilterBy } = library;
+  const { books, allBooksRaw, addBook, deleteBook, updateBook, sortBy, setSortBy, filterBy, setFilterBy } = library;
 
   const handleContextMenu = (e, book) => {
     e.preventDefault();
@@ -324,10 +322,11 @@ export default function LibraryScreen({ library, onOpenBook, settings }) {
   }) : null;
   const showContinueCard = continueBook && continueBook.status !== 'finished';
 
+  const oneWeekAgo = Date.now() - 86400000 * 7;
   const sections = [
     { title: 'Currently Reading', books: books.filter(b => b.status === 'reading') },
     { title: 'Favorites', books: books.filter(b => b.isFavorite) },
-    { title: 'Recently Added', books: books.filter(b => Date.now() - b.addedAt < 86400000 * 7) },
+    { title: 'Recently Added', books: books.filter(b => b.addedAt > oneWeekAgo) },
     { title: 'Finished', books: books.filter(b => b.status === 'finished') },
   ].filter(s => s.books.length > 0);
 

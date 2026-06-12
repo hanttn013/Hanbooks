@@ -44,7 +44,7 @@ const TABS = [
   },
 ];
 
-export default function TabBar({ activeTab, onTabChange, settings }) {
+export default function TabBar({ activeTab, onTabChange }) {
   return (
     <nav className={styles.tabBar}>
       {TABS.map(tab => (

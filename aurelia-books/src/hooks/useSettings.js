@@ -29,7 +29,9 @@ export function useSettings() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {}
+    } catch (e) {
+      console.warn("localStorage quota exceeded or blocked:", e);
+    }
     // Apply theme to phone frame
     const frame = document.getElementById('phone-frame');
     if (frame) {

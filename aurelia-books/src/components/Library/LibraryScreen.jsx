@@ -1,5 +1,5 @@
 // src/components/Library/LibraryScreen.jsx
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
 import BookCover from './BookCover';
@@ -244,7 +244,12 @@ export default function LibraryScreen({ library, onOpenBook }) {
   const [detailBook, setDetailBook] = useState(null);
   const [renamingBook, setRenamingBook] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [oneWeekAgo, setOneWeekAgo] = useState(0);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    setOneWeekAgo(Date.now() - 86400000 * 7);
+  }, []);
 
   const { books, allBooksRaw, addBook, deleteBook, updateBook, sortBy, setSortBy, filterBy, setFilterBy } = library;
 
@@ -323,14 +328,13 @@ export default function LibraryScreen({ library, onOpenBook }) {
   const showContinueCard = continueBook && continueBook.status !== 'finished';
 
   const sections = useMemo(() => {
-    const oneWeekAgo = Date.now() - 86400000 * 7;
     return [
       { title: 'Currently Reading', books: books.filter(b => b.status === 'reading') },
       { title: 'Favorites', books: books.filter(b => b.isFavorite) },
       { title: 'Recently Added', books: books.filter(b => b.addedAt > oneWeekAgo) },
       { title: 'Finished', books: books.filter(b => b.status === 'finished') },
     ].filter(s => s.books.length > 0);
-  }, [books]);
+  }, [books, oneWeekAgo]);
 
   // Fallback flat list if we just filtered/sorted and none matches section templates
   const hasSections = sections.length > 0;

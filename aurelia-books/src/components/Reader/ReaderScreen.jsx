@@ -99,25 +99,44 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       if (nav?.toc) setToc(nav.toc);
     }).catch(() => { /* ignore navigation error */ });
 
-    // Load book and restore position
-    epubBookInstance.ready.then(() => {
-      return epubBookInstance.locations.generate(1024);
-    }).then(async () => {
-      setTotalPages(epubBookInstance.locations.total);
-      const savedProgress = await StorageManager.getProgress(book.id);
-      return rendition.display(savedProgress?.cfi || undefined);
+    // Load book and restore position immediately
+    StorageManager.getProgress(book.id).then(async (savedProgress) => {
+      const cfi = savedProgress?.cfi || undefined;
+      return rendition.display(cfi);
     }).then(() => {
       setIsLoading(false);
       startReading();
-    }).catch(async () => {
-      const savedProgress = await StorageManager.getProgress(book.id);
-      const displayPromise = savedProgress?.cfi
-        ? rendition.display(savedProgress.cfi).catch(() => rendition.display())
-        : rendition.display();
-      displayPromise.finally(() => {
-        setIsLoading(false);
-        startReading();
-      });
+      
+      // Start generating locations in the background once ready
+      return epubBookInstance.ready;
+    }).then(() => {
+      return epubBookInstance.locations.generate(1024);
+    }).then(() => {
+      setTotalPages(epubBookInstance.locations.total);
+      
+      // Update page statistics once locations are ready
+      const loc = rendition.currentLocation();
+      const cfi = loc?.start?.cfi || loc?.cfi;
+      if (cfi && epubBookInstance.locations) {
+        const pct = epubBookInstance.locations.percentageFromCfi(cfi) * 100;
+        if (!isNaN(pct) && pct >= 0) {
+          setPercentage(Math.round(pct));
+        }
+        const currentLoc = epubBookInstance.locations.locationFromCfi(cfi);
+        if (currentLoc !== -1) {
+          setCurrentPage(Math.max(1, currentLoc));
+        }
+      }
+    }).catch(async (err) => {
+      console.warn("Background location generation or render failed:", err);
+      // Fallback display if first attempt fails
+      try {
+        await rendition.display();
+      } catch (displayErr) {
+        console.error("Critical display failure:", displayErr);
+      }
+      setIsLoading(false);
+      startReading();
     });
 
     // Track location changes

@@ -4,7 +4,8 @@ import BookCover from '../Library/BookCover';
 import styles from './ContinueScreen.module.css';
 
 export default function ContinueScreen({ library, onOpenBook }) {
-  const { currentlyReading } = library;
+  const { allBooksRaw } = library;
+  const currentlyReading = allBooksRaw.filter(b => b.status === 'reading');
   const mainBook = currentlyReading[0] || null;
   const alsoReading = currentlyReading.slice(1);
 

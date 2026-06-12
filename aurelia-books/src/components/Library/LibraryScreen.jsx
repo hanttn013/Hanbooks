@@ -1,5 +1,5 @@
 // src/components/Library/LibraryScreen.jsx
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
 import BookCover from './BookCover';
@@ -244,12 +244,8 @@ export default function LibraryScreen({ library, onOpenBook }) {
   const [detailBook, setDetailBook] = useState(null);
   const [renamingBook, setRenamingBook] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [oneWeekAgo, setOneWeekAgo] = useState(0);
+  const [oneWeekAgo] = useState(() => Date.now() - 86400000 * 7);
   const fileRef = useRef(null);
-
-  useEffect(() => {
-    setOneWeekAgo(Date.now() - 86400000 * 7);
-  }, []);
 
   const { books, allBooksRaw, addBook, deleteBook, updateBook, sortBy, setSortBy, filterBy, setFilterBy } = library;
 

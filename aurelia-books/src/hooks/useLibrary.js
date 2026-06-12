@@ -2,79 +2,91 @@
 import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { DEMO_BOOKS } from '../data/demoBooks';
-
-const STORAGE_KEY = 'aurelia_library';
-
-function loadLibrary() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.length > 0) {
-        // Merge: update demo books' epubUrl from DEMO_BOOKS (in case they changed)
-        return parsed.map(book => {
-          const demo = DEMO_BOOKS.find(d => d.id === book.id);
-          if (demo) return { ...book, epubUrl: demo.epubUrl };
-          return book;
-        });
-      }
-    }
-    return [...DEMO_BOOKS];
-  } catch {
-    return [...DEMO_BOOKS];
-  }
-}
-
-function saveLibrary(books) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-  } catch (e) {
-    console.warn('Failed to save library:', e);
-  }
-}
+import { StorageManager } from '../utils/StorageManager';
 
 export function useLibrary() {
-  const [books, setBooks] = useState(loadLibrary);
-  const [sortBy, setSortBy] = useState('lastOpenedAt');
+  const [books, setBooks] = useState([]);
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem('aurelia_sort') || 'lastOpenedAt');
+  const [filterBy, setFilterBy] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load books from IndexedDB
+  const refreshLibrary = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      let list = await StorageManager.getAllBooks();
+      if (list.length === 0) {
+        // Load demo books from public URLs or assets
+        for (const demo of DEMO_BOOKS) {
+          try {
+            const res = await fetch(demo.epubUrl);
+            const blob = await res.blob();
+            const bookRecord = {
+              ...demo,
+              fileBlob: blob,
+              coverUrl: null, // extracted cover or SVG will fall back
+            };
+            await StorageManager.saveBook(bookRecord);
+          } catch (e) {
+            console.error('Failed to pre-fetch demo book:', demo.title, e);
+            // Fallback save metadata only
+            await StorageManager.saveBook({ ...demo, fileBlob: null });
+          }
+        }
+        list = await StorageManager.getAllBooks();
+      }
+      setBooks(list);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    saveLibrary(books);
-  }, [books]);
+    refreshLibrary();
+  }, [refreshLibrary]);
 
-  const addBook = useCallback(async (file) => {
-    const url = URL.createObjectURL(file);
-    const title = file.name.replace(/\.epub$/i, '');
+  useEffect(() => {
+    localStorage.setItem('aurelia_sort', sortBy);
+  }, [sortBy]);
+
+  const addBook = useCallback(async (file, metadata) => {
     const book = {
       id: uuidv4(),
-      title,
-      author: 'Unknown Author',
+      title: metadata.title || file.name.replace(/\.epub$/i, ''),
+      author: metadata.author || 'Unknown Author',
       isDemo: false,
-      coverColor: '#2D4A6E',
-      coverAccent: '#C4A35A',
-      epubUrl: url,
-      blobUrl: url,
+      coverColor: metadata.coverColor || '#2D4A6E',
+      coverAccent: metadata.coverAccent || '#C4A35A',
+      coverUrl: metadata.coverUrl || null, // Base64 cover
+      fileBlob: file,
       status: 'unread',
       isFavorite: false,
       addedAt: Date.now(),
       lastOpenedAt: null,
       totalLocations: 0,
     };
+    await StorageManager.saveBook(book);
     setBooks(prev => [book, ...prev]);
     return book;
   }, []);
 
-  const deleteBook = useCallback((id) => {
-    setBooks(prev => {
-      const book = prev.find(b => b.id === id);
-      if (book?.blobUrl) {
-        try { URL.revokeObjectURL(book.blobUrl); } catch {}
-      }
-      return prev.filter(b => b.id !== id);
-    });
+  const deleteBook = useCallback(async (id) => {
+    await StorageManager.deleteBook(id);
+    setBooks(prev => prev.filter(b => b.id !== id));
   }, []);
 
-  const updateBook = useCallback((id, updates) => {
-    setBooks(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+  const updateBook = useCallback(async (id, updates) => {
+    // We update state first or DB first? Update DB then update state
+    setBooks(prev => prev.map(b => {
+      if (b.id === id) {
+        const updated = { ...b, ...updates };
+        StorageManager.saveBook(updated);
+        return updated;
+      }
+      return b;
+    }));
   }, []);
 
   const getSorted = useCallback((bookList) => {
@@ -99,22 +111,27 @@ export function useLibrary() {
   }, [sortBy]);
 
   // Derived sections
-  const currentlyReading = getSorted(books.filter(b => b.status === 'reading'));
-  const favorites = getSorted(books.filter(b => b.isFavorite));
-  const recentlyAdded = getSorted(books.filter(b => b.status !== 'finished'));
-  const finished = getSorted(books.filter(b => b.status === 'finished'));
+  const filteredBooks = books.filter(b => {
+    if (filterBy === 'reading') return b.status === 'reading';
+    if (filterBy === 'favorites') return b.isFavorite;
+    if (filterBy === 'finished') return b.status === 'finished';
+    if (filterBy === 'unread') return b.status === 'unread';
+    return true;
+  });
+
+  const sortedBooks = getSorted(filteredBooks);
 
   return {
-    books,
+    books: sortedBooks,
+    allBooksRaw: books,
+    isLoading,
     addBook,
     deleteBook,
     updateBook,
     sortBy,
     setSortBy,
-    getSorted,
-    currentlyReading,
-    favorites,
-    recentlyAdded,
-    finished,
+    filterBy,
+    setFilterBy,
+    refreshLibrary,
   };
 }

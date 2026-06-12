@@ -13,6 +13,31 @@ export default function BookCover({ book, size = 'medium', style = {} }) {
 
   const dims = sizeMap[size] || sizeMap.medium;
 
+  if (book.coverUrl) {
+    return (
+      <div
+        className={styles.cover}
+        style={{
+          width: dims.width,
+          height: dims.height,
+          backgroundColor: '#f0f0f0',
+          padding: 0,
+          ...style,
+        }}
+      >
+        <img
+          src={book.coverUrl}
+          alt={book.title}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        {/* Texture overlay */}
+        <div className={styles.texture} />
+        {/* Spine shadow */}
+        <div className={styles.spineShadow} />
+      </div>
+    );
+  }
+
   return (
     <div
       className={styles.cover}
@@ -64,3 +89,4 @@ export default function BookCover({ book, size = 'medium', style = {} }) {
     </div>
   );
 }
+

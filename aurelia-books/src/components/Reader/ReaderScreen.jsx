@@ -179,6 +179,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         URL.revokeObjectURL(url);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book.id]);
 
   // Re-apply typography when settings change (without re-mounting epub)

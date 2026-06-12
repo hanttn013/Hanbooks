@@ -108,6 +108,35 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
             </div>
           </div>
 
+          {/* Page Turn Effect */}
+          {settings.readingMode === 'classic' && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Page Animation</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { id: 'slide', label: 'Slide' },
+                  { id: 'realistic', label: '3D Page Curl' }
+                ].map(effect => (
+                  <button
+                    key={effect.id}
+                    onClick={() => updateSetting('pageTurnEffect', effect.id)}
+                    style={{
+                      flex: 1, padding: '10px 0', borderRadius: 10,
+                      border: '1.5px solid',
+                      borderColor: settings.pageTurnEffect === effect.id ? 'var(--accent)' : 'var(--border)',
+                      background: settings.pageTurnEffect === effect.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
+                      color: settings.pageTurnEffect === effect.id ? '#F5E6C0' : 'var(--text-secondary)',
+                      fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                      transition: 'all 150ms ease',
+                    }}
+                  >
+                    {effect.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Theme quick-select */}
           <div>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Theme</p>

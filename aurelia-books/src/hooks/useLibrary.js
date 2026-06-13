@@ -46,6 +46,7 @@ export function useLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [lists, setLists] = useState([]);
   const [bookmarkCount, setBookmarkCount] = useState(0);
+  const [bookmarkedBookIds, setBookmarkedBookIds] = useState(() => new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   // Load books from IndexedDB
@@ -53,7 +54,7 @@ export function useLibrary() {
     setIsLoading(true);
     try {
       let list = await StorageManager.getAllBooks();
-      if (list.length === 0) {
+      if (list.length === 0 && localStorage.getItem('aurelia_seeded_demo') !== '1') {
         // Load demo books from public URLs or assets
         for (const demo of DEMO_BOOKS) {
           try {
@@ -82,6 +83,7 @@ export function useLibrary() {
             await StorageManager.saveBook({ ...demo, ...normalizeBookMetadata(demo), fileBlob: null });
           }
         }
+        localStorage.setItem('aurelia_seeded_demo', '1');
         list = await StorageManager.getAllBooks();
       }
 
@@ -109,6 +111,7 @@ export function useLibrary() {
 
       const allBookmarks = await StorageManager.getAllBookmarks();
       setBookmarkCount(allBookmarks.length);
+      setBookmarkedBookIds(new Set(allBookmarks.map(bookmark => bookmark.bookId).filter(Boolean)));
     } catch (err) {
       console.error(err);
     } finally {
@@ -161,10 +164,18 @@ export function useLibrary() {
   const deleteBook = useCallback(async (id) => {
     await StorageManager.deleteBook(id);
     setBooks(prev => prev.filter(b => b.id !== id));
+    setLists(prev => prev.map(list => ({
+      ...list,
+      bookIds: list.bookIds.filter(bookId => bookId !== id),
+    })));
+    setBookmarkedBookIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }, []);
 
   const updateBook = useCallback(async (id, updates) => {
-    // We update state first or DB first? Update DB then update state
     setBooks(prev => prev.map(b => {
       if (b.id === id) {
         const updated = { ...b, ...updates };
@@ -260,6 +271,7 @@ export function useLibrary() {
     if (filterBy === 'favorites') return b.isFavorite;
     if (filterBy === 'finished') return b.status === 'finished';
     if (filterBy === 'unread') return b.status === 'unread';
+    if (filterBy === 'bookmarked') return bookmarkedBookIds.has(b.id);
     return true;
   }).filter(b => {
     const query = searchQuery.trim().toLowerCase();
@@ -297,6 +309,7 @@ export function useLibrary() {
     setSearchQuery,
     lists,
     bookmarkCount,
+    bookmarkedBookIds,
     stats,
     createList,
     updateList,

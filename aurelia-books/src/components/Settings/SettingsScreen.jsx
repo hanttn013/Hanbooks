@@ -1,4 +1,5 @@
 import styles from './SettingsScreen.module.css';
+import { StorageManager } from '../../utils/StorageManager';
 
 const THEMES = [
   { id: 'pure-white', label: 'White', bg: '#FFFFFF', text: '#1A1A1A' },
@@ -36,6 +37,23 @@ function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
 export default function SettingsScreen({ settings, updateSetting, library }) {
   const activeTheme = THEMES.find(theme => theme.id === settings.theme) || THEMES[1];
   const stats = library?.stats || {};
+
+  const handleClearData = async () => {
+    const confirmed = window.confirm(
+      'Xoa toan bo du lieu Hanbooks? Viec nay se xoa sach da import, bookmarks, lists, tien do doc va cai dat.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await StorageManager.clearAllData();
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('aurelia_'))
+        .forEach(key => localStorage.removeItem(key));
+      window.location.reload();
+    } catch (err) {
+      alert(err.message || 'Khong the xoa du lieu. Hay dong va mo lai app roi thu lai.');
+    }
+  };
 
   return (
     <div className={styles.screen}>
@@ -141,6 +159,16 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
               <div className={styles.infoRow}><span>Storage</span><em>IndexedDB</em></div>
               <div className={styles.infoRow}><span>Import format</span><em>EPUB</em></div>
               <div className={styles.infoRow}><span>Metadata</span><em>Automatic extraction</em></div>
+            </div>
+          </section>
+
+          <section className={styles.group}>
+            <h2>Danger zone</h2>
+            <div className={styles.card}>
+              <button className={styles.dangerRow} onClick={handleClearData}>
+                <span>Delete all app data</span>
+                <em>Reset</em>
+              </button>
             </div>
           </section>
         </main>

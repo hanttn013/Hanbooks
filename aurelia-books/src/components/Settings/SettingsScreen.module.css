@@ -182,6 +182,14 @@
   background: var(--bg-secondary) !important;
 }
 
+.dangerRow {
+  color: #C7372F !important;
+}
+
+.dangerRow em {
+  color: #C7372F !important;
+}
+
 .sliderRow {
   display: block;
   padding: 14px;

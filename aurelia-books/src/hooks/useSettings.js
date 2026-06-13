@@ -13,7 +13,8 @@ export const DEFAULT_SETTINGS = {
   readingMode: 'scroll',
   pageTurnEffect: 'none',
   reducedMotion: true,
-  settingsVersion: 3,
+  readerMode: 'lite',
+  settingsVersion: 4,
 };
 
 export function useSettings() {
@@ -26,8 +27,11 @@ export function useSettings() {
       if (!parsed.settingsVersion && merged.readingMode === 'classic') {
         merged.readingMode = 'scroll';
       }
-      if ((parsed.settingsVersion || 0) < 3 && merged.pageTurnEffect !== 'none') {
+      if ((parsed.settingsVersion || 0) < DEFAULT_SETTINGS.settingsVersion) {
+        merged.readingMode = 'scroll';
         merged.pageTurnEffect = 'none';
+        merged.reducedMotion = true;
+        merged.readerMode = 'lite';
       }
       merged.settingsVersion = DEFAULT_SETTINGS.settingsVersion;
       return merged;

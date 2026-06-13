@@ -46,8 +46,8 @@
   width: 100%;
   border: 1px solid var(--border);
   background: var(--bg-card);
-  border-radius: 22px;
-  box-shadow: var(--shadow-card);
+  border-radius: 16px;
+  box-shadow: none;
   padding: 14px;
   display: flex;
   gap: 16px;
@@ -103,9 +103,9 @@
 .statCard {
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--bg-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   padding: 10px 8px;
   display: flex;
   flex-direction: column;
@@ -176,10 +176,10 @@
 
 .listRow {
   width: 100%;
-  border: none;
+  border: 1px solid var(--border);
   background: var(--bg-card);
-  border-radius: 16px;
-  box-shadow: var(--shadow-card);
+  border-radius: 12px;
+  box-shadow: none;
   padding: 12px;
   display: flex;
   align-items: center;
@@ -191,16 +191,16 @@
 .listThumb {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
+  border-radius: 10px;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
-.gold { background: linear-gradient(135deg, #C4A35A, #8B6914); }
-.cream { background: linear-gradient(135deg, #F5EDD6, #D7BE82); }
-.burgundy { background: linear-gradient(135deg, #8A3D4D, #4B1F2A); }
-.forest { background: linear-gradient(135deg, #356B4E, #1C3329); }
-.ink { background: linear-gradient(135deg, #4A3B32, #1C1714); }
+.gold { background: #A47B18; }
+.cream { background: #D7BE82; }
+.burgundy { background: #8A3D4D; }
+.forest { background: #356B4E; }
+.ink { background: #4A3B32; }
 
 .listText {
   min-width: 0;

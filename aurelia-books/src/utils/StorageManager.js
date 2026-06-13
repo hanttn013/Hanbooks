@@ -1,6 +1,6 @@
 // src/utils/StorageManager.js
 const DB_NAME = 'aurelia_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export class StorageManager {
   static openDB() {
@@ -12,9 +12,14 @@ export class StorageManager {
         if (!db.objectStoreNames.contains('books')) {
           db.createObjectStore('books', { keyPath: 'id' });
         }
+        let bookmarkStore;
         if (!db.objectStoreNames.contains('bookmarks')) {
-          const store = db.createObjectStore('bookmarks', { keyPath: 'id' });
-          store.createIndex('bookId', 'bookId', { unique: false });
+          bookmarkStore = db.createObjectStore('bookmarks', { keyPath: 'id' });
+        } else {
+          bookmarkStore = e.target.transaction.objectStore('bookmarks');
+        }
+        if (bookmarkStore && !bookmarkStore.indexNames.contains('bookId')) {
+          bookmarkStore.createIndex('bookId', 'bookId', { unique: false });
         }
         if (!db.objectStoreNames.contains('progress')) {
           db.createObjectStore('progress', { keyPath: 'bookId' });
@@ -54,7 +59,7 @@ export class StorageManager {
   static async deleteBook(id) {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['books', 'bookmarks', 'progress'], 'readwrite');
+      const transaction = db.transaction(['books', 'bookmarks', 'progress', 'lists'], 'readwrite');
       
       // Delete book
       transaction.objectStore('books').delete(id);
@@ -72,6 +77,19 @@ export class StorageManager {
           bookmarkStore.delete(cursor.primaryKey);
           cursor.continue();
         }
+      };
+
+      const listStore = transaction.objectStore('lists');
+      const listRequest = listStore.getAll();
+      listRequest.onsuccess = () => {
+        (listRequest.result || []).forEach(list => {
+          if (!Array.isArray(list.bookIds) || !list.bookIds.includes(id)) return;
+          listStore.put({
+            ...list,
+            bookIds: list.bookIds.filter(bookId => bookId !== id),
+            updatedAt: Date.now(),
+          });
+        });
       };
       
       transaction.oncomplete = () => resolve();
@@ -176,6 +194,17 @@ export class StorageManager {
       const request = store.delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  static async clearAllData() {
+    return new Promise((resolve, reject) => {
+      const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+      deleteRequest.onsuccess = () => resolve();
+      deleteRequest.onerror = () => reject(deleteRequest.error);
+      deleteRequest.onblocked = () => {
+        reject(new Error('Database is busy. Close and reopen the app, then try again.'));
+      };
     });
   }
 }

@@ -33,6 +33,8 @@ body {
   align-items: center;
   min-height: 100vh;
   overflow: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -85,6 +87,8 @@ body {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   overscroll-behavior: contain;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   scroll-behavior: auto;
 }
 .screen-scroll::-webkit-scrollbar { display: none; }
@@ -230,6 +234,10 @@ body {
   justify-content: space-between;
   padding: 12px 20px 8px;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-primary);
 }
 
 .modal-title {

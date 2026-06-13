@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
 import { StorageManager } from '../../utils/StorageManager';
@@ -20,13 +19,16 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
+  const [isDeleting, setIsDeleting] = useState(false);
   const pct = progressFor(book);
+  const infoBookmark = bookmarks.find(item => item.cfi === '' && item.chapterTitle === 'Book info');
 
   useEffect(() => {
     StorageManager.getBookmarks(book.id).then(setBookmarks).catch(() => setBookmarks([]));
   }, [book.id]);
 
   const handleQuickBookmark = async () => {
+    if (infoBookmark) return;
     const bookmark = {
       id: uuidv4(),
       bookId: book.id,
@@ -37,6 +39,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     };
     await StorageManager.addBookmark(bookmark);
     setBookmarks(prev => [...prev, bookmark]);
+    library?.refreshLibrary?.();
   };
 
   const handleRename = async () => {
@@ -47,10 +50,21 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     setRenaming(false);
   };
 
+  const handleFavorite = async () => {
+    const next = !book.isFavorite;
+    await library?.updateBook?.(book.id, { isFavorite: next });
+  };
+
   const handleDelete = async () => {
     if (!confirm(`Delete "${book.title}" from your library?`)) return;
-    await library?.deleteBook?.(book.id);
-    onClose();
+    setIsDeleting(true);
+    try {
+      await library?.deleteBook?.(book.id);
+      onClose();
+    } catch (err) {
+      alert(err.message || 'Could not delete this book.');
+      setIsDeleting(false);
+    }
   };
 
   const handleAddToList = async () => {
@@ -60,20 +74,13 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   };
 
   return (
-    <motion.div
+    <div
       className="modal-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       onClick={onClose}
     >
-      <motion.div
+      <div
         className="modal-sheet"
         style={{ maxHeight: '88%' }}
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-handle" />
@@ -120,7 +127,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
             <button className="btn-primary" style={{ padding: 12, fontSize: 14 }} onClick={() => { onOpen(book); onClose(); }}>
               {pct > 0 ? 'Continue' : 'Read'}
             </button>
-            <button className="btn-primary" style={secondaryBtn} onClick={() => library?.updateBook?.(book.id, { isFavorite: !book.isFavorite })}>
+            <button className="btn-primary" style={secondaryBtn} onClick={handleFavorite}>
               {book.isFavorite ? 'Unfavorite' : 'Favorite'}
             </button>
           </div>
@@ -158,13 +165,23 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
           </div>
 
           <div style={{ padding: '0 20px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            <button style={plainBtn} onClick={handleQuickBookmark}>Bookmark</button>
+            <button style={plainBtn} onClick={handleQuickBookmark} disabled={Boolean(infoBookmark)}>
+              {infoBookmark ? 'Bookmarked' : 'Bookmark'}
+            </button>
             <button style={plainBtn} onClick={() => setRenaming(prev => !prev)}>Rename</button>
-            <button style={{ ...plainBtn, color: '#D33' }} onClick={handleDelete}>Delete</button>
+            <button style={{ ...plainBtn, color: '#D33' }} onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+
+          <div style={{ padding: '0 20px 34px' }}>
+            <button className="btn-primary" style={{ padding: 12, fontSize: 14, background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: 'none' }} onClick={onClose}>
+              Close
+            </button>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 

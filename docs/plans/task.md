@@ -30,3 +30,17 @@
 | 26 | Product Redesign Plan: Lists Screen | completed |
 | 27 | Product Redesign Plan: Reader Reliability, Search, and Bookmarks | completed |
 | 28 | Product Redesign Plan: Final Verification and Polish | completed |
+| 29 | Offline Reader Competitive Assessment: Explore project context | completed |
+| 30 | Offline Reader Competitive Assessment: Clarify purpose, constraints, and success criteria | completed |
+| 31 | Offline Reader Competitive Assessment: Propose 2-3 improvement approaches | completed |
+| 32 | Offline Reader Competitive Assessment: Present validated design sections | completed |
+| 33 | Offline Reader Competitive Assessment: Write design document | completed |
+| 34 | Offline Reader Competitive Assessment: Transition to implementation plan | completed |
+| 35 | Reader Lite Implementation: Add settings contract | completed |
+| 36 | Reader Lite Implementation: Make reader overlay static and fast | completed |
+| 37 | Reader Lite Implementation: Simplify reader panels | completed |
+| 38 | Reader Lite Implementation: Polish Home with low-cost UI | completed |
+| 39 | Reader Lite Implementation: Polish Library for large offline collections | completed |
+| 40 | Reader Lite Implementation: Make Book Info sheet lightweight | completed |
+| 41 | Reader Lite Implementation: Android build verification | completed |
+| 42 | Reader Lite Implementation: Manual Android acceptance pass | blocked - requires physical Android device |

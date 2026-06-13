@@ -1,6 +1,5 @@
 // src/components/Reader/ReaderSettingsPanel.jsx
 // Quick settings accessible from within the reader
-import { motion } from 'framer-motion';
 
 const THEMES = [
   { id: 'warm-cream', label: 'Cream', bg: '#EDE8DC', text: '#2C2416' },
@@ -18,20 +17,13 @@ const READING_MODES = [
 
 export default function ReaderSettingsPanel({ settings, updateSetting, onClose }) {
   return (
-    <motion.div
+    <div
       className="modal-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       onClick={onClose}
       style={{ justifyContent: 'flex-end' }}
     >
-      <motion.div
+      <div
         className="modal-sheet"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
         onClick={e => e.stopPropagation()}
         style={{ paddingBottom: 32 }}
       >
@@ -99,7 +91,6 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
                     background: settings.readingMode === mode.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
                     color: settings.readingMode === mode.id ? '#F5E6C0' : 'var(--text-secondary)',
                     fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                    transition: 'all 150ms ease',
                   }}
                 >
                   {mode.label}
@@ -109,7 +100,7 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
           </div>
 
           {/* Page Turn Effect */}
-          {settings.readingMode === 'classic' && (
+          {settings.readerMode !== 'lite' && settings.readingMode !== 'scroll' && (
             <div style={{ marginBottom: 20 }}>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Page Animation</p>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -128,7 +119,6 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
                       background: settings.pageTurnEffect === effect.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
                       color: settings.pageTurnEffect === effect.id ? '#F5E6C0' : 'var(--text-secondary)',
                       fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                      transition: 'all 150ms ease',
                     }}
                   >
                     {effect.label}
@@ -143,9 +133,8 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Theme</p>
             <div style={{ display: 'flex', gap: 8 }}>
               {THEMES.map(theme => (
-                <motion.button
+                <button
                   key={theme.id}
-                  whileTap={{ scale: 0.88 }}
                   onClick={() => updateSetting('theme', theme.id)}
                   style={{
                     flex: 1, height: 42, borderRadius: 10,
@@ -153,17 +142,16 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
                     background: theme.bg,
                     cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'border 150ms ease',
-                    boxShadow: settings.theme === theme.id ? '0 0 0 1px var(--accent)' : '0 1px 4px rgba(0,0,0,0.15)',
+                    boxShadow: settings.theme === theme.id ? '0 0 0 1px var(--accent)' : 'none',
                   }}
                 >
                   <span style={{ fontFamily: 'Georgia', fontSize: 13, color: theme.text, fontWeight: 500 }}>Aa</span>
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

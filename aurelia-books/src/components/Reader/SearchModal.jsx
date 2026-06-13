@@ -1,6 +1,5 @@
 // src/components/Reader/SearchModal.jsx
 import { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
 
 export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose }) {
   const [query, setQuery] = useState('');
@@ -64,20 +63,13 @@ export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose })
   };
 
   return (
-    <motion.div
+    <div
       className="modal-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       onClick={onClose}
     >
-      <motion.div
+      <div
         className="modal-sheet"
         style={{ maxHeight: '85%' }}
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-handle" />
@@ -110,7 +102,7 @@ export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose })
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="Search…"
+              placeholder="Search..."
               style={{
                 flex: 1,
                 border: 'none',
@@ -163,7 +155,7 @@ export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose })
         <div className="modal-scroll">
           {searching && (
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
-              Searching…
+              Searching...
             </div>
           )}
           {!searching && results.length === 0 && query && (
@@ -182,14 +174,14 @@ export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose })
                   {result.chapterTitle}
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                  …{highlightQuery(result.excerpt)}…
+                  ...{highlightQuery(result.excerpt)}...
                 </p>
               </div>
               {i < results.length - 1 && <div className="divider" />}
             </div>
           ))}
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

@@ -21,6 +21,9 @@ export default function App() {
 
   const library = useLibrary();
   const { settings, updateSetting } = useSettings();
+  const currentDetailBook = detailBook
+    ? library.allBooksRaw.find(book => book.id === detailBook.id) || detailBook
+    : null;
   const instantMotion = settings.reducedMotion
     ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } }
     : null;
@@ -165,9 +168,10 @@ export default function App() {
           )}
         </AnimatePresence>
         <AnimatePresence>
-          {detailBook && !openBook && (
+          {currentDetailBook && !openBook && (
             <BookDetailModal
-              book={detailBook}
+              key={currentDetailBook.id}
+              book={currentDetailBook}
               onClose={() => setDetailBook(null)}
               onOpen={handleOpenBook}
               library={library}

@@ -50,16 +50,16 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
           <section>
             <div className={styles.statsGrid}>
               <div className={styles.statCard}>
-                <strong>{stats.streak || 0}</strong>
-                <span>Day streak</span>
+                <strong>{stats.totalBooks || 0}</strong>
+                <span>Books</span>
               </div>
               <div className={styles.statCard}>
                 <strong>{stats.readingBooks || 0}</strong>
                 <span>Reading</span>
               </div>
               <div className={styles.statCard}>
-                <strong>{stats.finishedBooks || 0}</strong>
-                <span>Finished</span>
+                <strong>{stats.bookmarkCount || 0}</strong>
+                <span>Marks</span>
               </div>
               <div className={styles.statCard}>
                 <strong>{stats.totalStorageLabel || '0 MB'}</strong>
@@ -75,7 +75,12 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
             </div>
             <div className={styles.bookRail}>
               {recent.map(book => (
-                <button key={book.id} className={styles.railBook} onClick={() => onOpenBookInfo(book)}>
+                <button
+                  key={book.id}
+                  className={styles.railBook}
+                  onClick={() => onOpenBook(book)}
+                  onContextMenu={e => { e.preventDefault(); onOpenBookInfo(book); }}
+                >
                   <BookCover book={book} size="medium" style={{ width: 106, height: 159 }} />
                   <span>{book.title}</span>
                   <small>{book.author}</small>

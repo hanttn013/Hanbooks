@@ -8,6 +8,7 @@ const FILTERS = [
   { id: 'unread', label: 'Unread' },
   { id: 'finished', label: 'Finished' },
   { id: 'favorites', label: 'Favorites' },
+  { id: 'bookmarked', label: 'Has Bookmarks' },
 ];
 
 const SORT_OPTIONS = [
@@ -42,6 +43,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
   const [isImporting, setIsImporting] = useState(false);
   const fileRef = useRef(null);
   const holdTimerRef = useRef(null);
+  const holdTriggeredRef = useRef(false);
 
   const {
     books,
@@ -66,16 +68,22 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
   };
 
   const handleBookTap = (book) => {
+    if (holdTriggeredRef.current) {
+      holdTriggeredRef.current = false;
+      return;
+    }
     if (selecting) {
       toggleSelected(book.id);
       return;
     }
-    onOpenBookInfo?.(book);
+    onOpenBook(book);
   };
 
   const startHold = (book) => {
+    holdTriggeredRef.current = false;
     window.clearTimeout(holdTimerRef.current);
     holdTimerRef.current = window.setTimeout(() => {
+      holdTriggeredRef.current = true;
       onOpenBookInfo?.(book);
     }, 450);
   };
@@ -197,7 +205,6 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
                   key={book.id}
                   className={styles.gridItem}
                   onClick={() => handleBookTap(book)}
-                  onDoubleClick={() => onOpenBook(book)}
                   onPointerDown={() => startHold(book)}
                   onPointerUp={cancelHold}
                   onPointerLeave={cancelHold}

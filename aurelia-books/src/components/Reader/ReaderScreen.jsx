@@ -1,6 +1,6 @@
 // src/components/Reader/ReaderScreen.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
 import { useReader } from '../../hooks/useReader';
 import BookmarksModal from './BookmarksModal';
@@ -57,6 +57,68 @@ function readerThemeRules(settings) {
   };
 }
 
+function appendNextChapterControl(contents, epubBookInstance, rendition, settings) {
+  if (settings.readingMode !== 'scroll') return;
+
+  const doc = contents?.document;
+  const body = doc?.body;
+  if (!doc || !body || doc.getElementById('hanbooks-next-chapter')) return;
+
+  const spineItems = epubBookInstance?.spine?.spineItems || [];
+  const sectionIndex = contents?.section?.index;
+  const hasKnownIndex = Number.isInteger(sectionIndex);
+  const hasNext = !hasKnownIndex || sectionIndex < spineItems.length - 1;
+  const { bgColor, textColor } = getThemePalette(settings.theme);
+
+  const wrapper = doc.createElement('div');
+  wrapper.id = 'hanbooks-next-chapter';
+  wrapper.style.cssText = [
+    'display:block',
+    'margin:48px 0 0',
+    'padding:56px 16px 72px',
+    `background:${bgColor}`,
+    `color:${textColor}`,
+    'text-align:center',
+    'border-top:1px solid rgba(139,105,20,0.22)',
+    'break-inside:avoid',
+  ].join(';');
+
+  const hint = doc.createElement('p');
+  hint.textContent = hasNext ? 'Keo len de sang chuong tiep theo' : 'Ban da doc den cuoi sach';
+  hint.style.cssText = [
+    'margin:0 0 16px',
+    'opacity:0.62',
+    'font:500 14px system-ui,-apple-system,sans-serif',
+    'letter-spacing:0',
+  ].join(';');
+
+  const button = doc.createElement('button');
+  button.type = 'button';
+  button.textContent = hasNext ? 'Chuong tiep theo' : 'Het sach';
+  button.disabled = !hasNext;
+  button.style.cssText = [
+    'min-height:48px',
+    'min-width:176px',
+    'padding:0 22px',
+    'border-radius:24px',
+    'border:1px solid rgba(139,105,20,0.55)',
+    hasNext ? 'background:#8B6914' : 'background:transparent',
+    hasNext ? 'color:#FFF8EC' : `color:${textColor}`,
+    'font:600 15px system-ui,-apple-system,sans-serif',
+    hasNext ? 'opacity:1' : 'opacity:0.45',
+  ].join(';');
+
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (hasNext) rendition?.next?.();
+  });
+
+  wrapper.appendChild(hint);
+  wrapper.appendChild(button);
+  body.appendChild(wrapper);
+}
+
 export default function ReaderScreen({ book, settings, updateSetting, onClose }) {
   const [showControls, setShowControls] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -73,7 +135,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const [bookmarkFeedback, setBookmarkFeedback] = useState(null); // 'added' | 'removed'
   const [currentPage, setCurrentPage] = useState(null);
   const [totalPages, setTotalPages] = useState(null);
-  const [timeLeftStr, setTimeLeftStr] = useState('');
   const [epubBook, setEpubBook] = useState(null);
 
   const viewerRef = useRef(null);
@@ -207,6 +268,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
 
         // Apply reading theme inside the EPUB iframe.
         rendition.themes.default(readerThemeRules(settings));
+        rendition.hooks.content.register((contents) => {
+          appendNextChapterControl(contents, epubBookInstance, rendition, settings);
+        });
 
         epubBookInstance.loaded.navigation.then(nav => {
           if (isMounted && nav?.toc) setToc(nav.toc);
@@ -305,34 +369,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     }
   }, [settings.readingMode]);
 
-  // Estimate remaining time only when the displayed chapter changes. Loading
-  // and counting the spine text on every CFI relocation is too expensive on Android.
-  useEffect(() => {
-    const cfi = currentCfiRef.current;
-    if (!bookRef.current || !cfi || !currentChapter) return;
-    const updateTimeLeft = async () => {
-      try {
-        const item = bookRef.current.spine.get(cfi);
-        if (item) {
-          await item.load(bookRef.current.load.bind(bookRef.current));
-          const doc = item.document;
-          const text = doc?.body?.innerText || doc?.body?.textContent || '';
-          const words = text.trim().split(/\s+/).filter(Boolean).length;
-          const minutes = Math.ceil(words / 200);
-          
-          if (minutes > 0) {
-            setTimeLeftStr(`${minutes} min left in chapter`);
-          } else {
-            setTimeLeftStr('');
-          }
-        }
-      } catch (err) {
-        console.warn("Could not calculate time left:", err);
-      }
-    };
-    updateTimeLeft();
-  }, [currentChapter]);
-
   // Page navigation
   const goNext = useCallback(() => renditionRef.current?.next(), []);
   const goPrev = useCallback(() => renditionRef.current?.prev(), []);
@@ -371,12 +407,53 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     setShowSearch(false);
   }, []);
 
+  const handleSeekChange = useCallback((event) => {
+    setPercentage(Number(event.target.value));
+  }, []);
+
+  const handleSeekCommit = useCallback((event) => {
+    const value = Number(event.currentTarget.value);
+    const rendition = renditionRef.current;
+    const locations = bookRef.current?.locations;
+    if (!rendition || !locations?.total) return;
+
+    if (value <= 0) {
+      rendition.display();
+      return;
+    }
+
+    try {
+      const ratio = Math.min(0.999, Math.max(0.001, value / 100));
+      const cfi = locations.cfiFromPercentage(ratio);
+      if (cfi) rendition.display(cfi);
+    } catch (err) {
+      console.warn('Failed to seek reading progress:', err);
+    }
+  }, []);
+
   // Swipe gesture
   const touchStartX = useRef(null);
-  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const touchStartY = useRef(null);
+  const edgeSwipeRef = useRef(false);
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    edgeSwipeRef.current = touchStartX.current < 28;
+  };
+  const handleTouchMove = (e) => {
+    if (!edgeSwipeRef.current || touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dx > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
   const handleTouchEnd = (e) => {
     if (settings.readingMode === 'scroll') {
       touchStartX.current = null;
+      touchStartY.current = null;
+      edgeSwipeRef.current = false;
       return;
     }
     if (touchStartX.current === null) return;
@@ -385,6 +462,8 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       if (diff < 0) goNext(); else goPrev();
     }
     touchStartX.current = null;
+    touchStartY.current = null;
+    edgeSwipeRef.current = false;
   };
 
   const { bgColor, textColor } = getThemePalette(settings.theme);
@@ -392,36 +471,29 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const isCurrentBookmarked = isBookmarked(currentCfi);
 
   return (
-    <motion.div
+    <div
       className={styles.reader}
-      style={{ backgroundColor: bgColor, color: textColor }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: settings.reducedMotion ? 0 : 0.16 }}
+      style={{
+        backgroundColor: bgColor,
+        color: textColor,
+        '--reader-bg': bgColor,
+        '--reader-text': textColor,
+      }}
     >
       {/* Loading */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div
-            className={styles.loading}
-            style={{ backgroundColor: bgColor }}
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: settings.reducedMotion ? 0 : 0.16 }}
-          >
-            <div className={styles.loadingSpinner} />
-            <p style={{ marginTop: 16, fontSize: 14, opacity: 0.5, color: textColor }}>
-              Opening {book.title}…
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isLoading && (
+        <div className={styles.loading} style={{ backgroundColor: bgColor }}>
+          <div className={styles.loadingSpinner} />
+          <p style={{ marginTop: 16, fontSize: 14, opacity: 0.5, color: textColor }}>
+            Opening {book.title}...
+          </p>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
         <div className={styles.error}>
-          <p style={{ fontSize: 40, marginBottom: 16 }}>📖</p>
+          <p style={{ fontSize: 40, marginBottom: 16 }}>Book</p>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Could not open book</p>
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>{error}</p>
           <button
@@ -438,32 +510,10 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         ref={viewerRef}
         className={`${styles.viewer} ${settings.readingMode === 'scroll' ? styles.scrollViewer : ''}`}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={() => { setShowControls(prev => !prev); setShowMore(false); }}
       />
-
-      {/* Tiny clean immersion footer at the bottom */}
-      {!showControls && (
-        <div style={{
-          position: 'absolute',
-          bottom: 12,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontSize: 10,
-          opacity: 0.35,
-          pointerEvents: 'none',
-          userSelect: 'none',
-          fontFamily: '-apple-system, system-ui, sans-serif',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 12
-        }}>
-          {currentPage && totalPages && <span>Page {currentPage} of {totalPages}</span>}
-          {percentage > 0 && <span>{percentage}%</span>}
-          {timeLeftStr && <span>• {timeLeftStr}</span>}
-        </div>
-      )}
 
       {/* Page navigation zones */}
       {settings.readingMode !== 'scroll' && (
@@ -474,32 +524,17 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       )}
 
       {/* Bookmark feedback toast */}
-      <AnimatePresence>
-        {bookmarkFeedback && (
-          <motion.div
-            className={styles.bookmarkToast}
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ duration: settings.reducedMotion ? 0 : 0.12 }}
-          >
-            {bookmarkFeedback === 'added' ? '🔖 Bookmark added' : '🗑️ Bookmark removed'}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {bookmarkFeedback && (
+        <div className={styles.bookmarkToast}>
+          {bookmarkFeedback === 'added' ? 'Bookmark added' : 'Bookmark removed'}
+        </div>
+      )}
 
       {/* Controls overlay */}
-      <AnimatePresence>
-        {showControls && (
-          <>
-            {/* Top bar */}
-            <motion.div
-              className={styles.topBar}
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -50 }}
-              transition={{ duration: settings.reducedMotion ? 0 : 0.14 }}
-            >
+      {showControls && (
+        <>
+          {/* Top bar */}
+          <div className={styles.topBar}>
               <button className={styles.backBtn} onClick={onClose} title="Back to Library">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -521,29 +556,29 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                   <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.8"/>
                 </svg>
               </button>
-            </motion.div>
+            </div>
 
-            {/* Bottom bar */}
-            <motion.div
-              className={styles.bottomBar}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              transition={{ duration: settings.reducedMotion ? 0 : 0.14 }}
-            >
-              {timeLeftStr && (
-                <div style={{ fontSize: 11, textAlign: 'center', opacity: 0.5, marginBottom: 8, fontWeight: 500 }}>
-                  {timeLeftStr}
-                </div>
-              )}
+          {/* Bottom bar */}
+          <div className={styles.bottomBar}>
               {/* Progress row */}
               <div className={styles.progressRow}>
                 <span style={{ fontSize: 11, opacity: 0.4 }}>
                   {currentPage ? `Page ${currentPage}` : '0%'}
                 </span>
-                <div className={styles.progressTrack}>
-                  <div className={styles.progressFill} style={{ width: `${percentage}%` }} />
-                </div>
+                <input
+                  className={styles.progressSlider}
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={percentage}
+                  disabled={!totalPages}
+                  onChange={handleSeekChange}
+                  onPointerUp={handleSeekCommit}
+                  onTouchEnd={handleSeekCommit}
+                  onKeyUp={handleSeekCommit}
+                  aria-label="Reading progress"
+                />
                 <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500 }}>
                   {totalPages ? `${percentage}% (of ${totalPages})` : `${percentage}%`}
                 </span>
@@ -585,10 +620,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                   )}
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </div>
+        </>
+      )}
 
       {/* Modals */}
       <AnimatePresence>
@@ -624,6 +658,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
           />
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

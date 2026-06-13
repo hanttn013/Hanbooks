@@ -4,17 +4,23 @@
   display: flex;
   flex-direction: column;
   z-index: 100;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .viewer {
   flex: 1;
   overflow: hidden;
   position: relative;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .scrollViewer {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 /* Invisible tap zones for page turning */
@@ -85,8 +91,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 56px 12px 12px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, transparent 100%);
+  padding: max(44px, env(safe-area-inset-top)) 12px 10px;
+  background: var(--reader-bg);
+  border-bottom: 1px solid rgba(139,105,20,0.16);
   z-index: 20;
 }
 
@@ -96,8 +103,8 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: none;
-  background: rgba(128,128,128,0.18);
+  border: 1px solid rgba(139,105,20,0.24);
+  background: var(--reader-bg);
   border-radius: 50%;
   cursor: pointer;
   color: inherit;
@@ -136,8 +143,9 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px 16px 40px;
-  background: linear-gradient(0deg, rgba(0,0,0,0.08) 0%, transparent 100%);
+  padding: 12px 16px max(14px, env(safe-area-inset-bottom));
+  background: var(--reader-bg);
+  border-top: 1px solid rgba(139,105,20,0.16);
   z-index: 20;
 }
 
@@ -154,6 +162,51 @@
   background: rgba(0,0,0,0.15);
   border-radius: 1px;
   overflow: hidden;
+}
+
+.progressSlider {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  accent-color: #8B6914;
+}
+
+.progressSlider:disabled {
+  opacity: 0.45;
+}
+
+.progressSlider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(139,105,20,0.24);
+}
+
+.progressSlider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 50%;
+  border: 2px solid var(--reader-bg);
+  background: #8B6914;
+}
+
+.progressSlider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(139,105,20,0.24);
+}
+
+.progressSlider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--reader-bg);
+  background: #8B6914;
 }
 
 .progressFill {
@@ -175,12 +228,12 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: none;
-  background: rgba(0,0,0,0.08);
+  border: 1px solid rgba(139,105,20,0.24);
+  background: var(--reader-bg);
   border-radius: 50%;
   cursor: pointer;
   color: inherit;
-  opacity: 0.7;
+  opacity: 1;
   transition: opacity 80ms ease, background 80ms ease;
 }
 .actionBtn:active { opacity: 1; }
@@ -197,7 +250,7 @@
   min-width: 168px;
   border-radius: 14px;
   background: var(--bg-card);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
   overflow: hidden;
   color: var(--text-primary);
 }

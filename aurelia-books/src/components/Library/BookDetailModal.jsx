@@ -1,19 +1,63 @@
-// src/components/Library/BookDetailModal.jsx
-// Shows bookmarks and allows search access from outside the reader
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
+import { StorageManager } from '../../utils/StorageManager';
 
-function load(key, def) {
-  try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
+function progressFor(book) {
+  return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
 }
 
-export default function BookDetailModal({ book, onClose, onOpen }) {
-  const allBookmarks = load('aurelia_bookmarks', {});
-  const bookmarks = allBookmarks[book.id] || [];
-  const allProgress = load('aurelia_progress', {});
-  const progress = allProgress[book.id] || null;
+function formatFileSize(size) {
+  if (!size) return 'Unknown size';
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-  const pct = parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
+export default function BookDetailModal({ book, onClose, onOpen, library }) {
+  const [bookmarks, setBookmarks] = useState([]);
+  const [listId, setListId] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [title, setTitle] = useState(book.title);
+  const [author, setAuthor] = useState(book.author);
+  const pct = progressFor(book);
+
+  useEffect(() => {
+    StorageManager.getBookmarks(book.id).then(setBookmarks).catch(() => setBookmarks([]));
+  }, [book.id]);
+
+  const handleQuickBookmark = async () => {
+    const bookmark = {
+      id: uuidv4(),
+      bookId: book.id,
+      cfi: '',
+      chapterTitle: 'Book info',
+      excerpt: book.description || `${book.title} by ${book.author}`,
+      createdAt: Date.now(),
+    };
+    await StorageManager.addBookmark(bookmark);
+    setBookmarks(prev => [...prev, bookmark]);
+  };
+
+  const handleRename = async () => {
+    const cleanTitle = title.trim();
+    const cleanAuthor = author.trim();
+    if (!cleanTitle || !cleanAuthor) return;
+    await library?.updateBook?.(book.id, { title: cleanTitle, author: cleanAuthor });
+    setRenaming(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${book.title}" from your library?`)) return;
+    await library?.deleteBook?.(book.id);
+    onClose();
+  };
+
+  const handleAddToList = async () => {
+    if (!listId) return;
+    await library?.addBooksToList?.(listId, [book.id]);
+    setListId('');
+  };
 
   return (
     <motion.div
@@ -25,7 +69,7 @@ export default function BookDetailModal({ book, onClose, onOpen }) {
     >
       <motion.div
         className="modal-sheet"
-        style={{ maxHeight: '80%' }}
+        style={{ maxHeight: '88%' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -33,96 +77,146 @@ export default function BookDetailModal({ book, onClose, onOpen }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-handle" />
-
-        {/* Book info header */}
-        <div style={{ display: 'flex', gap: 16, padding: '12px 20px 16px', flexShrink: 0 }}>
-          <BookCover book={book} size="medium" />
-          <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
-            <p style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 20, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {book.title}
-            </p>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{book.author}</p>
-            {/* Progress */}
-            <div style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <div className="progress-track" style={{ flex: 1 }}>
-                  <div className="progress-fill" style={{ width: `${pct}%` }} />
-                </div>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, minWidth: 32 }}>
-                  {Math.round(pct)}%
-                </span>
-              </div>
-              {progress?.chapterTitle && (
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', opacity: 0.7 }}>
-                  Last read: {progress.chapterTitle}
-                </p>
-              )}
-            </div>
-            {/* Open button */}
-            <button
-              onClick={() => { onOpen(book); onClose(); }}
-              style={{
-                marginTop: 12, width: '100%', padding: '10px', background: 'var(--accent-dark)',
-                color: '#F5E6C0', border: 'none', borderRadius: 10, fontSize: 14,
-                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              {book.status === 'unread' ? 'Start Reading' : 'Continue Reading'}
-            </button>
-          </div>
+        <div className="modal-header">
+          <span className="modal-title">Book Info</span>
+          <button className="btn-icon" onClick={onClose} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
-        <div className="divider" />
-
-        {/* Bookmarks section */}
         <div className="modal-scroll">
-          <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Bookmarks
-            </p>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              {bookmarks.length} saved
-            </span>
+          <div style={{ display: 'flex', gap: 16, padding: '10px 20px 18px' }}>
+            <BookCover book={book} size="hero" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {renaming ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} />
+                  <input value={author} onChange={e => setAuthor(e.target.value)} style={inputStyle} />
+                  <button className="btn-primary" style={{ padding: 10, fontSize: 13 }} onClick={handleRename}>Save</button>
+                </div>
+              ) : (
+                <>
+                  <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 24, lineHeight: 1.05, color: 'var(--text-primary)' }}>
+                    {book.title}
+                  </h2>
+                  <p style={{ marginTop: 5, color: 'var(--text-secondary)', fontSize: 14 }}>{book.author}</p>
+                </>
+              )}
+              <p style={{ marginTop: 12, color: 'var(--accent)', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                {book.genre || 'Fiction'} · {book.estimatedPages || 0} pages
+              </p>
+              <p style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: 12 }}>
+                {Math.round(pct)}% · {book.status || 'unread'}
+              </p>
+              <div style={{ marginTop: 10 }} className="progress-track">
+                <div className="progress-fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
           </div>
 
-          {bookmarks.length === 0 ? (
-            <div style={{ padding: '20px 20px 40px', textAlign: 'center' }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🔖</div>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-                No bookmarks yet. Open the book and tap the 🔖 icon while reading.
-              </p>
+          <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button className="btn-primary" style={{ padding: 12, fontSize: 14 }} onClick={() => { onOpen(book); onClose(); }}>
+              {pct > 0 ? 'Continue' : 'Read'}
+            </button>
+            <button className="btn-primary" style={secondaryBtn} onClick={() => library?.updateBook?.(book.id, { isFavorite: !book.isFavorite })}>
+              {book.isFavorite ? 'Unfavorite' : 'Favorite'}
+            </button>
+          </div>
+
+          <div style={{ padding: '0 20px 16px' }}>
+            <p style={sectionLabel}>Synopsis</p>
+            <p style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.55 }}>
+              {book.description || 'No synopsis was found in the EPUB. Aurelia will show an extracted preview here after metadata is available.'}
+            </p>
+          </div>
+
+          <div style={{ padding: '0 20px 16px' }}>
+            <p style={sectionLabel}>Metadata</p>
+            <div style={metaGrid}>
+              <Meta label="Publisher" value={book.publisher || 'Unknown'} />
+              <Meta label="Language" value={book.language || 'Unknown'} />
+              <Meta label="Published" value={book.publishedAt || 'Unknown'} />
+              <Meta label="Chapters" value={book.chapterCount || 'Unknown'} />
+              <Meta label="File" value={formatFileSize(book.fileSize)} />
+              <Meta label="Bookmarks" value={bookmarks.length} />
             </div>
-          ) : (
-            bookmarks.slice().reverse().map((bm, i) => (
-              <div key={bm.id}>
-                <div
-                  style={{ padding: '12px 20px', display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}
-                  onClick={() => { onOpen(book); onClose(); }}
-                >
-                  <svg width="14" height="16" viewBox="0 0 24 24" fill="var(--accent)" style={{ flexShrink: 0, marginTop: 2 }}>
-                    <path d="M5 3h14v18l-7-4-7 4V3z"/>
-                  </svg>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', marginBottom: 2 }}>
-                      {bm.chapterTitle || 'Chapter'}
-                    </p>
-                    {bm.excerpt && (
-                      <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                        "{bm.excerpt}"
-                      </p>
-                    )}
-                    <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, opacity: 0.6 }}>
-                      {new Date(bm.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                {i < bookmarks.length - 1 && <div className="divider" />}
-              </div>
-            ))
-          )}
-          <div style={{ height: 24 }} />
+          </div>
+
+          <div style={{ padding: '0 20px 16px' }}>
+            <p style={sectionLabel}>Lists</p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <select value={listId} onChange={e => setListId(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+                <option value="">Choose list</option>
+                {(library?.lists || []).map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
+              </select>
+              <button className="btn-primary" style={{ width: 72, padding: 0, fontSize: 13 }} onClick={handleAddToList} disabled={!listId}>
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: '0 20px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <button style={plainBtn} onClick={handleQuickBookmark}>Bookmark</button>
+            <button style={plainBtn} onClick={() => setRenaming(prev => !prev)}>Rename</button>
+            <button style={{ ...plainBtn, color: '#D33' }} onClick={handleDelete}>Delete</button>
+          </div>
         </div>
       </motion.div>
     </motion.div>
   );
 }
+
+function Meta({ label, value }) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <small style={{ display: 'block', color: 'var(--text-secondary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</small>
+      <strong style={{ display: 'block', marginTop: 3, color: 'var(--text-primary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</strong>
+    </div>
+  );
+}
+
+const sectionLabel = {
+  color: 'var(--text-secondary)',
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+};
+
+const inputStyle = {
+  width: '100%',
+  height: 40,
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  background: 'var(--bg-secondary)',
+  color: 'var(--text-primary)',
+  padding: '0 10px',
+  font: 'inherit',
+};
+
+const secondaryBtn = {
+  padding: 12,
+  fontSize: 14,
+  background: 'var(--bg-secondary)',
+  color: 'var(--text-primary)',
+  boxShadow: 'none',
+};
+
+const plainBtn = {
+  minHeight: 40,
+  border: '1px solid var(--border)',
+  borderRadius: 12,
+  background: 'var(--bg-card)',
+  color: 'var(--text-primary)',
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const metaGrid = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: 10,
+  marginTop: 9,
+};

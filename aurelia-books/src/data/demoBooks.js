@@ -13,6 +13,10 @@ export const DEMO_BOOKS = [
     addedAt: Date.now() - 86400000 * 3,
     lastOpenedAt: Date.now() - 3600000 * 2,
     totalLocations: 0,
+    genre: 'Romance',
+    description: 'A witty novel of manners about Elizabeth Bennet, Mr. Darcy, family pressure, pride, and first impressions.',
+    chapterCount: 61,
+    estimatedPages: 432,
   },
   {
     id: 'demo-2',
@@ -27,6 +31,10 @@ export const DEMO_BOOKS = [
     addedAt: Date.now() - 86400000 * 7,
     lastOpenedAt: null,
     totalLocations: 0,
+    genre: 'Gothic',
+    description: 'A decadent portrait, a dangerous wish, and a life split between public beauty and private corruption.',
+    chapterCount: 20,
+    estimatedPages: 254,
   },
   {
     id: 'demo-3',
@@ -41,5 +49,9 @@ export const DEMO_BOOKS = [
     addedAt: Date.now() - 86400000 * 14,
     lastOpenedAt: Date.now() - 86400000 * 2,
     totalLocations: 0,
+    genre: 'Romance',
+    description: 'An orphaned governess searches for independence, dignity, and love while guarding her own moral center.',
+    chapterCount: 38,
+    estimatedPages: 532,
   },
 ];

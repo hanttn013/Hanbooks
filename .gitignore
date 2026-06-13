@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+**/.venv/
+**/venv/
+**/env/
+
+# Web build output
+dist/
+dist-ssr/
+**/dist/
+**/dist-ssr/
+
+# Android local build output and toolchains
+**/.android-build/
+**/android/.gradle/
+**/android/build/
+**/android/app/build/
+**/android/local.properties
+**/*.apk
+**/*.aab
+
+# Logs and local config
+logs/
+*.log
+*.local
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

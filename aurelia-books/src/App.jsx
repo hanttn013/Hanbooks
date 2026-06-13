@@ -2,9 +2,11 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import TabBar from './components/TabBar/TabBar';
+import HomeScreen from './components/Home/HomeScreen';
 import LibraryScreen from './components/Library/LibraryScreen';
-import ContinueScreen from './components/Continue/ContinueScreen';
-import AppearanceScreen from './components/Appearance/AppearanceScreen';
+import BookDetailModal from './components/Library/BookDetailModal';
+import ListsScreen from './components/Lists/ListsScreen';
+import SettingsScreen from './components/Settings/SettingsScreen';
 import ReaderScreen from './components/Reader/ReaderScreen';
 import { useLibrary } from './hooks/useLibrary';
 import { useSettings } from './hooks/useSettings';
@@ -12,11 +14,16 @@ import './styles/globals.css';
 import './styles/themes.css';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('library');
+  const [activeTab, setActiveTab] = useState('home');
   const [openBook, setOpenBook] = useState(null);
+  const [detailBook, setDetailBook] = useState(null);
+  const [activeListId, setActiveListId] = useState(null);
 
   const library = useLibrary();
   const { settings, updateSetting } = useSettings();
+  const instantMotion = settings.reducedMotion
+    ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } }
+    : null;
 
   const handleOpenBook = (book) => {
     library.updateBook(book.id, {
@@ -30,9 +37,18 @@ export default function App() {
     setOpenBook(null);
   };
 
+  const handleOpenBookInfo = (book) => {
+    setDetailBook(book);
+  };
+
+  const handleOpenList = (id) => {
+    setActiveListId(id);
+    setActiveTab('lists');
+  };
+
   return (
     <div style={{
-      background: 'radial-gradient(ellipse at center, #1a1410 0%, #0a0a0a 100%)',
+      background: 'var(--bg-primary, #EDE8DC)',
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
@@ -52,56 +68,88 @@ export default function App() {
             <motion.div
               key="app-shell"
               style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              initial={{ opacity: 0 }}
+              initial={settings.reducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              exit={settings.reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ duration: settings.reducedMotion ? 0 : 0.2 }}
             >
               {/* Screen area */}
               <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
                 <AnimatePresence mode="wait">
+                  {activeTab === 'home' && (
+                    <motion.div
+                      key="home"
+                      style={{ position: 'absolute', inset: 0 }}
+                      {...(instantMotion || {
+                        initial: { opacity: 0, x: -16 },
+                        animate: { opacity: 1, x: 0 },
+                        exit: { opacity: 0, x: -16 },
+                        transition: { duration: 0.16 },
+                      })}
+                    >
+                      <HomeScreen
+                        library={library}
+                        onOpenBook={handleOpenBook}
+                        onOpenBookInfo={handleOpenBookInfo}
+                        onOpenList={handleOpenList}
+                        onGoLibrary={() => setActiveTab('library')}
+                        onGoLists={() => setActiveTab('lists')}
+                      />
+                    </motion.div>
+                  )}
                   {activeTab === 'library' && (
                     <motion.div
                       key="library"
                       style={{ position: 'absolute', inset: 0 }}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -16 }}
-                      transition={{ duration: 0.22 }}
+                      {...(instantMotion || {
+                        initial: { opacity: 0, x: -16 },
+                        animate: { opacity: 1, x: 0 },
+                        exit: { opacity: 0, x: -16 },
+                        transition: { duration: 0.16 },
+                      })}
                     >
                       <LibraryScreen
                         library={library}
                         onOpenBook={handleOpenBook}
+                        onOpenBookInfo={handleOpenBookInfo}
                       />
                     </motion.div>
                   )}
-                  {activeTab === 'continue' && (
+                  {activeTab === 'lists' && (
                     <motion.div
-                      key="continue"
+                      key="lists"
                       style={{ position: 'absolute', inset: 0 }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.22 }}
+                      {...(instantMotion || {
+                        initial: { opacity: 0, x: 16 },
+                        animate: { opacity: 1, x: 0 },
+                        exit: { opacity: 0 },
+                        transition: { duration: 0.16 },
+                      })}
                     >
-                       <ContinueScreen
+                      <ListsScreen
                         library={library}
+                        activeListId={activeListId}
+                        setActiveListId={setActiveListId}
                         onOpenBook={handleOpenBook}
+                        onOpenBookInfo={handleOpenBookInfo}
                       />
                     </motion.div>
                   )}
-                  {activeTab === 'appearance' && (
+                  {activeTab === 'settings' && (
                     <motion.div
-                      key="appearance"
+                      key="settings"
                       style={{ position: 'absolute', inset: 0 }}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 16 }}
-                      transition={{ duration: 0.22 }}
+                      {...(instantMotion || {
+                        initial: { opacity: 0, y: 16 },
+                        animate: { opacity: 1, y: 0 },
+                        exit: { opacity: 0, y: 16 },
+                        transition: { duration: 0.16 },
+                      })}
                     >
-                      <AppearanceScreen
+                      <SettingsScreen
                         settings={settings}
                         updateSetting={updateSetting}
+                        library={library}
                       />
                     </motion.div>
                   )}
@@ -114,6 +162,16 @@ export default function App() {
                 onTabChange={setActiveTab}
               />
             </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {detailBook && !openBook && (
+            <BookDetailModal
+              book={detailBook}
+              onClose={() => setDetailBook(null)}
+              onOpen={handleOpenBook}
+              library={library}
+            />
           )}
         </AnimatePresence>
       </div>

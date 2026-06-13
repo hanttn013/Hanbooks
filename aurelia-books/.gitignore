@@ -12,6 +12,23 @@ dist
 dist-ssr
 *.local
 
+# Local Android build output/toolchains. Keep the generated android source,
+# but do not push SDK/JDK downloads or Gradle build artifacts.
+.android-build/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+
+# Python virtual environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

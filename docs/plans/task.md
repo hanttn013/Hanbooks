@@ -24,3 +24,9 @@
 | 20 | Implement Apple Books-like Paged/Scroll Transitions & 3D Page Curl | completed |
 | 21 | Implement Sort options, Collections/Folders, Backup/Export library | completed |
 | 22 | Polish, PWA support, and Responsive design for smaller devices | completed |
+| 23 | Product Redesign Plan: Data Layer, Lists, and EPUB Metadata | completed |
+| 24 | Product Redesign Plan: App Shell and Navigation | completed |
+| 25 | Product Redesign Plan: Library Search, Dense Views, and Book Info Sheet | completed |
+| 26 | Product Redesign Plan: Lists Screen | completed |
+| 27 | Product Redesign Plan: Reader Reliability, Search, and Bookmarks | completed |
+| 28 | Product Redesign Plan: Final Verification and Polish | completed |

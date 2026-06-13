@@ -1,0 +1,12 @@
+{
+  "appId": "com.aurelia.books",
+  "appName": "Aurelia Books",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

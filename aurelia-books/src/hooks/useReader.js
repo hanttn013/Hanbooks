@@ -33,6 +33,7 @@ export function useReader(bookId) {
   const [bookmarks, setBookmarks] = useState([]);
   const [stats, setStats] = useState(loadStats);
   const startTimeRef = useRef(null);
+  const lastPercentageRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
@@ -55,6 +56,19 @@ export function useReader(bookId) {
     } catch (e) {
       console.warn("localStorage quota exceeded or blocked:", e);
     }
+    setStats(prev => {
+      const today = new Date().toDateString();
+      const resetToday = prev.lastTodayDate !== today;
+      const previousPct = lastPercentageRef.current ?? percentage;
+      const delta = Math.max(0, percentage - previousPct);
+      lastPercentageRef.current = percentage;
+      const estimatedPages = Math.round(delta * 3);
+      return {
+        ...prev,
+        pagesReadToday: (resetToday ? 0 : prev.pagesReadToday || 0) + estimatedPages,
+        lastTodayDate: today,
+      };
+    });
   }, [bookId]);
 
   const addBookmark = useCallback(async (cfi, chapterTitle, excerpt) => {

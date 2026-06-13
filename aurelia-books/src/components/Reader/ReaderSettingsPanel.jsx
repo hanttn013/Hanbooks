@@ -115,7 +115,8 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
                   { id: 'slide', label: 'Slide' },
-                  { id: 'realistic', label: '3D Page Curl' }
+                  { id: 'realistic', label: '3D Page Curl' },
+                  { id: 'none', label: 'None' }
                 ].map(effect => (
                   <button
                     key={effect.id}

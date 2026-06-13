@@ -2,8 +2,9 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
-export default function SearchModal({ epubBook, onJumpTo, onClose }) {
+export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose }) {
   const [query, setQuery] = useState('');
+  const [scope, setScope] = useState('book');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
@@ -13,8 +14,12 @@ export default function SearchModal({ epubBook, onJumpTo, onClose }) {
     setResults([]);
 
     try {
+      const spineItems = scope === 'chapter' && currentCfi
+        ? [epubBook.spine.get(currentCfi)].filter(Boolean)
+        : epubBook.spine.spineItems;
+
       const searchResults = await Promise.all(
-        epubBook.spine.spineItems.map(async (item) => {
+        spineItems.map(async (item) => {
           try {
             await item.load(epubBook.load.bind(epubBook));
             const found = item.find(query);
@@ -42,7 +47,7 @@ export default function SearchModal({ epubBook, onJumpTo, onClose }) {
     } finally {
       setSearching(false);
     }
-  }, [query, epubBook]);
+  }, [query, epubBook, scope, currentCfi]);
 
   const highlightQuery = (text) => {
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -127,6 +132,29 @@ export default function SearchModal({ epubBook, onJumpTo, onClose }) {
                 Go
               </button>
             )}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            {[
+              { id: 'book', label: 'Entire book' },
+              { id: 'chapter', label: 'Current chapter' },
+            ].map(option => (
+              <button
+                key={option.id}
+                onClick={() => setScope(option.id)}
+                style={{
+                  height: 30,
+                  padding: '0 12px',
+                  border: 'none',
+                  borderRadius: 15,
+                  background: scope === option.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
+                  color: scope === option.id ? '#F5E6C0' : 'var(--text-secondary)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
 

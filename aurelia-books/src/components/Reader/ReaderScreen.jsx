@@ -10,12 +10,60 @@ import ReaderSettingsPanel from './ReaderSettingsPanel';
 import { StorageManager } from '../../utils/StorageManager';
 import styles from './ReaderScreen.module.css';
 
+function getThemePalette(theme) {
+  const bgColor = {
+    'warm-cream': '#F5F0E8', 'pure-white': '#FFFFFF', 'vintage-paper': '#F5EDD6',
+    'sepia': '#F1E4C3', 'dark-gray': '#2A2A2A', 'amoled-black': '#000000',
+    'forest': '#1C3329', 'ocean': '#E8F4F8', 'midnight-blue': '#1A2035',
+  }[theme] || '#F5F0E8';
+
+  const textColor = {
+    'warm-cream': '#2C2416', 'pure-white': '#1A1A1A', 'vintage-paper': '#3D2B1F',
+    'sepia': '#3B2F0A', 'dark-gray': '#E8E0D0', 'amoled-black': '#E0D8C8',
+    'forest': '#E8F0E8', 'ocean': '#1A3040', 'midnight-blue': '#D8E0F0',
+  }[theme] || '#2C2416';
+
+  return { bgColor, textColor };
+}
+
+function readerThemeRules(settings) {
+  const { bgColor, textColor } = getThemePalette(settings.theme);
+  return {
+    html: {
+      'background': `${bgColor} !important`,
+      'color': `${textColor} !important`,
+    },
+    body: {
+      'font-family': `'${settings.font}', Georgia, serif !important`,
+      'font-size': `${settings.fontSize}px !important`,
+      'line-height': `${settings.lineHeight} !important`,
+      'letter-spacing': `${settings.letterSpacing}px !important`,
+      'padding': `${settings.marginWidth}px !important`,
+      'background': `${bgColor} !important`,
+      'color': `${textColor} !important`,
+      'margin': '0 !important',
+      'text-align': 'left !important',
+      'font-style': 'normal !important',
+    },
+    'p, div, span, section, article, h1, h2, h3, h4, h5, h6, li': {
+      'color': `${textColor} !important`,
+      'font-style': 'normal !important',
+    },
+    p: {
+      'margin-bottom': '1em',
+      'text-align': 'left !important',
+    },
+    img: { 'max-width': '100%' },
+  };
+}
+
 export default function ReaderScreen({ book, settings, updateSetting, onClose }) {
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showTOC, setShowTOC] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [currentCfi, setCurrentCfi] = useState(null);
   const [currentChapter, setCurrentChapter] = useState('');
   const [percentage, setPercentage] = useState(0);
@@ -26,7 +74,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const [currentPage, setCurrentPage] = useState(null);
   const [totalPages, setTotalPages] = useState(null);
   const [timeLeftStr, setTimeLeftStr] = useState('');
-  const [animateClass, setAnimateClass] = useState('');
   const [epubBook, setEpubBook] = useState(null);
 
   const viewerRef = useRef(null);
@@ -45,102 +92,52 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     stopReading,
   } = useReader(book.id);
 
-  // Determine epub URL (from IndexedDB Blob or public URL)
-  const getEpubUrl = () => {
-    if (book.fileBlob) {
-      return URL.createObjectURL(book.fileBlob);
+  // Determine EPUB source. epub.js is more reliable with ArrayBuffer for IndexedDB blobs.
+  const getEpubSource = async () => {
+    if (book.isDemo && book.epubUrl) {
+      return {
+        source: book.epubUrl,
+        revokeUrl: null,
+      };
     }
-    if (book.epubUrl) return book.epubUrl;
-    return null;
+    if (book.fileBlob && book.fileBlob.size > 0) {
+      return {
+        source: await book.fileBlob.arrayBuffer(),
+        revokeUrl: null,
+      };
+    }
+    if (book.epubUrl) {
+      return {
+        source: book.epubUrl,
+        revokeUrl: null,
+      };
+    }
+    return { source: null, revokeUrl: null };
   };
 
   useEffect(() => {
-    const url = getEpubUrl();
-    if (!url || !viewerRef.current) {
-      setError("Unable to find the EPUB resource URL.");
-      setIsLoading(false);
-      return;
-    }
+    let isMounted = true;
+    let revokeUrl = null;
+    let epubBookInstance = null;
+    let rendition = null;
+    let displayTimeout = null;
+    let locationTimer = null;
 
-    setIsLoading(true);
-    setError(null);
-
-    const epubBookInstance = ePub(url);
-    bookRef.current = epubBookInstance;
-    setEpubBook(epubBookInstance);
-
-    const rendition = epubBookInstance.renderTo(viewerRef.current, {
-      width: '100%',
-      height: '100%',
-      flow: settings.readingMode === 'scroll' ? 'scrolled-doc' : 'paginated',
-      spread: 'none',
-      allowScriptedContent: true,
-    });
-
-    renditionRef.current = rendition;
-
-    // Apply reading theme
-    rendition.themes.default({
-      body: {
-        'font-family': `'${settings.font}', Georgia, serif !important`,
-        'font-size': `${settings.fontSize}px !important`,
-        'line-height': `${settings.lineHeight} !important`,
-        'letter-spacing': `${settings.letterSpacing}px !important`,
-        'padding': `${settings.marginWidth}px !important`,
-        'background': 'transparent !important',
-        'margin': '0 !important',
-      },
-      p: { 'margin-bottom': '1em' },
-      img: { 'max-width': '100%' },
-    });
-
-    // Get TOC
-    epubBookInstance.loaded.navigation.then(nav => {
-      if (nav?.toc) setToc(nav.toc);
-    }).catch(() => { /* ignore navigation error */ });
-
-    // Load book and restore position immediately
-    StorageManager.getProgress(book.id).then(async (savedProgress) => {
-      const cfi = savedProgress?.cfi || undefined;
-      return rendition.display(cfi);
-    }).then(() => {
-      setIsLoading(false);
-      startReading();
-      
-      // Start generating locations in the background once ready
-      return epubBookInstance.ready;
-    }).then(() => {
-      return epubBookInstance.locations.generate(1024);
-    }).then(() => {
-      setTotalPages(epubBookInstance.locations.total);
-      
-      // Update page statistics once locations are ready
-      const loc = rendition.currentLocation();
-      const cfi = loc?.start?.cfi || loc?.cfi;
-      if (cfi && epubBookInstance.locations) {
-        const pct = epubBookInstance.locations.percentageFromCfi(cfi) * 100;
-        if (!isNaN(pct) && pct >= 0) {
-          setPercentage(Math.round(pct));
+    const withTimeout = (promise, ms, message) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          displayTimeout = window.setTimeout(() => reject(new Error(message)), ms);
+        }),
+      ]).finally(() => {
+        if (displayTimeout) {
+          window.clearTimeout(displayTimeout);
+          displayTimeout = null;
         }
-        const currentLoc = epubBookInstance.locations.locationFromCfi(cfi);
-        if (currentLoc !== -1) {
-          setCurrentPage(Math.max(1, currentLoc));
-        }
-      }
-    }).catch(async (err) => {
-      console.warn("Background location generation or render failed:", err);
-      // Fallback display if first attempt fails
-      try {
-        await rendition.display();
-      } catch (displayErr) {
-        console.error("Critical display failure:", displayErr);
-      }
-      setIsLoading(false);
-      startReading();
-    });
+      });
+    };
 
-    // Track location changes
-    rendition.on('locationChanged', (loc) => {
+    const handleRelocated = (loc) => {
       const cfi = loc?.start?.cfi || loc?.cfi;
       if (cfi) {
         setCurrentCfi(cfi);
@@ -180,23 +177,108 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       } catch (err) {
         console.warn("Failed to calculate page locations:", err);
       }
-    });
+    };
 
-    // Click inside iframe to toggle controls
-    rendition.on('click', () => {
-      setShowControls(prev => !prev);
-    });
+    const initReader = async () => {
+      try {
+        const epubSource = await getEpubSource();
+        if (!isMounted) return;
+        revokeUrl = epubSource.revokeUrl;
+
+        if (!epubSource.source || !viewerRef.current) {
+          setError("Unable to find the EPUB resource URL.");
+          setIsLoading(false);
+          return;
+        }
+
+        epubBookInstance = ePub(epubSource.source);
+        bookRef.current = epubBookInstance;
+        setEpubBook(epubBookInstance);
+
+        rendition = epubBookInstance.renderTo(viewerRef.current, {
+          width: '100%',
+          height: '100%',
+          flow: settings.readingMode === 'scroll' ? 'scrolled-doc' : 'paginated',
+          spread: 'none',
+          allowScriptedContent: true,
+        });
+
+        renditionRef.current = rendition;
+
+        // Apply reading theme inside the EPUB iframe.
+        rendition.themes.default(readerThemeRules(settings));
+
+        epubBookInstance.loaded.navigation.then(nav => {
+          if (isMounted && nav?.toc) setToc(nav.toc);
+        }).catch(() => { /* ignore navigation error */ });
+
+        rendition.on('relocated', handleRelocated);
+        rendition.on('locationChanged', handleRelocated);
+        rendition.on('click', () => {
+          setShowControls(prev => !prev);
+        });
+
+        const savedProgress = await StorageManager.getProgress(book.id);
+        const cfi = savedProgress?.cfi || undefined;
+
+        try {
+          await withTimeout(rendition.display(cfi), 12000, 'Timed out restoring saved reading position.');
+        } catch (displayErr) {
+          console.warn("Failed to restore saved reading position, opening from the start:", displayErr);
+          await withTimeout(rendition.display(), 12000, 'Timed out opening the EPUB.');
+        }
+
+        if (!isMounted) return;
+        setIsLoading(false);
+        startReading();
+
+        locationTimer = window.setTimeout(() => {
+          epubBookInstance.ready
+          .then(() => epubBookInstance.locations.generate(3000))
+          .then(() => {
+            if (!isMounted) return;
+            setTotalPages(epubBookInstance.locations.total);
+
+            const loc = rendition.currentLocation();
+            const currentLocationCfi = loc?.start?.cfi || loc?.cfi;
+            if (currentLocationCfi && epubBookInstance.locations) {
+              const pct = epubBookInstance.locations.percentageFromCfi(currentLocationCfi) * 100;
+              if (!isNaN(pct) && pct >= 0) {
+                setPercentage(Math.round(pct));
+              }
+              const currentLoc = epubBookInstance.locations.locationFromCfi(currentLocationCfi);
+              if (currentLoc !== -1) {
+                setCurrentPage(Math.max(1, currentLoc));
+              }
+            }
+          })
+          .catch((err) => {
+            console.warn("Background location generation failed:", err);
+          });
+        }, 1800);
+      } catch (err) {
+        console.error("Critical EPUB display failure:", err);
+        if (!isMounted) return;
+        setError(err.message || "Could not open this EPUB.");
+        setIsLoading(false);
+      }
+    };
+
+    initReader();
 
     return () => {
+      isMounted = false;
       stopReading();
+      if (displayTimeout) window.clearTimeout(displayTimeout);
+      if (locationTimer) window.clearTimeout(locationTimer);
       try {
-        epubBookInstance.destroy();
+        rendition?.off?.('relocated', handleRelocated);
+        rendition?.off?.('locationChanged', handleRelocated);
+        epubBookInstance?.destroy();
       } catch (err) {
         console.warn("Error destroying EPUB instance:", err);
       }
-      if (url && url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
+      if (revokeUrl) URL.revokeObjectURL(revokeUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book.id]);
@@ -205,45 +287,32 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   useEffect(() => {
     if (!renditionRef.current) return;
     try {
-      renditionRef.current.themes.default({
-        body: {
-          'font-family': `'${settings.font}', Georgia, serif !important`,
-          'font-size': `${settings.fontSize}px !important`,
-          'line-height': `${settings.lineHeight} !important`,
-          'letter-spacing': `${settings.letterSpacing}px !important`,
-          'padding': `${settings.marginWidth}px !important`,
-          'background': 'transparent !important',
-          'margin': '0 !important',
-        },
-        p: { 'margin-bottom': '1em' },
-      });
+      renditionRef.current.themes.default(readerThemeRules(settings));
     } catch (err) {
       console.warn("Failed to apply typography setting:", err);
     }
-  }, [settings.font, settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.marginWidth]);
+  }, [settings]);
 
-  // Handle page animation triggers
   useEffect(() => {
-    if (!currentCfi || settings.readingMode === 'scroll') return;
-    const effect = settings.pageTurnEffect === 'realistic' ? styles.curlAnim : styles.slideAnim;
-    
-    const aid = requestAnimationFrame(() => {
-      setAnimateClass(effect);
-    });
-    
-    const tid = setTimeout(() => setAnimateClass(''), 400);
-    return () => {
-      cancelAnimationFrame(aid);
-      clearTimeout(tid);
-    };
-  }, [currentCfi, settings.pageTurnEffect, settings.readingMode]);
+    if (!renditionRef.current) return;
+    try {
+      renditionRef.current.flow(settings.readingMode === 'scroll' ? 'scrolled-doc' : 'paginated');
+      if (currentCfiRef.current) {
+        renditionRef.current.display(currentCfiRef.current);
+      }
+    } catch (err) {
+      console.warn("Failed to switch reading mode:", err);
+    }
+  }, [settings.readingMode]);
 
-  // Estimate remaining time in chapter
+  // Estimate remaining time only when the displayed chapter changes. Loading
+  // and counting the spine text on every CFI relocation is too expensive on Android.
   useEffect(() => {
-    if (!bookRef.current || !currentCfi) return;
+    const cfi = currentCfiRef.current;
+    if (!bookRef.current || !cfi || !currentChapter) return;
     const updateTimeLeft = async () => {
       try {
-        const item = bookRef.current.spine.get(currentCfi);
+        const item = bookRef.current.spine.get(cfi);
         if (item) {
           await item.load(bookRef.current.load.bind(bookRef.current));
           const doc = item.document;
@@ -262,7 +331,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       }
     };
     updateTimeLeft();
-  }, [currentCfi]);
+  }, [currentChapter]);
 
   // Page navigation
   const goNext = useCallback(() => renditionRef.current?.next(), []);
@@ -306,6 +375,10 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const touchStartX = useRef(null);
   const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e) => {
+    if (settings.readingMode === 'scroll') {
+      touchStartX.current = null;
+      return;
+    }
     if (touchStartX.current === null) return;
     const diff = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(diff) > 50) {
@@ -314,17 +387,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     touchStartX.current = null;
   };
 
-  const bgColor = {
-    'warm-cream': '#F5F0E8', 'pure-white': '#FFFFFF', 'vintage-paper': '#F5EDD6',
-    'sepia': '#F1E4C3', 'dark-gray': '#2A2A2A', 'amoled-black': '#000000',
-    'forest': '#1C3329', 'ocean': '#E8F4F8', 'midnight-blue': '#1A2035',
-  }[settings.theme] || '#F5F0E8';
-
-  const textColor = {
-    'warm-cream': '#2C2416', 'pure-white': '#1A1A1A', 'vintage-paper': '#3D2B1F',
-    'sepia': '#3B2F0A', 'dark-gray': '#E8E0D0', 'amoled-black': '#E0D8C8',
-    'forest': '#E8F0E8', 'ocean': '#1A3040', 'midnight-blue': '#D8E0F0',
-  }[settings.theme] || '#2C2416';
+  const { bgColor, textColor } = getThemePalette(settings.theme);
 
   const isCurrentBookmarked = isBookmarked(currentCfi);
 
@@ -335,7 +398,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: settings.reducedMotion ? 0 : 0.16 }}
     >
       {/* Loading */}
       <AnimatePresence>
@@ -345,7 +408,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
             style={{ backgroundColor: bgColor }}
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: settings.reducedMotion ? 0 : 0.16 }}
           >
             <div className={styles.loadingSpinner} />
             <p style={{ marginTop: 16, fontSize: 14, opacity: 0.5, color: textColor }}>
@@ -373,10 +436,10 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       {/* EPUB Viewer Container with Animation class wrapper */}
       <div
         ref={viewerRef}
-        className={`${styles.viewer} ${animateClass}`}
+        className={`${styles.viewer} ${settings.readingMode === 'scroll' ? styles.scrollViewer : ''}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onClick={() => setShowControls(prev => !prev)}
+        onClick={() => { setShowControls(prev => !prev); setShowMore(false); }}
       />
 
       {/* Tiny clean immersion footer at the bottom */}
@@ -418,7 +481,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: settings.reducedMotion ? 0 : 0.12 }}
           >
             {bookmarkFeedback === 'added' ? '🔖 Bookmark added' : '🗑️ Bookmark removed'}
           </motion.div>
@@ -435,7 +498,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
               initial={{ opacity: 0, y: -50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -50 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: settings.reducedMotion ? 0 : 0.14 }}
             >
               <button className={styles.backBtn} onClick={onClose} title="Back to Library">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -466,7 +529,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: settings.reducedMotion ? 0 : 0.14 }}
             >
               {timeLeftStr && (
                 <div style={{ fontSize: 11, textAlign: 'center', opacity: 0.5, marginBottom: 8, fontWeight: 500 }}>
@@ -504,19 +567,23 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                   </svg>
                 </button>
 
-                <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowBookmarks(true); }} title="View bookmarks">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 3h14v18l-7-4-7 4V3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M9 10h6M9 13h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                  </svg>
-                </button>
-
-                <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowSearch(true); }} title="Search in book">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/>
-                    <path d="M21 21l-4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                </button>
+                <div className={styles.moreWrap}>
+                  <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowMore(prev => !prev); }} title="More">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                  {showMore && (
+                    <div className={styles.moreMenu} onClick={e => e.stopPropagation()}>
+                      <button onClick={() => { setShowSearch(true); setShowMore(false); }}>
+                        <span>Search in book</span>
+                      </button>
+                      <button onClick={() => { setShowBookmarks(true); setShowMore(false); }}>
+                        <span>Bookmarks ({bookmarks.length})</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </>
@@ -544,6 +611,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         {showSearch && (
           <SearchModal
             epubBook={epubBook}
+            currentCfi={currentCfi}
             onJumpTo={handleJumpTo}
             onClose={() => setShowSearch(false)}
           />

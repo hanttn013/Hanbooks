@@ -10,17 +10,27 @@ export const DEFAULT_SETTINGS = {
   lineHeight: 1.7,
   marginWidth: 24,
   letterSpacing: 0,
-  readingMode: 'classic',
-  pageTurnEffect: 'slide',
+  readingMode: 'scroll',
+  pageTurnEffect: 'none',
+  reducedMotion: true,
+  settingsVersion: 3,
 };
 
 export function useSettings() {
   const [settings, setSettings] = useState(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored
-        ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) }
-        : { ...DEFAULT_SETTINGS };
+      if (!stored) return { ...DEFAULT_SETTINGS };
+      const parsed = JSON.parse(stored);
+      const merged = { ...DEFAULT_SETTINGS, ...parsed };
+      if (!parsed.settingsVersion && merged.readingMode === 'classic') {
+        merged.readingMode = 'scroll';
+      }
+      if ((parsed.settingsVersion || 0) < 3 && merged.pageTurnEffect !== 'none') {
+        merged.pageTurnEffect = 'none';
+      }
+      merged.settingsVersion = DEFAULT_SETTINGS.settingsVersion;
+      return merged;
     } catch {
       return { ...DEFAULT_SETTINGS };
     }

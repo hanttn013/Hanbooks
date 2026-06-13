@@ -3,6 +3,15 @@ import styles from './TabBar.module.css';
 
 const TABS = [
   {
+    id: 'home',
+    label: 'Home',
+    icon: (active) => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M4 11.5L12 5l8 6.5V20a1 1 0 01-1 1h-5v-6h-4v6H5a1 1 0 01-1-1v-8.5z" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     id: 'library',
     label: 'Library',
     icon: (active) => (
@@ -14,31 +23,23 @@ const TABS = [
     ),
   },
   {
-    id: 'continue',
-    label: 'Continue',
+    id: 'lists',
+    label: 'Lists',
     icon: (active) => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M4 4h16v16H4z" stroke="currentColor" strokeWidth="1.5" fill="none" rx="2"/>
-        <path d="M4 4h16v16H4V4z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" fill={active ? 'none' : 'none'}/>
-        <path d="M8 8h8M8 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M3 3h18v18H3z" fill="none"/>
-        <path d="M6 3.5h12a2 2 0 012 2v13a2 2 0 01-2 2H6a2 2 0 01-2-2v-13a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.5" fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.1 : 0}/>
-        <path d="M8 9h8M8 13h5" stroke={active ? 'var(--accent)' : 'currentColor'} strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="4" y="5" width="16" height="4" rx="1.5" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6"/>
+        <rect x="4" y="11" width="16" height="4" rx="1.5" fill={active ? 'currentColor' : 'none'} fillOpacity="0.55" stroke="currentColor" strokeWidth="1.6"/>
+        <rect x="4" y="17" width="16" height="3" rx="1.5" fill={active ? 'currentColor' : 'none'} fillOpacity="0.25" stroke="currentColor" strokeWidth="1.6"/>
       </svg>
     ),
   },
   {
-    id: 'appearance',
-    label: 'Appearance',
+    id: 'settings',
+    label: 'Settings',
     icon: (active) => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill={active ? 'none' : 'none'}/>
-        <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
-        <circle cx="14" cy="8" r="1.5" fill="currentColor"/>
-        <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
-        <circle cx="10" cy="15" r="1.5" fill="currentColor"/>
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
+        <circle cx="12" cy="12" r="3" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6"/>
+        <path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.4 1a7.3 7.3 0 00-2-1.2L14.2 3h-4.4l-.3 2.7a7.3 7.3 0 00-2 1.2l-2.4-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.4-1a7.3 7.3 0 002 1.2l.3 2.7h4.4l.3-2.7a7.3 7.3 0 002-1.2l2.4 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
       </svg>
     ),
   },

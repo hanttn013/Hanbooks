@@ -1,0 +1,244 @@
+.screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.header {
+  padding: 0 20px 12px;
+  flex-shrink: 0;
+}
+
+.content {
+  padding: 0 20px 108px;
+}
+
+.preview {
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  padding: 18px;
+  margin-bottom: 24px;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.statsPanel {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  padding: 14px;
+}
+
+.heroStat {
+  border-radius: 16px;
+  background: var(--accent-dark);
+  color: #F5E6C0;
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.heroStat strong {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.heroStat span {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.statBox {
+  min-width: 0;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  padding: 10px 7px;
+  text-align: center;
+}
+
+.statBox strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statBox span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.group {
+  margin-bottom: 26px;
+}
+
+.group h2 {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.themeGrid button {
+  min-height: 76px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.themeGrid strong {
+  font-family: Georgia, serif;
+  font-size: 22px;
+}
+
+.themeGrid span {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.themeActive {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.card button,
+.infoRow {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  text-align: left;
+  font: inherit;
+}
+
+.card button:last-child,
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.card button span,
+.infoRow span {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.card button em,
+.infoRow em {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.rowActive {
+  background: var(--bg-secondary) !important;
+}
+
+.sliderRow {
+  display: block;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sliderRow:last-child {
+  border-bottom: none;
+}
+
+.sliderRow span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sliderRow strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.sliderRow em {
+  color: var(--text-secondary);
+  font-style: normal;
+  font-size: 12px;
+}
+
+.sliderRow input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 5px;
+}
+
+.segment button {
+  min-height: 38px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.segmentActive {
+  background: var(--bg-card) !important;
+  color: var(--accent-dark) !important;
+  box-shadow: var(--shadow-card);
+}

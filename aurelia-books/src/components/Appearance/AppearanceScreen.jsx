@@ -31,10 +31,9 @@ const READING_MODES = [
 ];
 
 const PAGE_EFFECTS = [
+  { id: 'none', label: 'None' },
   { id: 'slide', label: 'Slide' },
   { id: 'realistic', label: 'Realistic' },
-  { id: 'fade', label: 'Fade' },
-  { id: 'instant', label: 'Instant' },
 ];
 
 function Slider({ label, value, min, max, step, unit, onChange }) {

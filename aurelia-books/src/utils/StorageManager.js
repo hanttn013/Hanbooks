@@ -1,6 +1,6 @@
 // src/utils/StorageManager.js
 const DB_NAME = 'aurelia_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export class StorageManager {
   static openDB() {
@@ -18,6 +18,9 @@ export class StorageManager {
         }
         if (!db.objectStoreNames.contains('progress')) {
           db.createObjectStore('progress', { keyPath: 'bookId' });
+        }
+        if (!db.objectStoreNames.contains('lists')) {
+          db.createObjectStore('lists', { keyPath: 'id' });
         }
       };
 
@@ -110,6 +113,17 @@ export class StorageManager {
     });
   }
 
+  static async getAllBookmarks() {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('bookmarks', 'readonly');
+      const store = transaction.objectStore('bookmarks');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   static async addBookmark(bookmark) {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
@@ -126,6 +140,39 @@ export class StorageManager {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('bookmarks', 'readwrite');
       const store = transaction.objectStore('bookmarks');
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  static async getAllLists() {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('lists', 'readonly');
+      const store = transaction.objectStore('lists');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  static async saveList(list) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('lists', 'readwrite');
+      const store = transaction.objectStore('lists');
+      const request = store.put(list);
+      request.onsuccess = () => resolve(list);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  static async deleteList(id) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('lists', 'readwrite');
+      const store = transaction.objectStore('lists');
       const request = store.delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);

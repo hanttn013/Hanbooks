@@ -72,10 +72,12 @@ function appendNextChapterControl(contents, epubBookInstance, rendition, setting
 
   const wrapper = doc.createElement('div');
   wrapper.id = 'hanbooks-next-chapter';
+  const isContinuous = (settings.chapterFlow || 'continuous') === 'continuous';
+
   wrapper.style.cssText = [
     'display:block',
-    'margin:48px 0 0',
-    'padding:56px 16px 72px',
+    `margin:${isContinuous ? 28 : 48}px 0 0`,
+    `padding:${isContinuous ? '32px 16px 48px' : '56px 16px 72px'}`,
     `background:${bgColor}`,
     `color:${textColor}`,
     'text-align:center',
@@ -84,7 +86,9 @@ function appendNextChapterControl(contents, epubBookInstance, rendition, setting
   ].join(';');
 
   const hint = doc.createElement('p');
-  hint.textContent = hasNext ? 'Keo len de sang chuong tiep theo' : 'Ban da doc den cuoi sach';
+  hint.textContent = hasNext
+    ? (isContinuous ? 'Chuong tiep theo' : 'Keo len de sang chuong tiep theo')
+    : 'Ban da doc den cuoi sach';
   hint.style.cssText = [
     'margin:0 0 16px',
     'opacity:0.62',
@@ -98,13 +102,13 @@ function appendNextChapterControl(contents, epubBookInstance, rendition, setting
   button.disabled = !hasNext;
   button.style.cssText = [
     'min-height:48px',
-    'min-width:176px',
+    `min-width:${isContinuous ? 144 : 176}px`,
     'padding:0 22px',
     'border-radius:24px',
     'border:1px solid rgba(139,105,20,0.55)',
     hasNext ? 'background:#8B6914' : 'background:transparent',
     hasNext ? 'color:#FFF8EC' : `color:${textColor}`,
-    'font:600 15px system-ui,-apple-system,sans-serif',
+    `font:600 ${isContinuous ? 14 : 15}px system-ui,-apple-system,sans-serif`,
     hasNext ? 'opacity:1' : 'opacity:0.45',
   ].join(';');
 
@@ -119,7 +123,7 @@ function appendNextChapterControl(contents, epubBookInstance, rendition, setting
   body.appendChild(wrapper);
 }
 
-export default function ReaderScreen({ book, settings, updateSetting, onClose }) {
+export default function ReaderScreen({ book, settings, updateSetting, onClose, onBookUpdate }) {
   const [showControls, setShowControls] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showTOC, setShowTOC] = useState(false);
@@ -133,15 +137,20 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkFeedback, setBookmarkFeedback] = useState(null); // 'added' | 'removed'
-  const [currentPage, setCurrentPage] = useState(null);
   const [totalPages, setTotalPages] = useState(null);
   const [epubBook, setEpubBook] = useState(null);
+  const [chapterPercentage, setChapterPercentage] = useState(0);
+  const [chapterProgressAvailable, setChapterProgressAvailable] = useState(false);
+  const [previousLocation, setPreviousLocation] = useState(null);
 
   const viewerRef = useRef(null);
   const bookRef = useRef(null);
   const renditionRef = useRef(null);
   const currentChapterRef = useRef('');
   const currentCfiRef = useRef(null);
+  const currentSpineItemRef = useRef(null);
+  const latestBookPercentageRef = useRef(0);
+  const finishedMarkedRef = useRef(book.status === 'finished');
 
   const {
     saveProgress,
@@ -176,6 +185,43 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     return { source: null, revokeUrl: null };
   };
 
+  const rememberCurrentLocation = useCallback(() => {
+    const cfi = currentCfiRef.current;
+    if (cfi) setPreviousLocation(cfi);
+  }, []);
+
+  const getChapterProgressFromLocation = useCallback((loc) => {
+    const displayed = loc?.start?.displayed || loc?.displayed;
+    if (displayed?.total && displayed.total > 0) {
+      const page = Math.max(1, displayed.page || 1);
+      return {
+        available: true,
+        value: Math.min(100, Math.max(0, Math.round((page / displayed.total) * 100))),
+      };
+    }
+
+    const sectionPercent = loc?.start?.percentage ?? loc?.percentage;
+    if (typeof sectionPercent === 'number' && !Number.isNaN(sectionPercent)) {
+      return {
+        available: true,
+        value: Math.min(100, Math.max(0, Math.round(sectionPercent * 100))),
+      };
+    }
+
+    return { available: false, value: latestBookPercentageRef.current };
+  }, []);
+
+  const saveLatestProgress = useCallback(() => {
+    const cfi = currentCfiRef.current;
+    if (!cfi) return;
+    saveProgress(cfi, latestBookPercentageRef.current, currentChapterRef.current);
+  }, [saveProgress]);
+
+  const closeReader = useCallback(() => {
+    saveLatestProgress();
+    onClose();
+  }, [onClose, saveLatestProgress]);
+
   useEffect(() => {
     let isMounted = true;
     let revokeUrl = null;
@@ -203,6 +249,11 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
       if (cfi) {
         setCurrentCfi(cfi);
         currentCfiRef.current = cfi;
+        try {
+          currentSpineItemRef.current = epubBookInstance.spine?.get(cfi) || null;
+        } catch {
+          currentSpineItemRef.current = null;
+        }
       }
 
       // Get chapter title from TOC
@@ -225,18 +276,27 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
           const pct = epubBookInstance.locations.percentageFromCfi(cfi) * 100;
           if (!isNaN(pct) && pct >= 0) {
             const rounded = Math.round(pct);
+            latestBookPercentageRef.current = rounded;
             setPercentage(rounded);
             saveProgress(cfi, rounded, currentChapterRef.current);
+            if (rounded >= 98 && !finishedMarkedRef.current) {
+              finishedMarkedRef.current = true;
+              onBookUpdate?.({ status: 'finished' });
+            }
           }
           const currentLoc = epubBookInstance.locations.locationFromCfi(cfi);
           const totalLoc = epubBookInstance.locations.total;
           if (currentLoc !== -1) {
-            setCurrentPage(Math.max(1, currentLoc));
             setTotalPages(totalLoc);
           }
         }
+        const chapterProgress = getChapterProgressFromLocation(loc);
+        setChapterProgressAvailable(chapterProgress.available);
+        setChapterPercentage(chapterProgress.value);
       } catch (err) {
         console.warn("Failed to calculate page locations:", err);
+        setChapterProgressAvailable(false);
+        setChapterPercentage(latestBookPercentageRef.current);
       }
     };
 
@@ -261,7 +321,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
           height: '100%',
           flow: settings.readingMode === 'scroll' ? 'scrolled-doc' : 'paginated',
           spread: 'none',
-          allowScriptedContent: true,
+          allowScriptedContent: false,
         });
 
         renditionRef.current = rendition;
@@ -278,8 +338,13 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
 
         rendition.on('relocated', handleRelocated);
         rendition.on('locationChanged', handleRelocated);
-        rendition.on('click', () => {
-          setShowControls(prev => !prev);
+        rendition.on('click', (event) => {
+          const width = window.innerWidth || viewerRef.current?.clientWidth || 1;
+          const x = event?.clientX ?? width / 2;
+          if (x >= width * 0.25 && x <= width * 0.75) {
+            setShowControls(prev => !prev);
+          }
+          setShowMore(false);
         });
 
         const savedProgress = await StorageManager.getProgress(book.id);
@@ -308,11 +373,13 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
             if (currentLocationCfi && epubBookInstance.locations) {
               const pct = epubBookInstance.locations.percentageFromCfi(currentLocationCfi) * 100;
               if (!isNaN(pct) && pct >= 0) {
-                setPercentage(Math.round(pct));
+                const rounded = Math.round(pct);
+                latestBookPercentageRef.current = rounded;
+                setPercentage(rounded);
               }
               const currentLoc = epubBookInstance.locations.locationFromCfi(currentLocationCfi);
               if (currentLoc !== -1) {
-                setCurrentPage(Math.max(1, currentLoc));
+                setTotalPages(epubBookInstance.locations.total);
               }
             }
           })
@@ -332,6 +399,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
 
     return () => {
       isMounted = false;
+      if (currentCfiRef.current) {
+        saveProgress(currentCfiRef.current, latestBookPercentageRef.current, currentChapterRef.current);
+      }
       stopReading();
       if (displayTimeout) window.clearTimeout(displayTimeout);
       if (locationTimer) window.clearTimeout(locationTimer);
@@ -378,11 +448,11 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     const handleKey = (e) => {
       if (e.key === 'ArrowRight') goNext();
       else if (e.key === 'ArrowLeft') goPrev();
-      else if (e.key === 'Escape') onClose();
+      else if (e.key === 'Escape') closeReader();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [goNext, goPrev, onClose]);
+  }, [goNext, goPrev, closeReader]);
 
   // Bookmark toggle with visual feedback
   const handleBookmark = useCallback(() => {
@@ -401,35 +471,46 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
 
   const handleJumpTo = useCallback((cfi) => {
     if (!cfi) return;
+    rememberCurrentLocation();
     renditionRef.current?.display(cfi);
     setShowBookmarks(false);
     setShowTOC(false);
     setShowSearch(false);
-  }, []);
+  }, [rememberCurrentLocation]);
 
   const handleSeekChange = useCallback((event) => {
-    setPercentage(Number(event.target.value));
-  }, []);
+    const value = Number(event.target.value);
+    if (chapterProgressAvailable) setChapterPercentage(value);
+    else setPercentage(value);
+  }, [chapterProgressAvailable]);
 
   const handleSeekCommit = useCallback((event) => {
     const value = Number(event.currentTarget.value);
     const rendition = renditionRef.current;
     const locations = bookRef.current?.locations;
     if (!rendition || !locations?.total) return;
+    rememberCurrentLocation();
 
     if (value <= 0) {
-      rendition.display();
+      rendition.display(currentSpineItemRef.current?.href || undefined);
       return;
     }
 
     try {
       const ratio = Math.min(0.999, Math.max(0.001, value / 100));
+      if (chapterProgressAvailable && currentSpineItemRef.current?.cfiFromPercentage) {
+        const chapterCfi = currentSpineItemRef.current.cfiFromPercentage(ratio);
+        if (chapterCfi) {
+          rendition.display(chapterCfi);
+          return;
+        }
+      }
       const cfi = locations.cfiFromPercentage(ratio);
       if (cfi) rendition.display(cfi);
     } catch (err) {
       console.warn('Failed to seek reading progress:', err);
     }
-  }, []);
+  }, [chapterProgressAvailable, rememberCurrentLocation]);
 
   // Swipe gesture
   const touchStartX = useRef(null);
@@ -466,9 +547,30 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
     edgeSwipeRef.current = false;
   };
 
+  const handleReaderTap = useCallback((event) => {
+    const width = window.innerWidth || event.currentTarget.clientWidth || 1;
+    const x = event.clientX;
+    const left = width * 0.25;
+    const right = width * 0.75;
+    if (x >= left && x <= right) {
+      setShowControls(prev => !prev);
+    }
+    setShowMore(false);
+  }, []);
+
   const { bgColor, textColor } = getThemePalette(settings.theme);
 
   const isCurrentBookmarked = isBookmarked(currentCfi);
+  const visibleProgress = chapterProgressAvailable ? chapterPercentage : percentage;
+  const chapterLabel = currentChapter || book.title;
+  const statusLine = (() => {
+    if ((settings.readingStatusLine || 'off') === 'off') return '';
+    const shortChapter = chapterLabel.length > 32 ? `${chapterLabel.slice(0, 29)}...` : chapterLabel;
+    if (settings.readingStatusLine === 'detailed') {
+      return `${shortChapter} - ${Math.round(visibleProgress)}% chapter - ${Math.round(percentage)}% book`;
+    }
+    return `${shortChapter} - ${Math.round(visibleProgress)}%`;
+  })();
 
   return (
     <div
@@ -498,7 +600,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>{error}</p>
           <button
             style={{ padding: '12px 28px', background: '#8B6914', color: '#FFF8EC', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
-            onClick={onClose}
+            onClick={closeReader}
           >
             Back to Library
           </button>
@@ -512,7 +614,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onClick={() => { setShowControls(prev => !prev); setShowMore(false); }}
+        onClick={handleReaderTap}
       />
 
       {/* Page navigation zones */}
@@ -535,63 +637,64 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
         <>
           {/* Top bar */}
           <div className={styles.topBar}>
-              <button className={styles.backBtn} onClick={onClose} title="Back to Library">
+              <button className={styles.backBtn} onClick={closeReader} title="Back to Library">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </button>
               <div className={styles.topTitle}>
-                <p style={{ fontWeight: 600, fontSize: 14, opacity: 0.85 }}>{book.title}</p>
-                {currentChapter && (
-                  <p style={{ fontSize: 11, opacity: 0.45, marginTop: 2 }}>{currentChapter}</p>
+                <p style={{ fontWeight: 650, fontSize: 14, opacity: 0.9 }}>{chapterLabel}</p>
+              </div>
+              <div className={styles.moreWrap}>
+                <button className={styles.backBtn} onClick={(e) => { e.stopPropagation(); setShowMore(prev => !prev); }} title="More">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                {showMore && (
+                  <div className={styles.topMoreMenu} onClick={e => e.stopPropagation()}>
+                    {previousLocation && (
+                      <button onClick={() => { renditionRef.current?.display(previousLocation); setPreviousLocation(null); setShowMore(false); }}>
+                        <span>Back to previous location</span>
+                      </button>
+                    )}
+                    <button onClick={() => { setShowSearch(true); setShowMore(false); }}>
+                      <span>Search in book</span>
+                    </button>
+                    <button onClick={() => { setShowBookmarks(true); setShowMore(false); }}>
+                      <span>Bookmarks ({bookmarks.length})</span>
+                    </button>
+                  </div>
                 )}
               </div>
-              <button
-                className={styles.backBtn}
-                onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
-                title="Reading settings"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/>
-                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.8"/>
-                </svg>
-              </button>
             </div>
 
           {/* Bottom bar */}
           <div className={styles.bottomBar}>
               {/* Progress row */}
               <div className={styles.progressRow}>
-                <span style={{ fontSize: 11, opacity: 0.4 }}>
-                  {currentPage ? `Page ${currentPage}` : '0%'}
-                </span>
+                <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowTOC(true); }} title="Table of Contents">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 6h16M4 10h12M4 14h16M4 18h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                </button>
                 <input
                   className={styles.progressSlider}
                   type="range"
                   min="0"
                   max="100"
                   step="1"
-                  value={percentage}
+                  value={visibleProgress}
                   disabled={!totalPages}
                   onChange={handleSeekChange}
                   onPointerUp={handleSeekCommit}
                   onTouchEnd={handleSeekCommit}
                   onKeyUp={handleSeekCommit}
-                  aria-label="Reading progress"
+                  aria-label={chapterProgressAvailable ? 'Chapter progress' : 'Book progress'}
                 />
                 <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500 }}>
-                  {totalPages ? `${percentage}% (of ${totalPages})` : `${percentage}%`}
+                  {chapterProgressAvailable ? `${Math.round(visibleProgress)}%` : `${Math.round(percentage)}% book`}
                 </span>
-              </div>
-
-              {/* Action buttons */}
-              <div className={styles.actionRow}>
-                <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowTOC(true); }} title="Table of Contents">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 6h16M4 10h12M4 14h16M4 18h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                </button>
-
                 <button
                   className={`${styles.actionBtn} ${isCurrentBookmarked ? styles.actionActive : ''}`}
                   onClick={(e) => { e.stopPropagation(); handleBookmark(); }}
@@ -601,25 +704,15 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose })
                     <path d="M5 3h14v18l-7-4-7 4V3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
                   </svg>
                 </button>
-
-                <div className={styles.moreWrap}>
-                  <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowMore(prev => !prev); }} title="More">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                    </svg>
-                  </button>
-                  {showMore && (
-                    <div className={styles.moreMenu} onClick={e => e.stopPropagation()}>
-                      <button onClick={() => { setShowSearch(true); setShowMore(false); }}>
-                        <span>Search in book</span>
-                      </button>
-                      <button onClick={() => { setShowBookmarks(true); setShowMore(false); }}>
-                        <span>Bookmarks ({bookmarks.length})</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  className={styles.actionBtn}
+                  onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
+                  title="Reading settings"
+                >
+                  <span className={styles.aaLabel}>Aa</span>
+                </button>
               </div>
+              {statusLine && <div className={styles.statusLine}>{statusLine}</div>}
             </div>
         </>
       )}

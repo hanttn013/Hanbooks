@@ -178,6 +178,17 @@
   font-style: normal;
 }
 
+.infoRow select {
+  max-width: 150px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: right;
+  outline: none;
+}
+
 .rowActive {
   background: var(--bg-secondary) !important;
 }

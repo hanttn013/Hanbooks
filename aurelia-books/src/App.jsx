@@ -60,13 +60,14 @@ export default function App() {
       <div id="phone-frame" data-theme={settings.theme}>
         <AnimatePresence mode="wait">
           {openBook ? (
-            <ReaderScreen
-              key={`reader-${openBook.id}`}
-              book={openBook}
-              settings={settings}
-              updateSetting={updateSetting}
-              onClose={handleCloseBook}
-            />
+              <ReaderScreen
+                key={`reader-${openBook.id}`}
+                book={openBook}
+                settings={settings}
+                updateSetting={updateSetting}
+                onBookUpdate={(updates) => library.updateBook(openBook.id, updates)}
+                onClose={handleCloseBook}
+              />
           ) : (
             <motion.div
               key="app-shell"

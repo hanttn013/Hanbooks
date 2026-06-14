@@ -1,4 +1,3 @@
-// src/components/Reader/ReaderSettingsPanel.jsx
 // Quick settings accessible from within the reader
 
 const THEMES = [
@@ -14,6 +13,58 @@ const READING_MODES = [
   { id: 'classic', label: 'Pages' },
   { id: 'scroll', label: 'Scroll' },
 ];
+
+const CHAPTER_FLOWS = [
+  { id: 'continuous', label: 'Continuous' },
+  { id: 'manual', label: 'Manual' },
+];
+
+const STATUS_LINES = [
+  { id: 'off', label: 'Off' },
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'detailed', label: 'Detailed' },
+];
+
+const PAGE_EFFECTS = [
+  { id: 'slide', label: 'Slide' },
+  { id: 'realistic', label: '3D Page Curl' },
+  { id: 'none', label: 'None' },
+];
+
+function segmentStyle(active) {
+  return {
+    flex: 1,
+    padding: '10px 0',
+    borderRadius: 10,
+    border: '1.5px solid',
+    borderColor: active ? 'var(--accent)' : 'var(--border)',
+    background: active ? 'var(--accent-dark)' : 'var(--bg-secondary)',
+    color: active ? '#F5E6C0' : 'var(--text-secondary)',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  };
+}
+
+function SettingSegment({ label, value, options, onChange }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>{label}</p>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {options.map(option => (
+          <button
+            key={option.id}
+            onClick={() => onChange(option.id)}
+            style={segmentStyle(value === option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ReaderSettingsPanel({ settings, updateSetting, onClose }) {
   return (
@@ -37,8 +88,7 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
           </button>
         </div>
 
-        <div style={{ padding: '0 20px', overflow: 'hidden' }}>
-          {/* Font Size */}
+        <div style={{ padding: '0 20px', overflowY: 'auto' }}>
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
               <span>Font Size</span>
@@ -48,7 +98,7 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
               <button
                 onClick={() => updateSetting('fontSize', Math.max(14, settings.fontSize - 1))}
                 style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--bg-secondary)', cursor: 'pointer', fontSize: 18, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-              >−</button>
+              >-</button>
               <input
                 type="range" min="14" max="28" step="1"
                 value={settings.fontSize}
@@ -62,7 +112,6 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
             </div>
           </div>
 
-          {/* Line Height */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 14, color: 'var(--text-secondary)' }}>
               <span>Line Spacing</span>
@@ -76,59 +125,38 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
             />
           </div>
 
-          {/* Reading Mode */}
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Reading Mode</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {READING_MODES.map(mode => (
-                <button
-                  key={mode.id}
-                  onClick={() => updateSetting('readingMode', mode.id)}
-                  style={{
-                    flex: 1, padding: '10px 0', borderRadius: 10,
-                    border: '1.5px solid',
-                    borderColor: settings.readingMode === mode.id ? 'var(--accent)' : 'var(--border)',
-                    background: settings.readingMode === mode.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
-                    color: settings.readingMode === mode.id ? '#F5E6C0' : 'var(--text-secondary)',
-                    fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SettingSegment
+            label="Reading Mode"
+            value={settings.readingMode}
+            options={READING_MODES}
+            onChange={value => updateSetting('readingMode', value)}
+          />
 
-          {/* Page Turn Effect */}
-          {settings.readerMode !== 'lite' && settings.readingMode !== 'scroll' && (
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Page Animation</p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {[
-                  { id: 'slide', label: 'Slide' },
-                  { id: 'realistic', label: '3D Page Curl' },
-                  { id: 'none', label: 'None' }
-                ].map(effect => (
-                  <button
-                    key={effect.id}
-                    onClick={() => updateSetting('pageTurnEffect', effect.id)}
-                    style={{
-                      flex: 1, padding: '10px 0', borderRadius: 10,
-                      border: '1.5px solid',
-                      borderColor: settings.pageTurnEffect === effect.id ? 'var(--accent)' : 'var(--border)',
-                      background: settings.pageTurnEffect === effect.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
-                      color: settings.pageTurnEffect === effect.id ? '#F5E6C0' : 'var(--text-secondary)',
-                      fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                    }}
-                  >
-                    {effect.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {settings.readingMode === 'scroll' && (
+            <SettingSegment
+              label="Chapter Flow"
+              value={settings.chapterFlow || 'continuous'}
+              options={CHAPTER_FLOWS}
+              onChange={value => updateSetting('chapterFlow', value)}
+            />
           )}
 
-          {/* Theme quick-select */}
+          <SettingSegment
+            label="Status Line"
+            value={settings.readingStatusLine || 'off'}
+            options={STATUS_LINES}
+            onChange={value => updateSetting('readingStatusLine', value)}
+          />
+
+          {settings.readerMode !== 'lite' && settings.readingMode !== 'scroll' && (
+            <SettingSegment
+              label="Page Animation"
+              value={settings.pageTurnEffect}
+              options={PAGE_EFFECTS}
+              onChange={value => updateSetting('pageTurnEffect', value)}
+            />
+          )}
+
           <div>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Theme</p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -136,12 +164,17 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
                 <button
                   key={theme.id}
                   onClick={() => updateSetting('theme', theme.id)}
+                  title={theme.label}
                   style={{
-                    flex: 1, height: 42, borderRadius: 10,
+                    flex: 1,
+                    height: 42,
+                    borderRadius: 10,
                     border: `2px solid ${settings.theme === theme.id ? 'var(--accent)' : 'transparent'}`,
                     background: theme.bg,
                     cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     boxShadow: settings.theme === theme.id ? '0 0 0 1px var(--accent)' : 'none',
                   }}
                 >

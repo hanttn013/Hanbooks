@@ -154,6 +154,31 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
           </section>
 
           <section className={styles.group}>
+            <h2>Reader controls</h2>
+            <div className={styles.card}>
+              <SettingSelect
+                label="Chapter flow"
+                value={settings.chapterFlow || 'continuous'}
+                options={[
+                  { id: 'continuous', label: 'Continuous' },
+                  { id: 'manual', label: 'Manual' },
+                ]}
+                onChange={value => updateSetting('chapterFlow', value)}
+              />
+              <SettingSelect
+                label="Status line"
+                value={settings.readingStatusLine || 'off'}
+                options={[
+                  { id: 'off', label: 'Off' },
+                  { id: 'minimal', label: 'Minimal' },
+                  { id: 'detailed', label: 'Detailed' },
+                ]}
+                onChange={value => updateSetting('readingStatusLine', value)}
+              />
+            </div>
+          </section>
+
+          <section className={styles.group}>
             <h2>Library</h2>
             <div className={styles.card}>
               <div className={styles.infoRow}><span>Storage</span><em>IndexedDB</em></div>
@@ -183,5 +208,18 @@ function Stat({ label, value }) {
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
+  );
+}
+
+function SettingSelect({ label, value, options, onChange }) {
+  return (
+    <label className={styles.infoRow}>
+      <span>{label}</span>
+      <select value={value} onChange={event => onChange(event.target.value)}>
+        {options.map(option => (
+          <option key={option.id} value={option.id}>{option.label}</option>
+        ))}
+      </select>
+    </label>
   );
 }

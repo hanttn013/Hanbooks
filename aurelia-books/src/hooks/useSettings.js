@@ -12,9 +12,11 @@ export const DEFAULT_SETTINGS = {
   letterSpacing: 0,
   readingMode: 'scroll',
   pageTurnEffect: 'none',
+  chapterFlow: 'continuous',
+  readingStatusLine: 'off',
   reducedMotion: true,
   readerMode: 'lite',
-  settingsVersion: 4,
+  settingsVersion: 5,
 };
 
 export function useSettings() {
@@ -33,6 +35,8 @@ export function useSettings() {
         merged.reducedMotion = true;
         merged.readerMode = 'lite';
       }
+      merged.chapterFlow = parsed.chapterFlow || DEFAULT_SETTINGS.chapterFlow;
+      merged.readingStatusLine = parsed.readingStatusLine || DEFAULT_SETTINGS.readingStatusLine;
       merged.settingsVersion = DEFAULT_SETTINGS.settingsVersion;
       return merged;
     } catch {

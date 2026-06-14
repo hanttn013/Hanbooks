@@ -179,10 +179,31 @@
 .coverBookmark {
   position: absolute;
   left: 7px;
-  top: 4px;
+  top: 7px;
   color: #F5E6C0;
   text-shadow: 0 1px 3px rgba(0,0,0,0.4);
   font-size: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.cardMenuBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 16, 10, 0.52);
+  color: #FFF8EC;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cardMenuBtn:active {
+  background: rgba(20, 16, 10, 0.72);
 }
 
 .bookTitle {

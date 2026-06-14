@@ -42,18 +42,40 @@ function readerThemeRules(settings) {
       'background': `${bgColor} !important`,
       'color': `${textColor} !important`,
       'margin': '0 !important',
+      'max-width': '760px !important',
+      'margin-left': 'auto !important',
+      'margin-right': 'auto !important',
       'text-align': 'left !important',
       'font-style': 'normal !important',
+      'overflow-wrap': 'break-word !important',
+      'word-break': 'normal !important',
     },
-    'p, div, span, section, article, h1, h2, h3, h4, h5, h6, li': {
+    'p, div, span, section, article, h1, h2, h3, h4, h5, h6, li, blockquote': {
       'color': `${textColor} !important`,
       'font-style': 'normal !important',
+      'max-width': '100% !important',
     },
     p: {
-      'margin-bottom': '1em',
+      'margin': '0 0 1em !important',
       'text-align': 'left !important',
     },
-    img: { 'max-width': '100%' },
+    'section, article': {
+      'margin-left': '0 !important',
+      'margin-right': '0 !important',
+      'padding-left': '0 !important',
+      'padding-right': '0 !important',
+    },
+    img: {
+      'display': 'block',
+      'max-width': '100% !important',
+      'height': 'auto !important',
+      'object-fit': 'contain !important',
+      'margin': '1em auto !important',
+    },
+    table: {
+      'max-width': '100% !important',
+      'overflow-wrap': 'break-word !important',
+    },
   };
 }
 
@@ -151,6 +173,8 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const currentSpineItemRef = useRef(null);
   const latestBookPercentageRef = useRef(0);
   const finishedMarkedRef = useRef(book.status === 'finished');
+  const progressTimerRef = useRef(null);
+  const pendingProgressRef = useRef(null);
 
   const {
     saveProgress,
@@ -211,7 +235,27 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     return { available: false, value: latestBookPercentageRef.current };
   }, []);
 
+  const queueProgressSave = useCallback((cfi, bookPercentage, chapterTitle) => {
+    if (!cfi) return;
+    pendingProgressRef.current = { cfi, bookPercentage, chapterTitle };
+    window.clearTimeout(progressTimerRef.current);
+    progressTimerRef.current = window.setTimeout(() => {
+      const pending = pendingProgressRef.current;
+      if (!pending) return;
+      saveProgress(pending.cfi, pending.bookPercentage, pending.chapterTitle);
+      pendingProgressRef.current = null;
+    }, 1000);
+  }, [saveProgress]);
+
   const saveLatestProgress = useCallback(() => {
+    const pending = pendingProgressRef.current;
+    window.clearTimeout(progressTimerRef.current);
+    progressTimerRef.current = null;
+    if (pending) {
+      saveProgress(pending.cfi, pending.bookPercentage, pending.chapterTitle);
+      pendingProgressRef.current = null;
+      return;
+    }
     const cfi = currentCfiRef.current;
     if (!cfi) return;
     saveProgress(cfi, latestBookPercentageRef.current, currentChapterRef.current);
@@ -278,7 +322,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
             const rounded = Math.round(pct);
             latestBookPercentageRef.current = rounded;
             setPercentage(rounded);
-            saveProgress(cfi, rounded, currentChapterRef.current);
+            queueProgressSave(cfi, rounded, currentChapterRef.current);
             if (rounded >= 98 && !finishedMarkedRef.current) {
               finishedMarkedRef.current = true;
               onBookUpdate?.({ status: 'finished' });
@@ -330,6 +374,10 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         rendition.themes.default(readerThemeRules(settings));
         rendition.hooks.content.register((contents) => {
           appendNextChapterControl(contents, epubBookInstance, rendition, settings);
+          contents?.window?.addEventListener?.('scroll', () => {
+            setShowControls(false);
+            setShowMore(false);
+          }, { passive: true });
         });
 
         epubBookInstance.loaded.navigation.then(nav => {
@@ -399,9 +447,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
 
     return () => {
       isMounted = false;
-      if (currentCfiRef.current) {
-        saveProgress(currentCfiRef.current, latestBookPercentageRef.current, currentChapterRef.current);
-      }
+      saveLatestProgress();
       stopReading();
       if (displayTimeout) window.clearTimeout(displayTimeout);
       if (locationTimer) window.clearTimeout(locationTimer);
@@ -522,6 +568,14 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     edgeSwipeRef.current = touchStartX.current < 28;
   };
   const handleTouchMove = (e) => {
+    if (touchStartX.current !== null && touchStartY.current !== null) {
+      const dxAny = e.touches[0].clientX - touchStartX.current;
+      const dyAny = e.touches[0].clientY - touchStartY.current;
+      if (Math.abs(dyAny) > 8 && Math.abs(dyAny) > Math.abs(dxAny)) {
+        setShowControls(false);
+        setShowMore(false);
+      }
+    }
     if (!edgeSwipeRef.current || touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = e.touches[0].clientY - touchStartY.current;

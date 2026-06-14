@@ -11,6 +11,7 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
     .filter(book => book.status === 'reading' || book.lastOpenedAt)
     .sort((a, b) => (b.lastOpenedAt || 0) - (a.lastOpenedAt || 0));
   const current = reading[0] || books[0];
+  const queue = reading.filter(book => book.id !== current?.id).slice(0, 6);
   const recent = [...books].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 6);
   const lists = (library.lists || []).slice(0, 4);
   const stats = library.stats || {};
@@ -48,25 +49,35 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
           )}
 
           <section>
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <strong>{stats.totalBooks || 0}</strong>
-                <span>Books</span>
-              </div>
-              <div className={styles.statCard}>
-                <strong>{stats.readingBooks || 0}</strong>
-                <span>Reading</span>
-              </div>
-              <div className={styles.statCard}>
-                <strong>{stats.bookmarkCount || 0}</strong>
-                <span>Marks</span>
-              </div>
-              <div className={styles.statCard}>
-                <strong>{stats.totalStorageLabel || '0 MB'}</strong>
-                <span>Storage</span>
-              </div>
+            <div className={styles.activityLine}>
+              <span>{stats.streak || 0}-day streak</span>
+              <span>{stats.totalReadingLabel || '0m'} read</span>
+              <span>{stats.totalStorageLabel || '0 MB'}</span>
             </div>
           </section>
+
+          {queue.length > 0 && (
+            <section>
+              <div className={styles.sectionHeading}>
+                <h2>Reading Queue</h2>
+                <button onClick={onGoLibrary}>See all</button>
+              </div>
+              <div className={styles.bookRail}>
+                {queue.map(book => (
+                  <button
+                    key={book.id}
+                    className={styles.railBook}
+                    onClick={() => onOpenBook(book)}
+                    onContextMenu={e => { e.preventDefault(); onOpenBookInfo(book); }}
+                  >
+                    <BookCover book={book} size="medium" style={{ width: 106, height: 159 }} />
+                    <span>{book.title}</span>
+                    <small>{Math.round(progressFor(book))}% complete</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section>
             <div className={styles.sectionHeading}>

@@ -114,6 +114,14 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
     clearSelection();
   };
 
+  const openInfo = (event, book) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cancelHold();
+    holdTriggeredRef.current = true;
+    onOpenBookInfo?.(book);
+  };
+
   return (
     <div className={styles.screen}>
       {isImporting && (
@@ -200,6 +208,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
           <div className={styles.denseGrid}>
             {books.map(book => {
               const selected = selectedIds.includes(book.id);
+              const pct = Math.round(progressFor(book));
               return (
                 <button
                   key={book.id}
@@ -213,11 +222,34 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
                   <span className={styles.coverWrap}>
                     <BookCover book={book} size="large" style={{ width: '100%', height: '100%' }} />
                     {selecting && <SelectionBadge checked={selected} />}
-                    <span className={styles.coverBookmark}>{book.isFavorite ? '★' : ''}</span>
+                    {book.isFavorite && (
+                      <span className={styles.coverBookmark} aria-label="Favorite">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 17.3l-5.2 3 1.4-5.8-4.5-3.9 6-.5L12 4.6l2.3 5.5 6 .5-4.5 3.9 1.4 5.8-5.2-3z"/>
+                        </svg>
+                      </span>
+                    )}
+                    {!selecting && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className={styles.cardMenuBtn}
+                        onClick={event => openInfo(event, book)}
+                        onPointerDown={event => event.stopPropagation()}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter' || event.key === ' ') openInfo(event, book);
+                        }}
+                        title="Book info"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                        </svg>
+                      </span>
+                    )}
                   </span>
                   <span className={styles.bookTitle}>{book.title}</span>
                   <span className={styles.bookAuthor}>{book.author}</span>
-                  <span className={styles.bookMeta}>{book.genre || 'Fiction'} · {Math.round(progressFor(book))}%</span>
+                  <span className={styles.bookMeta}>{pct}% complete</span>
                 </button>
               );
             })}
@@ -237,7 +269,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
                     <span className={styles.listInfo}>
                       <strong>{book.title}</strong>
                       <small>{book.author}</small>
-                      <small>{book.genre || 'Fiction'} · {book.estimatedPages || 0} pages · {Math.round(progressFor(book))}%</small>
+                      <small>{book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {Math.round(progressFor(book))}%</small>
                     </span>
                     {selecting && <SelectionBadge checked={selected} />}
                   </button>

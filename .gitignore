@@ -45,3 +45,5 @@ Thumbs.db
 *.sln
 *.sw?
 context.md
+.agent
+Anh_UX_UI

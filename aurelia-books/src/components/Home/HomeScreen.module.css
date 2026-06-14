@@ -94,6 +94,35 @@
   font-size: 11px;
 }
 
+.activityLine {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 19px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.activityLine span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activityLine span:not(:last-child)::after {
+  content: "·";
+  margin-left: 10px;
+  color: var(--accent);
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

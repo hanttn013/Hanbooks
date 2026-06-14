@@ -17,6 +17,10 @@ dist-ssr/
 **/dist-ssr/
 
 # Android local build output and toolchains
+.jdk/
+**/.jdk/
+.android-sdk/
+**/.android-sdk/
 **/.android-build/
 **/android/.gradle/
 **/android/build/

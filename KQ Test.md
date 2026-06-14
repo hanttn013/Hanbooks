@@ -359,3 +359,26 @@ Kết luận release:
 - [ ] Ghi bug theo format `BUG-MODULE-NNN`.
 - [ ] Thêm script unit test bằng Vitest.
 - [ ] Tự động hóa ít nhất 1 flow: import demo/mock -> mở sách -> đổi theme -> reload -> restore progress.
+
+## 11. Regression test lite_gemini metadata/reader
+
+Ngày test: 2026-06-14  
+Giờ test: 22:39:45 +07:00  
+Mục tiêu: kiểm tra lại các lỗi người dùng báo trên Book Info và Reader progress.
+
+| ID | Test case | Expected | Actual | Status |
+|---|---|---|---|---|
+| REG-BOOKINFO-001 | EPUB có trang `Giới thiệu`/`Văn án` và TOC dài | Synopsis ưu tiên văn án/giới thiệu, không lấy danh sách `Chương 1...` làm văn án | Đã sửa extractor: phát hiện TOC-like text, parse `Văn án`, `Tác giả`, `Thể loại`, `Tên gốc`, `Nhân vật`, `Editor`, `Beta` từ các trang đầu | Pass by code review |
+| REG-BOOKINFO-002 | EPUB có navigation lồng nhau hoặc nhiều section phụ | Chapter count đếm chương thật theo nhãn `Chương N`/`Chapter N`, không lấy thẳng số spine/nav row | Đã flatten TOC và đếm unique chapter numbers, fallback mới dùng content rows/spine | Pass by code review |
+| REG-BOOKINFO-003 | Sách đã import trước đó có metadata bẩn | Mở Book Info sẽ refresh metadata từ EPUB mà không spam render | Đã thêm lazy metadata refresh, chạy sau khi modal render, dependency ổn định | Pass by lint |
+| REG-READER-001 | Scroll mode ở trang/chương `Giới thiệu`, progress 67% | Kéo slider tới 100% chỉ tới cuối `Giới thiệu`, không nhảy cuối sách | Đã seek theo scroll height của iframe chapter hiện tại trước khi fallback sang book locations | Pass by code review |
+| REG-READER-002 | Scroll trong reader | Controls tự ẩn, progress chương cập nhật theo vị trí scroll | Đã cập nhật progress từ `scrollingElement.scrollTop / maxScroll` | Pass by code review |
+| REG-BUILD-001 | Lint | Không có lỗi ESLint | `npm.cmd run lint` pass | Pass |
+| REG-BUILD-002 | Web build | Build production thành công | `npm.cmd run build` pass, còn warning bundle > 500 kB | Pass |
+| REG-APK-001 | Build APK debug | Tạo APK mới sau bản vá | Đã cài portable JDK 21 + Android SDK 36 trong workspace và build `AureliaBooks-lite-gemini-debug.apk` lúc 2026-06-15 00:08:10 +07:00 | Pass |
+
+Ghi chú:
+
+- APK mới đã build thành công nhưng chưa được smoke test trên Android thật trong phiên này.
+- Toolchain portable đã được đặt trong `.jdk/` và `.android-sdk/`, cả hai đều được ignore để không push lên GitHub.
+- File cài thử: `aurelia-books/AureliaBooks-lite-gemini-debug.apk`.

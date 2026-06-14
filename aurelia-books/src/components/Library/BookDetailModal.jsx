@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
 import { StorageManager } from '../../utils/StorageManager';
+import { extractEpubMetadata } from '../../utils/epubMetadata';
 
 function progressFor(book) {
   return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
@@ -13,6 +14,17 @@ function formatFileSize(size) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function needsMetadataRefresh(book) {
+  const chapterTokens = (book.description?.match(/\b(?:chương|chÆ°Æ¡ng|chapter)\s*\d+/gi) || []).length;
+  return Boolean(book.fileBlob) && (
+    chapterTokens > 8
+    || !book.description
+    || !book.author
+    || book.author === 'Unknown Author'
+    || !book.chapterCount
+  );
+}
+
 export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const [bookmarks, setBookmarks] = useState([]);
   const [listId, setListId] = useState('');
@@ -20,12 +32,66 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshingMeta, setIsRefreshingMeta] = useState(false);
+  const updateBook = library?.updateBook;
+  const shouldRefreshMetadata = needsMetadataRefresh(book);
   const pct = progressFor(book);
   const infoBookmark = bookmarks.find(item => item.cfi === '' && item.chapterTitle === 'Book info');
 
   useEffect(() => {
     StorageManager.getBookmarks(book.id).then(setBookmarks).catch(() => setBookmarks([]));
   }, [book.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!shouldRefreshMetadata) return undefined;
+
+    window.setTimeout(() => {
+      if (cancelled) return;
+      setIsRefreshingMeta(true);
+      extractEpubMetadata(book.fileBlob, {
+        title: book.title,
+        author: book.author,
+        genre: book.genre,
+        description: book.description,
+        characters: book.characters,
+        originalTitle: book.originalTitle,
+        editor: book.editor,
+        beta: book.beta,
+        chapterCount: book.chapterCount,
+        estimatedPages: book.estimatedPages,
+        fileSize: book.fileSize,
+      })
+        .then(metadata => {
+          if (cancelled) return;
+          updateBook?.(book.id, metadata);
+        })
+        .catch(err => console.warn('Could not refresh EPUB metadata:', err))
+        .finally(() => {
+          if (!cancelled) setIsRefreshingMeta(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    shouldRefreshMetadata,
+    book.id,
+    book.fileBlob,
+    book.title,
+    book.author,
+    book.genre,
+    book.description,
+    book.characters,
+    book.originalTitle,
+    book.editor,
+    book.beta,
+    book.chapterCount,
+    book.estimatedPages,
+    book.fileSize,
+    updateBook,
+  ]);
 
   const handleQuickBookmark = async () => {
     if (infoBookmark) return;
@@ -134,10 +200,27 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
 
           <div style={{ padding: '0 20px 16px' }}>
             <p style={sectionLabel}>Synopsis</p>
-            <p style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.55 }}>
+            {isRefreshingMeta && (
+              <p style={{ marginTop: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
+                Refreshing EPUB intro...
+              </p>
+            )}
+            <p style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
               {book.description || 'No synopsis was found in the EPUB. Aurelia will show an extracted preview here after metadata is available.'}
             </p>
           </div>
+
+          {(book.originalTitle || book.characters || book.editor || book.beta) && (
+            <div style={{ padding: '0 20px 16px' }}>
+              <p style={sectionLabel}>Review Info</p>
+              <div style={metaGrid}>
+                {book.originalTitle && <Meta label="Original" value={book.originalTitle} />}
+                {book.characters && <Meta label="Characters" value={book.characters} />}
+                {book.editor && <Meta label="Editor" value={book.editor} />}
+                {book.beta && <Meta label="Beta" value={book.beta} />}
+              </div>
+            </div>
+          )}
 
           <div style={{ padding: '0 20px 16px' }}>
             <p style={sectionLabel}>Metadata</p>

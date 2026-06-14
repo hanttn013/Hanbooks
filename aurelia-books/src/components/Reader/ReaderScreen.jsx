@@ -170,6 +170,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const renditionRef = useRef(null);
   const currentChapterRef = useRef('');
   const currentCfiRef = useRef(null);
+  const currentContentsRef = useRef(null);
   const currentSpineItemRef = useRef(null);
   const latestBookPercentageRef = useRef(0);
   const finishedMarkedRef = useRef(book.status === 'finished');
@@ -233,6 +234,36 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     }
 
     return { available: false, value: latestBookPercentageRef.current };
+  }, []);
+
+  const updateScrollChapterProgress = useCallback((contents) => {
+    const doc = contents?.document;
+    const scrolling = doc?.scrollingElement || doc?.documentElement || doc?.body;
+    if (!scrolling) return false;
+    const maxScroll = Math.max(0, scrolling.scrollHeight - scrolling.clientHeight);
+    if (maxScroll <= 0) {
+      setChapterProgressAvailable(true);
+      setChapterPercentage(100);
+      return true;
+    }
+    const value = Math.min(100, Math.max(0, Math.round((scrolling.scrollTop / maxScroll) * 100)));
+    setChapterProgressAvailable(true);
+    setChapterPercentage(value);
+    return true;
+  }, []);
+
+  const seekWithinScrollChapter = useCallback((value) => {
+    const contents = currentContentsRef.current;
+    const doc = contents?.document;
+    const scrolling = doc?.scrollingElement || doc?.documentElement || doc?.body;
+    if (!scrolling) return false;
+    const maxScroll = Math.max(0, scrolling.scrollHeight - scrolling.clientHeight);
+    if (maxScroll <= 0) return false;
+    const ratio = Math.min(1, Math.max(0, value / 100));
+    scrolling.scrollTo({ top: Math.round(maxScroll * ratio), behavior: 'auto' });
+    setChapterProgressAvailable(true);
+    setChapterPercentage(Math.round(ratio * 100));
+    return true;
   }, []);
 
   const queueProgressSave = useCallback((cfi, bookPercentage, chapterTitle) => {
@@ -373,11 +404,14 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         // Apply reading theme inside the EPUB iframe.
         rendition.themes.default(readerThemeRules(settings));
         rendition.hooks.content.register((contents) => {
+          currentContentsRef.current = contents;
           appendNextChapterControl(contents, epubBookInstance, rendition, settings);
           contents?.window?.addEventListener?.('scroll', () => {
+            updateScrollChapterProgress(contents);
             setShowControls(false);
             setShowMore(false);
           }, { passive: true });
+          window.setTimeout(() => updateScrollChapterProgress(contents), 80);
         });
 
         epubBookInstance.loaded.navigation.then(nav => {
@@ -454,6 +488,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       try {
         rendition?.off?.('relocated', handleRelocated);
         rendition?.off?.('locationChanged', handleRelocated);
+        currentContentsRef.current = null;
         epubBookInstance?.destroy();
       } catch (err) {
         console.warn("Error destroying EPUB instance:", err);
@@ -461,7 +496,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       if (revokeUrl) URL.revokeObjectURL(revokeUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book.id]);
+  }, [book.id, updateScrollChapterProgress]);
 
   // Re-apply typography when settings change (without re-mounting epub)
   useEffect(() => {
@@ -533,9 +568,15 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const handleSeekCommit = useCallback((event) => {
     const value = Number(event.currentTarget.value);
     const rendition = renditionRef.current;
-    const locations = bookRef.current?.locations;
-    if (!rendition || !locations?.total) return;
+    if (!rendition) return;
     rememberCurrentLocation();
+
+    if (settings.readingMode === 'scroll' && seekWithinScrollChapter(value)) {
+      return;
+    }
+
+    const locations = bookRef.current?.locations;
+    if (!locations?.total) return;
 
     if (value <= 0) {
       rendition.display(currentSpineItemRef.current?.href || undefined);
@@ -556,7 +597,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     } catch (err) {
       console.warn('Failed to seek reading progress:', err);
     }
-  }, [chapterProgressAvailable, rememberCurrentLocation]);
+  }, [chapterProgressAvailable, rememberCurrentLocation, seekWithinScrollChapter, settings.readingMode]);
 
   // Swipe gesture
   const touchStartX = useRef(null);
@@ -739,7 +780,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
                   max="100"
                   step="1"
                   value={visibleProgress}
-                  disabled={!totalPages}
+                  disabled={settings.readingMode !== 'scroll' && !totalPages}
                   onChange={handleSeekChange}
                   onPointerUp={handleSeekCommit}
                   onTouchEnd={handleSeekCommit}

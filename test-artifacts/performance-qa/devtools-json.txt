@@ -1,0 +1,10 @@
+﻿[ {
+   "description": "{\"attached\":true,\"empty\":false,\"height\":2460,\"never_attached\":false,\"screenX\":0,\"screenY\":0,\"visible\":true,\"width\":1080}",
+   "devtoolsFrontendUrl": "https://chrome-devtools-frontend.appspot.com/serve_rev/@7c855c70efe3f6ade6663c1520913fa7f63a0b2b/inspector.html?ws=127.0.0.1:9223/devtools/page/D7CACEB28F366D408BC8E1F4B28B47B0",
+   "id": "D7CACEB28F366D408BC8E1F4B28B47B0",
+   "title": "Aurelia Books — Premium Reading Experience",
+   "type": "page",
+   "url": "https://localhost/",
+   "webSocketDebuggerUrl": "ws://127.0.0.1:9223/devtools/page/D7CACEB28F366D408BC8E1F4B28B47B0"
+} ]
+

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
 import { StorageManager } from '../../utils/StorageManager';
-import { extractEpubMetadata } from '../../utils/epubMetadata';
+import { extractEpubMetadata, looksLikeTocText } from '../../utils/epubMetadata';
 
 function progressFor(book) {
   return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
@@ -15,9 +15,8 @@ function formatFileSize(size) {
 }
 
 function needsMetadataRefresh(book) {
-  const chapterTokens = (book.description?.match(/\b(?:chương|chÆ°Æ¡ng|chapter)\s*\d+/gi) || []).length;
   return Boolean(book.fileBlob) && (
-    chapterTokens > 8
+    looksLikeTocText(book.description)
     || !book.description
     || !book.author
     || book.author === 'Unknown Author'
@@ -33,23 +32,21 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const [author, setAuthor] = useState(book.author);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshingMeta, setIsRefreshingMeta] = useState(false);
-  const updateBook = library?.updateBook;
+  const [displayBook, setDisplayBook] = useState(book);
   const shouldRefreshMetadata = needsMetadataRefresh(book);
-  const pct = progressFor(book);
+  const pct = progressFor(displayBook);
   const infoBookmark = bookmarks.find(item => item.cfi === '' && item.chapterTitle === 'Book info');
 
   useEffect(() => {
     StorageManager.getBookmarks(book.id).then(setBookmarks).catch(() => setBookmarks([]));
   }, [book.id]);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!shouldRefreshMetadata) return undefined;
-
-    window.setTimeout(() => {
-      if (cancelled) return;
-      setIsRefreshingMeta(true);
-      extractEpubMetadata(book.fileBlob, {
+  const handleRefreshMetadata = async () => {
+    if (!book.fileBlob || isRefreshingMeta) return;
+    setIsRefreshingMeta(true);
+    try {
+      await new Promise(resolve => window.setTimeout(resolve, 50));
+      const metadata = await extractEpubMetadata(book.fileBlob, {
         title: book.title,
         author: book.author,
         genre: book.genre,
@@ -61,37 +58,17 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
         chapterCount: book.chapterCount,
         estimatedPages: book.estimatedPages,
         fileSize: book.fileSize,
-      })
-        .then(metadata => {
-          if (cancelled) return;
-          updateBook?.(book.id, metadata);
-        })
-        .catch(err => console.warn('Could not refresh EPUB metadata:', err))
-        .finally(() => {
-          if (!cancelled) setIsRefreshingMeta(false);
-        });
-    }, 0);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    shouldRefreshMetadata,
-    book.id,
-    book.fileBlob,
-    book.title,
-    book.author,
-    book.genre,
-    book.description,
-    book.characters,
-    book.originalTitle,
-    book.editor,
-    book.beta,
-    book.chapterCount,
-    book.estimatedPages,
-    book.fileSize,
-    updateBook,
-  ]);
+      });
+      const updated = { ...book, ...metadata };
+      setDisplayBook(updated);
+      await library?.updateBook?.(book.id, metadata);
+    } catch (err) {
+      console.warn('Could not refresh EPUB metadata:', err);
+      alert('Could not repair this EPUB metadata.');
+    } finally {
+      setIsRefreshingMeta(false);
+    }
+  };
 
   const handleQuickBookmark = async () => {
     if (infoBookmark) return;
@@ -113,12 +90,14 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     const cleanAuthor = author.trim();
     if (!cleanTitle || !cleanAuthor) return;
     await library?.updateBook?.(book.id, { title: cleanTitle, author: cleanAuthor });
+    setDisplayBook(prev => ({ ...prev, title: cleanTitle, author: cleanAuthor }));
     setRenaming(false);
   };
 
   const handleFavorite = async () => {
     const next = !book.isFavorite;
     await library?.updateBook?.(book.id, { isFavorite: next });
+    setDisplayBook(prev => ({ ...prev, isFavorite: next }));
   };
 
   const handleDelete = async () => {
@@ -172,16 +151,16 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
               ) : (
                 <>
                   <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 24, lineHeight: 1.05, color: 'var(--text-primary)' }}>
-                    {book.title}
+                    {displayBook.title}
                   </h2>
-                  <p style={{ marginTop: 5, color: 'var(--text-secondary)', fontSize: 14 }}>{book.author}</p>
+                  <p style={{ marginTop: 5, color: 'var(--text-secondary)', fontSize: 14 }}>{displayBook.author}</p>
                 </>
               )}
               <p style={{ marginTop: 12, color: 'var(--accent)', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                {book.genre || 'Fiction'} · {book.estimatedPages || 0} pages
+                {displayBook.genre || 'Fiction'} · {displayBook.estimatedPages || 0} pages
               </p>
               <p style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: 12 }}>
-                {Math.round(pct)}% · {book.status || 'unread'}
+                {Math.round(pct)}% · {displayBook.status || 'unread'}
               </p>
               <div style={{ marginTop: 10 }} className="progress-track">
                 <div className="progress-fill" style={{ width: `${pct}%` }} />
@@ -194,7 +173,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
               {pct > 0 ? 'Continue' : 'Read'}
             </button>
             <button className="btn-primary" style={secondaryBtn} onClick={handleFavorite}>
-              {book.isFavorite ? 'Unfavorite' : 'Favorite'}
+              {displayBook.isFavorite ? 'Unfavorite' : 'Favorite'}
             </button>
           </div>
 
@@ -202,22 +181,33 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
             <p style={sectionLabel}>Synopsis</p>
             {isRefreshingMeta && (
               <p style={{ marginTop: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
-                Refreshing EPUB intro...
+                Repairing EPUB info...
               </p>
             )}
             <p style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
-              {book.description || 'No synopsis was found in the EPUB. Aurelia will show an extracted preview here after metadata is available.'}
+              {!looksLikeTocText(displayBook.description) && displayBook.description
+                ? displayBook.description
+                : 'No clean synopsis was found. Use Repair Info to extract the intro/summary from this EPUB.'}
             </p>
+            {shouldRefreshMetadata && (
+              <button
+                style={{ ...plainBtn, marginTop: 12, width: '100%' }}
+                onClick={handleRefreshMetadata}
+                disabled={isRefreshingMeta}
+              >
+                {isRefreshingMeta ? 'Repairing...' : 'Repair Info'}
+              </button>
+            )}
           </div>
 
-          {(book.originalTitle || book.characters || book.editor || book.beta) && (
+          {(displayBook.originalTitle || displayBook.characters || displayBook.editor || displayBook.beta) && (
             <div style={{ padding: '0 20px 16px' }}>
               <p style={sectionLabel}>Review Info</p>
               <div style={metaGrid}>
-                {book.originalTitle && <Meta label="Original" value={book.originalTitle} />}
-                {book.characters && <Meta label="Characters" value={book.characters} />}
-                {book.editor && <Meta label="Editor" value={book.editor} />}
-                {book.beta && <Meta label="Beta" value={book.beta} />}
+                {displayBook.originalTitle && <Meta label="Original" value={displayBook.originalTitle} />}
+                {displayBook.characters && <Meta label="Characters" value={displayBook.characters} />}
+                {displayBook.editor && <Meta label="Editor" value={displayBook.editor} />}
+                {displayBook.beta && <Meta label="Beta" value={displayBook.beta} />}
               </div>
             </div>
           )}
@@ -225,11 +215,11 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
           <div style={{ padding: '0 20px 16px' }}>
             <p style={sectionLabel}>Metadata</p>
             <div style={metaGrid}>
-              <Meta label="Publisher" value={book.publisher || 'Unknown'} />
-              <Meta label="Language" value={book.language || 'Unknown'} />
-              <Meta label="Published" value={book.publishedAt || 'Unknown'} />
-              <Meta label="Chapters" value={book.chapterCount || 'Unknown'} />
-              <Meta label="File" value={formatFileSize(book.fileSize)} />
+              <Meta label="Publisher" value={displayBook.publisher || 'Unknown'} />
+              <Meta label="Language" value={displayBook.language || 'Unknown'} />
+              <Meta label="Published" value={displayBook.publishedAt || 'Unknown'} />
+              <Meta label="Chapters" value={displayBook.chapterCount || 'Unknown'} />
+              <Meta label="File" value={formatFileSize(displayBook.fileSize)} />
               <Meta label="Bookmarks" value={bookmarks.length} />
             </div>
           </div>

@@ -145,6 +145,60 @@ function appendNextChapterControl(contents, epubBookInstance, rendition, setting
   body.appendChild(wrapper);
 }
 
+function buildScrollState(scrolling, win = null) {
+  if (!scrolling) return null;
+  const viewport = win?.innerHeight || scrolling.clientHeight || 0;
+  const scrollHeight = scrolling.scrollHeight || 0;
+  const maxScroll = Math.max(0, scrollHeight - viewport);
+  return { win, scrolling, maxScroll };
+}
+
+function getScrollState(contents, root) {
+  const candidates = [];
+  const pushCandidate = (scrolling, win = null) => {
+    const state = buildScrollState(scrolling, win);
+    if (state) candidates.push(state);
+  };
+
+  const doc = contents?.document;
+  const win = contents?.window;
+  if (doc) {
+    pushCandidate(doc.scrollingElement || doc.documentElement || doc.body, win);
+    pushCandidate(doc.body, win);
+    pushCandidate(doc.documentElement, win);
+  }
+
+  if (root) {
+    pushCandidate(root, window);
+    const iframes = root.querySelectorAll?.('iframe') || [];
+    iframes.forEach((iframe) => {
+      try {
+        const frameDoc = iframe.contentDocument;
+        const frameWin = iframe.contentWindow;
+        if (frameDoc) {
+          pushCandidate(frameDoc.scrollingElement || frameDoc.documentElement || frameDoc.body, frameWin);
+          pushCandidate(frameDoc.body, frameWin);
+          pushCandidate(frameDoc.documentElement, frameWin);
+        }
+      } catch {
+        // Cross-origin frames are ignored; EPUB content is normally same-origin blob data.
+      }
+    });
+
+    const elements = root.querySelectorAll?.('*') || [];
+    elements.forEach((element) => {
+      if (element.scrollHeight > element.clientHeight + 4) {
+        pushCandidate(element, null);
+      }
+    });
+  }
+
+  const usable = candidates
+    .filter(state => state.scrolling && state.scrolling.clientHeight > 0)
+    .sort((a, b) => b.maxScroll - a.maxScroll);
+  return usable[0] || null;
+}
+
 export default function ReaderScreen({ book, settings, updateSetting, onClose, onBookUpdate }) {
   const [showControls, setShowControls] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -173,6 +227,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const currentContentsRef = useRef(null);
   const currentSpineItemRef = useRef(null);
   const latestBookPercentageRef = useRef(0);
+  const isSeekingRef = useRef(false);
   const finishedMarkedRef = useRef(book.status === 'finished');
   const progressTimerRef = useRef(null);
   const pendingProgressRef = useRef(null);
@@ -237,30 +292,29 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   }, []);
 
   const updateScrollChapterProgress = useCallback((contents) => {
-    const doc = contents?.document;
-    const scrolling = doc?.scrollingElement || doc?.documentElement || doc?.body;
-    if (!scrolling) return false;
-    const maxScroll = Math.max(0, scrolling.scrollHeight - scrolling.clientHeight);
-    if (maxScroll <= 0) {
+    if (isSeekingRef.current) return false;
+    const scrollState = getScrollState(contents, viewerRef.current);
+    if (!scrollState) return false;
+    if (scrollState.maxScroll <= 0) {
       setChapterProgressAvailable(true);
       setChapterPercentage(100);
       return true;
     }
-    const value = Math.min(100, Math.max(0, Math.round((scrolling.scrollTop / maxScroll) * 100)));
+    const value = Math.min(100, Math.max(0, Math.round((scrollState.scrolling.scrollTop / scrollState.maxScroll) * 100)));
     setChapterProgressAvailable(true);
     setChapterPercentage(value);
     return true;
   }, []);
 
   const seekWithinScrollChapter = useCallback((value) => {
-    const contents = currentContentsRef.current;
-    const doc = contents?.document;
-    const scrolling = doc?.scrollingElement || doc?.documentElement || doc?.body;
-    if (!scrolling) return false;
-    const maxScroll = Math.max(0, scrolling.scrollHeight - scrolling.clientHeight);
-    if (maxScroll <= 0) return false;
+    const scrollState = getScrollState(currentContentsRef.current, viewerRef.current);
+    if (!scrollState || scrollState.maxScroll <= 0) return false;
     const ratio = Math.min(1, Math.max(0, value / 100));
-    scrolling.scrollTo({ top: Math.round(maxScroll * ratio), behavior: 'auto' });
+    const top = Math.round(scrollState.maxScroll * ratio);
+    scrollState.scrolling.scrollTop = top;
+    scrollState.scrolling.scrollTo?.({ top, behavior: 'auto' });
+    scrollState.win?.scrollTo?.(0, top);
+    scrollState.scrolling.dispatchEvent?.(new Event('scroll', { bubbles: true }));
     setChapterProgressAvailable(true);
     setChapterPercentage(Math.round(ratio * 100));
     return true;
@@ -560,23 +614,39 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   }, [rememberCurrentLocation]);
 
   const handleSeekChange = useCallback((event) => {
+    isSeekingRef.current = true;
     const value = Number(event.target.value);
+    if (settings.readingMode === 'scroll') {
+      setChapterProgressAvailable(true);
+      setChapterPercentage(value);
+      seekWithinScrollChapter(value);
+      return;
+    }
     if (chapterProgressAvailable) setChapterPercentage(value);
     else setPercentage(value);
-  }, [chapterProgressAvailable]);
+  }, [chapterProgressAvailable, seekWithinScrollChapter, settings.readingMode]);
 
   const handleSeekCommit = useCallback((event) => {
+    event.stopPropagation();
     const value = Number(event.currentTarget.value);
     const rendition = renditionRef.current;
     if (!rendition) return;
     rememberCurrentLocation();
 
     if (settings.readingMode === 'scroll' && seekWithinScrollChapter(value)) {
+      window.setTimeout(() => {
+        isSeekingRef.current = false;
+        updateScrollChapterProgress(currentContentsRef.current);
+        saveLatestProgress();
+      }, 120);
       return;
     }
 
     const locations = bookRef.current?.locations;
-    if (!locations?.total) return;
+    if (!locations?.total) {
+      isSeekingRef.current = false;
+      return;
+    }
 
     if (value <= 0) {
       rendition.display(currentSpineItemRef.current?.href || undefined);
@@ -596,8 +666,19 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       if (cfi) rendition.display(cfi);
     } catch (err) {
       console.warn('Failed to seek reading progress:', err);
+    } finally {
+      window.setTimeout(() => {
+        isSeekingRef.current = false;
+        updateScrollChapterProgress(currentContentsRef.current);
+      }, 120);
     }
-  }, [chapterProgressAvailable, rememberCurrentLocation, seekWithinScrollChapter, settings.readingMode]);
+  }, [chapterProgressAvailable, rememberCurrentLocation, saveLatestProgress, seekWithinScrollChapter, settings.readingMode, updateScrollChapterProgress]);
+
+  const handleSeekStart = useCallback((event) => {
+    event.stopPropagation();
+    isSeekingRef.current = true;
+    setShowControls(true);
+  }, []);
 
   // Swipe gesture
   const touchStartX = useRef(null);
@@ -626,6 +707,18 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     }
   };
   const handleTouchEnd = (e) => {
+    if (touchStartX.current !== null && edgeSwipeRef.current) {
+      const diff = e.changedTouches[0].clientX - touchStartX.current;
+      const dy = e.changedTouches[0].clientY - touchStartY.current;
+      if (diff > 58 && Math.abs(diff) > Math.abs(dy) * 1.2) {
+        e.preventDefault();
+        closeReader();
+        touchStartX.current = null;
+        touchStartY.current = null;
+        edgeSwipeRef.current = false;
+        return;
+      }
+    }
     if (settings.readingMode === 'scroll') {
       touchStartX.current = null;
       touchStartY.current = null;
@@ -781,9 +874,16 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
                   step="1"
                   value={visibleProgress}
                   disabled={settings.readingMode !== 'scroll' && !totalPages}
+                  onPointerDown={handleSeekStart}
+                  onTouchStart={handleSeekStart}
+                  onClick={e => e.stopPropagation()}
+                  onInput={handleSeekChange}
                   onChange={handleSeekChange}
                   onPointerUp={handleSeekCommit}
+                  onMouseUp={handleSeekCommit}
                   onTouchEnd={handleSeekCommit}
+                  onPointerCancel={() => { isSeekingRef.current = false; }}
+                  onBlur={() => { isSeekingRef.current = false; }}
                   onKeyUp={handleSeekCommit}
                   aria-label={chapterProgressAvailable ? 'Chapter progress' : 'Book progress'}
                 />

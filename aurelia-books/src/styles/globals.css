@@ -7,6 +7,8 @@
 
 /* ===== ROOT VARIABLES ===== */
 :root {
+  --app-safe-top: 64px;
+  --app-safe-bottom: 0px;
   --font-ui: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
   --color-gold: #8B6914;
   --color-gold-light: #C4A35A;
@@ -95,7 +97,7 @@ body {
 
 /* ===== SAFE AREAS ===== */
 .safe-top {
-  padding-top: 64px; /* Status bar + dynamic island */
+  padding-top: var(--app-safe-top) !important; /* Status bar + dynamic island */
 }
 
 /* ===== TYPOGRAPHY ===== */
@@ -208,6 +210,9 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .modal-sheet {
@@ -217,6 +222,8 @@ body {
   max-height: 75%;
   display: flex;
   flex-direction: column;
+  contain: layout paint;
+  will-change: transform;
 }
 
 .modal-handle {
@@ -252,6 +259,9 @@ body {
   overflow-y: auto;
   scrollbar-width: none;
   padding: 0 0 40px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .modal-scroll::-webkit-scrollbar { display: none; }
 
@@ -286,7 +296,12 @@ body {
 .context-menu-item.danger { color: #E53935; }
 .context-menu-separator { height: 1px; background: var(--border); margin: 4px 0; }
 
-@media (max-width: 700px), (display-mode: standalone) {
+@media (max-width: 700px), (display-mode: standalone), (hover: none) and (pointer: coarse) {
+  :root {
+    --app-safe-top: max(42px, calc(env(safe-area-inset-top) + 14px));
+    --app-safe-bottom: env(safe-area-inset-bottom);
+  }
+
   body {
     display: block;
     min-height: 100dvh;
@@ -302,20 +317,55 @@ body {
     height: 100dvh;
     border-radius: 0;
     box-shadow: none;
+    transition: none;
   }
 
   #phone-frame::before {
     display: none;
   }
 
-  .safe-top {
-    padding-top: max(18px, env(safe-area-inset-top));
-  }
-
   .card,
   .modal-sheet,
   .context-menu {
     box-shadow: none;
+  }
+}
+
+body.native-app {
+  display: block;
+  min-height: 100dvh;
+  background: var(--bg-primary, #EDE8DC);
+}
+
+body.native-app #root {
+  min-height: 100dvh;
+}
+
+body.native-app #phone-frame {
+  width: 100vw;
+  height: 100dvh;
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
+}
+
+body.native-app #phone-frame::before {
+  display: none;
+}
+
+body.native-app .card,
+body.native-app .modal-sheet,
+body.native-app .context-menu {
+  box-shadow: none;
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  :root {
+    --app-safe-top: max(30px, calc(env(safe-area-inset-top) + 10px));
+  }
+
+  .screen-title {
+    font-size: 30px;
   }
 }
 

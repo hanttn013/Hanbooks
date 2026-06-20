@@ -1,6 +1,13 @@
-import { useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import BookCover from './BookCover';
 import styles from './LibraryScreen.module.css';
+import { extractEpubsFromArchive, isArchiveFile, isSupportedImportFile } from '../../utils/archiveImport';
+
+const GRID_COLUMNS = 3;
+const GRID_ROW_HEIGHT = 250;
+const LIST_ROW_HEIGHT = 104;
+const VIEWPORT_HEIGHT = 720;
+const OVERSCAN_ROWS = 3;
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -35,13 +42,90 @@ function SelectionBadge({ checked }) {
   );
 }
 
+const BookGridItem = memo(function BookGridItem({
+  book,
+  selected,
+  selecting,
+  pct,
+  onTap,
+  onHoldStart,
+  onHoldCancel,
+  onOpenInfo,
+}) {
+  return (
+    <button
+      className={styles.gridItem}
+      onClick={() => onTap(book)}
+      onPointerDown={() => onHoldStart(book)}
+      onPointerUp={onHoldCancel}
+      onPointerLeave={onHoldCancel}
+      onContextMenu={e => onOpenInfo?.(e, book)}
+    >
+      <span className={styles.coverWrap}>
+        <BookCover book={book} size="large" style={{ width: '100%', height: '100%' }} />
+        {selecting && <SelectionBadge checked={selected} />}
+        {book.isFavorite && (
+          <span className={styles.coverBookmark} aria-label="Favorite">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17.3l-5.2 3 1.4-5.8-4.5-3.9 6-.5L12 4.6l2.3 5.5 6 .5-4.5 3.9 1.4 5.8-5.2-3z"/>
+            </svg>
+          </span>
+        )}
+        {!selecting && (
+          <span
+            role="button"
+            tabIndex={0}
+            className={styles.cardMenuBtn}
+            onClick={event => onOpenInfo(event, book)}
+            onPointerDown={event => event.stopPropagation()}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') onOpenInfo(event, book);
+            }}
+            title="Book info"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+            </svg>
+          </span>
+        )}
+      </span>
+      <span className={styles.bookTitle}>{book.title}</span>
+      <span className={styles.bookAuthor}>{book.author}</span>
+      <span className={styles.bookMeta}>{pct}% complete</span>
+    </button>
+  );
+});
+
+const BookListItem = memo(function BookListItem({ book, selected, selecting, pct, onTap, onToggleSelected, onOpenInfo }) {
+  return (
+    <li>
+      <button
+        className={styles.listItem}
+        onClick={() => selecting ? onToggleSelected(book.id) : onTap(book)}
+        onContextMenu={e => { e.preventDefault(); onOpenInfo?.(book); }}
+      >
+        <BookCover book={book} size="small" />
+        <span className={styles.listInfo}>
+          <strong>{book.title}</strong>
+          <small>{book.author}</small>
+          <small>{book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {pct}%</small>
+        </span>
+        {selecting && <SelectionBadge checked={selected} />}
+      </button>
+    </li>
+  );
+});
+
 export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
   const [viewMode, setViewMode] = useState('grid');
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [targetListId, setTargetListId] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
+  const [scrollTop, setScrollTop] = useState(0);
   const fileRef = useRef(null);
+  const scrollRef = useRef(null);
   const holdTimerRef = useRef(null);
   const holdTriggeredRef = useRef(false);
 
@@ -55,8 +139,34 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
     filterBy,
     setFilterBy,
     lists,
+    createList,
     addBooksToList,
   } = library;
+
+  const resetScroll = () => {
+    setScrollTop(0);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  };
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const virtual = useMemo(() => {
+    const rowHeight = viewMode === 'grid' ? GRID_ROW_HEIGHT : LIST_ROW_HEIGHT;
+    const itemCount = books.length;
+    const rowCount = viewMode === 'grid'
+      ? Math.ceil(itemCount / GRID_COLUMNS)
+      : itemCount;
+    const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN_ROWS);
+    const visibleRows = Math.ceil(VIEWPORT_HEIGHT / rowHeight) + OVERSCAN_ROWS * 2;
+    const endRow = Math.min(rowCount, startRow + visibleRows);
+    const startIndex = viewMode === 'grid' ? startRow * GRID_COLUMNS : startRow;
+    const endIndex = viewMode === 'grid' ? Math.min(itemCount, endRow * GRID_COLUMNS) : endRow;
+    return {
+      startIndex,
+      visibleBooks: books.slice(startIndex, endIndex),
+      topSpacer: startRow * rowHeight,
+      bottomSpacer: Math.max(0, (rowCount - endRow) * rowHeight),
+    };
+  }, [books, scrollTop, viewMode]);
 
   const toggleSelected = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
@@ -93,17 +203,49 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
   };
 
   const handleFileImport = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []).filter(isSupportedImportFile);
+    if (files.length === 0) return;
 
     setIsImporting(true);
+    setImportStatus('Preparing import...');
     try {
-      await addBook(file);
+      let looseCount = 0;
+      for (const file of files) {
+        if (isArchiveFile(file)) {
+          setImportStatus(`Extracting ${file.name}...`);
+          const archive = await extractEpubsFromArchive(file);
+          if (archive.files.length === 0) {
+            throw new Error(`No EPUB files were found in ${archive.sourceName}.`);
+          }
+          const importedIds = [];
+          for (let index = 0; index < archive.files.length; index += 1) {
+            const epubFile = archive.files[index];
+            setImportStatus(`Importing ${index + 1}/${archive.files.length} from ${archive.sourceName}...`);
+            const book = await addBook(epubFile);
+            importedIds.push(book.id);
+            await new Promise(resolve => window.setTimeout(resolve, 0));
+          }
+          await createList({
+            name: archive.listName,
+            description: `${archive.files.length} books imported from ${archive.sourceName}`,
+            coverStyle: 'forest',
+            bookIds: importedIds,
+          });
+        } else {
+          looseCount += 1;
+          setImportStatus(`Importing ${file.name}...`);
+          await addBook(file);
+        }
+      }
+      setImportStatus(looseCount > 1 ? `Imported ${looseCount} EPUB files.` : 'Import complete.');
     } catch (err) {
       console.error('Failed to import EPUB:', err);
-      alert('Failed to parse EPUB file. Please ensure it is a valid, unencrypted EPUB.');
+      alert(err.message || 'Failed to import. Please use valid EPUB, ZIP, or RAR files.');
     } finally {
-      setIsImporting(false);
+      window.setTimeout(() => {
+        setIsImporting(false);
+        setImportStatus('');
+      }, 350);
       e.target.value = '';
     }
   };
@@ -127,8 +269,8 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
       {isImporting && (
         <div className={styles.importingOverlay}>
           <div className={styles.spinner} />
-          <p>Importing EPUB...</p>
-          <small>Extracting metadata, cover, and preview</small>
+          <p>{importStatus || 'Importing...'}</p>
+          <small>EPUB, ZIP, and RAR archives are supported</small>
         </div>
       )}
 
@@ -143,8 +285,15 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
-          <input ref={fileRef} type="file" accept=".epub" hidden onChange={handleFileImport} />
-          <button className={styles.iconBtn} onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} title="Toggle view">
+          <input ref={fileRef} type="file" accept=".epub,.zip,.rar,application/epub+zip,application/zip,application/x-rar-compressed" hidden multiple onChange={handleFileImport} />
+          <button
+            className={styles.iconBtn}
+            onClick={() => {
+              setViewMode(viewMode === 'grid' ? 'list' : 'grid');
+              resetScroll();
+            }}
+            title="Toggle view"
+          >
             {viewMode === 'grid' ? (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -168,10 +317,22 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
         </svg>
         <input
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          onChange={e => {
+            setSearchQuery(e.target.value);
+            resetScroll();
+          }}
           placeholder="Search title, author, genre, lists"
         />
-        {searchQuery && <button onClick={() => setSearchQuery('')}>Clear</button>}
+        {searchQuery && (
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              resetScroll();
+            }}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       <div className={styles.filterRail}>
@@ -179,7 +340,10 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
           <button
             key={item.id}
             className={filterBy === item.id ? styles.activeChip : ''}
-            onClick={() => setFilterBy(item.id)}
+            onClick={() => {
+              setFilterBy(item.id);
+              resetScroll();
+            }}
           >
             {item.label}
           </button>
@@ -188,7 +352,13 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
 
       <div className={styles.libraryTools}>
         <span>{books.length} {books.length === 1 ? 'book' : 'books'}</span>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+        <select
+          value={sortBy}
+          onChange={e => {
+            setSortBy(e.target.value);
+            resetScroll();
+          }}
+        >
           {SORT_OPTIONS.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
@@ -198,84 +368,60 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
         </button>
       </div>
 
-      <div className="screen-scroll">
+      <div
+        ref={scrollRef}
+        className="screen-scroll"
+        onScroll={event => setScrollTop(event.currentTarget.scrollTop)}
+      >
         {books.length === 0 ? (
           <div className={styles.empty}>
             <strong>No books found</strong>
             <span>Try another search, clear filters, or import an EPUB.</span>
           </div>
         ) : viewMode === 'grid' ? (
+          <>
+          {virtual.topSpacer > 0 && <div style={{ height: virtual.topSpacer }} />}
           <div className={styles.denseGrid}>
-            {books.map(book => {
-              const selected = selectedIds.includes(book.id);
+            {virtual.visibleBooks.map(book => {
+              const selected = selectedSet.has(book.id);
               const pct = Math.round(progressFor(book));
               return (
-                <button
+                <BookGridItem
                   key={book.id}
-                  className={styles.gridItem}
-                  onClick={() => handleBookTap(book)}
-                  onPointerDown={() => startHold(book)}
-                  onPointerUp={cancelHold}
-                  onPointerLeave={cancelHold}
-                  onContextMenu={e => { e.preventDefault(); onOpenBookInfo?.(book); }}
-                >
-                  <span className={styles.coverWrap}>
-                    <BookCover book={book} size="large" style={{ width: '100%', height: '100%' }} />
-                    {selecting && <SelectionBadge checked={selected} />}
-                    {book.isFavorite && (
-                      <span className={styles.coverBookmark} aria-label="Favorite">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 17.3l-5.2 3 1.4-5.8-4.5-3.9 6-.5L12 4.6l2.3 5.5 6 .5-4.5 3.9 1.4 5.8-5.2-3z"/>
-                        </svg>
-                      </span>
-                    )}
-                    {!selecting && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className={styles.cardMenuBtn}
-                        onClick={event => openInfo(event, book)}
-                        onPointerDown={event => event.stopPropagation()}
-                        onKeyDown={event => {
-                          if (event.key === 'Enter' || event.key === ' ') openInfo(event, book);
-                        }}
-                        title="Book info"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                        </svg>
-                      </span>
-                    )}
-                  </span>
-                  <span className={styles.bookTitle}>{book.title}</span>
-                  <span className={styles.bookAuthor}>{book.author}</span>
-                  <span className={styles.bookMeta}>{pct}% complete</span>
-                </button>
+                  book={book}
+                  selected={selected}
+                  selecting={selecting}
+                  pct={pct}
+                  onTap={handleBookTap}
+                  onHoldStart={startHold}
+                  onHoldCancel={cancelHold}
+                  onOpenInfo={openInfo}
+                />
               );
             })}
           </div>
+          {virtual.bottomSpacer > 0 && <div style={{ height: virtual.bottomSpacer }} />}
+          </>
         ) : (
           <ul className={styles.listView}>
-            {books.map(book => {
-              const selected = selectedIds.includes(book.id);
+            {virtual.topSpacer > 0 && <li style={{ height: virtual.topSpacer }} />}
+            {virtual.visibleBooks.map(book => {
+              const selected = selectedSet.has(book.id);
+              const pct = Math.round(progressFor(book));
               return (
-                <li key={book.id}>
-                  <button
-                    className={styles.listItem}
-                    onClick={() => selecting ? toggleSelected(book.id) : onOpenBook(book)}
-                    onContextMenu={e => { e.preventDefault(); onOpenBookInfo?.(book); }}
-                  >
-                    <BookCover book={book} size="small" />
-                    <span className={styles.listInfo}>
-                      <strong>{book.title}</strong>
-                      <small>{book.author}</small>
-                      <small>{book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {Math.round(progressFor(book))}%</small>
-                    </span>
-                    {selecting && <SelectionBadge checked={selected} />}
-                  </button>
-                </li>
+                <BookListItem
+                  key={book.id}
+                  book={book}
+                  selected={selected}
+                  selecting={selecting}
+                  pct={pct}
+                  onTap={onOpenBook}
+                  onToggleSelected={toggleSelected}
+                  onOpenInfo={onOpenBookInfo}
+                />
               );
             })}
+            {virtual.bottomSpacer > 0 && <li style={{ height: virtual.bottomSpacer }} />}
           </ul>
         )}
       </div>

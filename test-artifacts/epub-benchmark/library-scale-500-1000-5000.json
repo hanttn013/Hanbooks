@@ -1,0 +1,125 @@
+{
+  "testedAt": "2026-06-15T08:51:10.190Z",
+  "results": [
+    {
+      "size": 500,
+      "id": "title-accent",
+      "query": "Bạch Nguyệt Quang",
+      "matches": 71,
+      "elapsedMs": 24.244,
+      "status": "pass"
+    },
+    {
+      "size": 500,
+      "id": "title-no-accent",
+      "query": "Bach Nguyet Quang",
+      "matches": 71,
+      "elapsedMs": 6.943,
+      "status": "pass"
+    },
+    {
+      "size": 500,
+      "id": "author",
+      "query": "Dieu Tam",
+      "matches": 100,
+      "elapsedMs": 6.422,
+      "status": "pass"
+    },
+    {
+      "size": 500,
+      "id": "genre",
+      "query": "bach hop",
+      "matches": 166,
+      "elapsedMs": 8.81,
+      "status": "pass"
+    },
+    {
+      "size": 500,
+      "id": "typo",
+      "query": "Bach Nguyt Quang",
+      "matches": 0,
+      "elapsedMs": 6.921,
+      "status": "expected-no-fuzzy"
+    },
+    {
+      "size": 1000,
+      "id": "title-accent",
+      "query": "Bạch Nguyệt Quang",
+      "matches": 142,
+      "elapsedMs": 23.905,
+      "status": "pass"
+    },
+    {
+      "size": 1000,
+      "id": "title-no-accent",
+      "query": "Bach Nguyet Quang",
+      "matches": 142,
+      "elapsedMs": 6.912,
+      "status": "pass"
+    },
+    {
+      "size": 1000,
+      "id": "author",
+      "query": "Dieu Tam",
+      "matches": 200,
+      "elapsedMs": 11.368,
+      "status": "pass"
+    },
+    {
+      "size": 1000,
+      "id": "genre",
+      "query": "bach hop",
+      "matches": 333,
+      "elapsedMs": 7.014,
+      "status": "pass"
+    },
+    {
+      "size": 1000,
+      "id": "typo",
+      "query": "Bach Nguyt Quang",
+      "matches": 0,
+      "elapsedMs": 20.458,
+      "status": "expected-no-fuzzy"
+    },
+    {
+      "size": 5000,
+      "id": "title-accent",
+      "query": "Bạch Nguyệt Quang",
+      "matches": 714,
+      "elapsedMs": 59.539,
+      "status": "pass"
+    },
+    {
+      "size": 5000,
+      "id": "title-no-accent",
+      "query": "Bach Nguyet Quang",
+      "matches": 714,
+      "elapsedMs": 50.304,
+      "status": "pass"
+    },
+    {
+      "size": 5000,
+      "id": "author",
+      "query": "Dieu Tam",
+      "matches": 1000,
+      "elapsedMs": 44.641,
+      "status": "pass"
+    },
+    {
+      "size": 5000,
+      "id": "genre",
+      "query": "bach hop",
+      "matches": 1666,
+      "elapsedMs": 54.089,
+      "status": "pass"
+    },
+    {
+      "size": 5000,
+      "id": "typo",
+      "query": "Bach Nguyt Quang",
+      "matches": 0,
+      "elapsedMs": 49.38,
+      "status": "expected-no-fuzzy"
+    }
+  ]
+}

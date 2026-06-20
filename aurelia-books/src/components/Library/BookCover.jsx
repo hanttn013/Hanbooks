@@ -28,6 +28,8 @@ export default function BookCover({ book, size = 'medium', style = {} }) {
         <img
           src={book.coverUrl}
           alt={book.title}
+          loading="lazy"
+          decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
         {/* Texture overlay */}
@@ -89,4 +91,3 @@ export default function BookCover({ book, size = 'medium', style = {} }) {
     </div>
   );
 }
-

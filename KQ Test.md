@@ -382,3 +382,353 @@ Ghi chú:
 - APK mới đã build thành công nhưng chưa được smoke test trên Android thật trong phiên này.
 - Toolchain portable đã được đặt trong `.jdk/` và `.android-sdk/`, cả hai đều được ignore để không push lên GitHub.
 - File cài thử: `aurelia-books/AureliaBooks-lite-gemini-debug.apk`.
+
+## 12. Regression test Book Info freeze + chapter slider
+
+Ngày test: 2026-06-15  
+Giờ test: 01:29:19 +07:00  
+APK: `aurelia-books/AureliaBooks-lite-gemini-debug.apk`  
+APK size: 32,331,401 bytes  
+Mục tiêu: kiểm tra lại lỗi Book Info bị đứng, synopsis vẫn là TOC, và slider trong 1 chapter không kéo được.
+
+| ID | Test case | Expected | Actual | Status |
+|---|---|---|---|---|
+| REG-BOOKINFO-004 | Mở Book Info của sách có synopsis bẩn dạng danh sách `Chương 1...` | Modal mở ngay, không parse EPUB nặng lúc mở | Đã bỏ auto metadata extraction trong `BookDetailModal`; modal chỉ render dữ liệu hiện có và không chạy parse khi mở | Pass by code review |
+| REG-BOOKINFO-005 | Sách cũ có description TOC-like | Không hiển thị danh sách chương như văn án | `looksLikeTocText()` chuyển sang normalize ASCII-safe; modal ẩn synopsis dạng TOC và hiện hướng dẫn `Repair Info` | Pass by code review |
+| REG-BOOKINFO-006 | Người dùng muốn sửa metadata sách cũ | Có thao tác chủ động, cập nhật modal ngay sau khi sửa | Thêm nút `Repair Info`; sau khi trích EPUB xong cập nhật `displayBook` ngay và lưu vào IndexedDB | Pass by code review |
+| REG-BOOKINFO-007 | EPUB tiếng Việt/convert lỗi encoding | Nhận được `Chương`, `Tác giả`, `Thể loại`, `Văn án`, `Giới thiệu` ở dạng có dấu/không dấu/mojibake phổ biến | Viết lại extractor theo normalize ASCII-safe, tránh phụ thuộc regex tiếng Việt bị lỗi mã hóa | Pass by code review |
+| REG-READER-003 | Slider chapter trong scroll mode trên Android | Kéo ngang được, không bị reader cha nuốt touch | `.progressSlider` có `touch-action: none`, `pointer-events: auto`, và chặn propagation khi pointer/touch start | Pass by code review |
+| REG-READER-004 | Đang kéo slider, scroll listener vẫn chạy | Giá trị slider không bị nhảy ngược khi ngón tay đang drag | Thêm `isSeekingRef`; progress scroll không ghi đè trong lúc seek, tự mở khóa sau commit | Pass by code review |
+| REG-READER-005 | Kéo slider tới 100% trong chapter hiện tại | Seek theo chiều cao chapter hiện tại trước, không dùng book percentage | `seekWithinScrollChapter()` chạy trước fallback CFI/book locations | Pass by code review |
+| REG-BUILD-003 | Lint sau bản vá | Không có lỗi ESLint | `npm.cmd run lint` pass | Pass |
+| REG-BUILD-004 | Web build sau bản vá | Build production thành công | `npm.cmd run build` pass, còn warning bundle > 500 kB | Pass |
+| REG-APK-002 | Build APK debug sau bản vá | Tạo APK mới | Gradle `assembleDebug` pass bằng JDK 21 + Android SDK 36 portable; APK copy ra `AureliaBooks-lite-gemini-debug.apk` lúc 2026-06-15 01:29:10 +07:00 | Pass |
+
+Kết luận test:
+
+- Bản APK mới đã được đóng gói lại sau khi sửa Book Info và chapter slider.
+- Chưa có smoke test trực tiếp trên Tecno Pove 6 Neo trong phiên này, nên các case runtime vẫn cần bạn cài APK mới và kiểm tra thực tế.
+- Nếu sách đã import trước đó có metadata bẩn, mở Book Info sẽ không còn tự đứng vì không auto-parse; bấm `Repair Info` để trích lại metadata từ EPUB và lưu lại.
+
+## 13. Test thực chiến Android thật
+
+Ngày test: 2026-06-15  
+Giờ test: 15:24:01 +07:00  
+Thiết bị: TECNO LI6  
+Android: 15, SDK 35  
+ADB serial: `115662546E004421`  
+APK: `aurelia-books/AureliaBooks-lite-gemini-debug.apk`  
+APK build time: 2026-06-15 15:19:55 +07:00  
+APK size: 32,331,401 bytes  
+Evidence folder: `test-artifacts/android-real/`
+
+### 13.1. Smoke test trên máy thật
+
+| ID | Test case | Expected | Actual | Status | Evidence |
+|---|---|---|---|---|---|
+| REAL-001 | ADB nhận thiết bị | Trạng thái `device` | `TECNO_LI6`, Android 15, SDK 35, trạng thái `device` | Pass | `adb devices -l` |
+| REAL-002 | Cài APK mới | `adb install -r` thành công | `Performing Streamed Install` -> `Success` | Pass | command output |
+| REAL-003 | Mở app | App focus vào `com.aurelia.books/.MainActivity` | Focus đúng MainActivity, không crash | Pass | `launch.png` |
+| REAL-004 | Home render | Home/Continue Reading/Library stats hiển thị | Render đúng trên thiết bị thật | Pass | `launch.png` |
+| REAL-005 | Mở Library | Tab Library mở được | Library hiển thị 1 book, search, filter, menu | Pass | `library.png` |
+| REAL-006 | Mở Book Info | Modal mở, không đứng UI | Book Info mở được bằng menu sách | Pass | `bookinfo.png` |
+| REAL-007 | Book Info synopsis bẩn sau bản 01:29 | Không lấy TOC làm văn án | Phát hiện còn lỗi: synopsis bị rút còn `Chương`, chưa hiện `Repair Info` | Fail -> Fixed | `bookinfo.png` |
+| REAL-008 | Book Info sau hotfix detector | Synopsis bẩn bị ẩn, có Repair Info | Hiển thị `No clean synopsis...` và nút `Repair Info` | Pass | `bookinfo-fixed.png` |
+| REAL-009 | Reader mở sách | Reader mở được từ Book Info | Reader mở TOC/intro, controls hiện | Pass | `reader-controls.png` |
+| REAL-010 | Slider chapter nhận touch | Tap cuối track lên 100% | Slider lên `100%`, không bị nuốt touch | Pass | `reader-slider-tap.png` |
+| REAL-011 | Logcat crash check | Không có FATAL/ANR của app | Không thấy `FATAL EXCEPTION`/`ANR` cho `com.aurelia.books` trong mẫu log | Pass | `logcat-reader.txt` |
+| REAL-012 | RAM reader | Ghi nhận PSS/RSS sau khi mở reader | TOTAL PSS 217,672 KB; TOTAL RSS 395,232 KB; Graphics 84,288 KB | Pass | `meminfo-reader.txt` |
+
+### 13.2. EPUB thực chiến cần bổ sung dữ liệu
+
+Repo hiện chỉ có EPUB demo và 1 EPUB người dùng đã import trên thiết bị. Các testcase dưới đây đã được thêm vào test plan nhưng chưa chạy đủ vì chưa có bộ file tương ứng.
+
+| ID | Test | Status | Ghi chú |
+|---|---|---|---|
+| EPUB-13 | 500 chương từ Wattpad | Not Run | Cần file test |
+| EPUB-14 | 2000 chương | Not Run | Cần file test |
+| EPUB-15 | Chương cực dài 10,000+ từ | Not Run | Cần file test |
+| EPUB-16 | Chứa emoji | Not Run | Cần file test |
+| EPUB-17 | Chứa icon unicode | Not Run | Cần file test |
+| EPUB-18 | Chứa ảnh GIF | Not Run | Cần file test |
+| EPUB-19 | Chứa ảnh 4K | Not Run | Cần file test |
+| EPUB-20 | Có footnote | Not Run | Cần file test |
+| EPUB-21 | Calibre EPUB | Not Run | Cần file test |
+| EPUB-22 | Fanqie EPUB | Not Run | Cần file test |
+| EPUB-23 | TruyenFull EPUB | Partial | Có 1 sách TruyenFull trên thiết bị, đã test Book Info/Reader smoke |
+| EPUB-24 | WPD EPUB | Not Run | Cần file test |
+| EPUB-25 | EPUB tiếng Trung | Not Run | Cần file test |
+| EPUB-26 | EPUB tiếng Nhật | Not Run | Cần file test |
+| EPUB-27 | EPUB tiếng Hàn | Not Run | Cần file test |
+
+### 13.3. Reader stress / memory leak
+
+| ID | Test | Expected | Actual | Status |
+|---|---|---|---|---|
+| PERF-007 | Đọc liên tục 2 giờ | Không crash, RAM không tăng đều vô hạn | Chưa chạy đủ 2 giờ | Not Run |
+| PERF-008 | Chuyển 500 chương liên tục | Không đứng UI/không leak nặng | Chưa có automation/harness | Not Run |
+| PERF-009 | Mở 20 sách khác nhau | Không crash, progress không lẫn | Chưa đủ 20 EPUB test | Not Run |
+| PERF-010 | Import 100 EPUB | IndexedDB/storage ổn định | Chưa đủ bộ EPUB | Not Run |
+| PERF-011 | Reader smoke RAM | Ghi nhận RAM sau mở reader | TOTAL PSS 217,672 KB | Pass |
+
+### 13.4. Library lớn
+
+| ID | Test | Expected | Actual | Status |
+|---|---|---|---|---|
+| LIB-STRESS-001 | 1000 sách | Library vẫn scroll/search được | Chưa có data generator/import harness | Not Run |
+| LIB-STRESS-002 | 5000 sách | Không crash, virtual/scroll hợp lý | Chưa có data generator/import harness | Not Run |
+| LIB-STRESS-003 | Cover cache 5000 sách | Không nổ storage/RAM | Chưa có data generator/import harness | Not Run |
+
+### 13.5. Search
+
+| ID | Test | Expected | Actual | Status |
+|---|---|---|---|---|
+| SEA-001 | Search title | Tìm được theo title | ADB input bị IME/system search overlay, chưa xác nhận trong app | Blocked |
+| SEA-002 | Search author | Tìm được theo author | Chưa chạy | Not Run |
+| SEA-003 | Search tiếng Việt có dấu | `Bạch Nguyệt Quang` tìm đúng | Chưa chạy | Not Run |
+| SEA-004 | Search không dấu | `Bach Nguyet Quang` tìm được `Bạch Nguyệt Quang` | Chưa hỗ trợ/verify accent-insensitive rõ ràng | Not Run |
+| SEA-005 | Search typo | Có tolerance typo cơ bản | Chưa có fuzzy search/harness | Not Run |
+
+### 13.6. Kết luận thực chiến
+
+- APK mới đã cài và chạy trên Android thật.
+- Book Info ban đầu phát hiện lỗi còn sót `Chương`; đã hotfix detector, rebuild, cài lại, và xác nhận UI mới hiển thị `Repair Info`.
+- Slider reader đã nhận tap/seek lên 100% trên thiết bị thật.
+- Chưa đủ dữ liệu để kết luận khả năng thay Wattpad ở nhóm EPUB cực lớn, library 1000-5000 sách, search không dấu/typo, và memory leak 2 giờ.
+
+## 14. Benchmark liên tục nhiều EPUB và thao tác lặp
+
+Ngày test: 2026-06-15  
+Giờ test: 15:35 +07:00  
+Thiết bị Android: TECNO LI6, Android 15, SDK 35  
+Data source: `data/*.epub`  
+Evidence:
+
+- `test-artifacts/epub-benchmark/metadata-84.json`
+- `test-artifacts/android-real/bookinfo-loop.csv`
+- `test-artifacts/android-real/reader-loop.csv`
+- `test-artifacts/android-real/meminfo-bookinfo-loop-20.txt`
+- `test-artifacts/android-real/meminfo-reader-loop-10.txt`
+- `test-artifacts/android-real/logcat-loop.txt`
+
+### 14.1. Benchmark EPUB trong thư mục Data
+
+| Metric | Result |
+|---|---|
+| EPUB found | 84 |
+| EPUB tested | 84 |
+| Passed | 84 |
+| Failed | 0 |
+| Avg parse latency | 11 ms |
+| P50 | 9 ms |
+| P90 | 16 ms |
+| P95 | 22 ms |
+| Max | 31 ms |
+| Max spine count | 345 |
+| Max nav chapter count | 347 |
+
+Ghi chú: benchmark này dùng parser ZIP/OPF nhẹ trong Node để kiểm tra độ sạch metadata/TOC của bộ EPUB thật. Đây chưa phải import vào IndexedDB trên Android, vì app hiện chưa có debug harness để tự import hàng loạt file từ `/sdcard` bằng ADB.
+
+### 14.2. UI loop trên Android thật
+
+| ID | Loop | Count | Avg | Min | Max | Status |
+|---|---|---:|---:|---:|---:|---|
+| LOOP-BOOKINFO-001 | Mở Library -> mở Book Info -> đóng modal | 20 | 1610 ms | 1565 ms | 1643 ms | Pass |
+| LOOP-READER-001 | Mở Book Info -> Read -> Back | 10 | 4270 ms | 3669 ms | 8991 ms | Partial |
+
+Ghi chú:
+
+- `LOOP-BOOKINFO-001` chạy đủ 20 vòng, không thấy kẹt lệnh, không thấy crash/ANR.
+- `LOOP-READER-001` chạy đủ 10 vòng nhưng có log cho thấy một số lần `BACK` đưa app ra foreground khác/Chrome, nên kết quả dùng như stress thao tác chứ chưa phải latency reader chuẩn.
+- `logcat-loop.txt` không có `FATAL EXCEPTION`, `ANR`, hoặc `AndroidRuntime` liên quan app.
+
+### 14.3. RAM sau loop
+
+| Checkpoint | TOTAL PSS | TOTAL RSS | Java Heap | Native Heap | Graphics | Nhận xét |
+|---|---:|---:|---:|---:|---:|---|
+| Sau Book Info loop 20 | 227,722 KB | 410,640 KB | 12,664 KB | 28,912 KB | 101,640 KB | Graphics cao, có thể gây cảm giác lag trên WebView |
+| Sau Reader loop 10 | 126,732 KB | 311,240 KB | 12,444 KB | 28,424 KB | 3,232 KB | RAM quay về thấp hơn, chưa thấy leak rõ trong loop ngắn |
+
+### 14.4. Kết luận benchmark
+
+- Parser EPUB nhẹ xử lý 84 file Data rất nhanh trên PC, không phát hiện file fail.
+- UI Book Info chịu được 20 vòng liên tục trên máy thật, chưa crash.
+- Reader loop chưa đủ sạch để kết luận latency vì thao tác BACK bằng ADB chưa ổn định.
+- Cảm giác lag nhiều khả năng đến từ WebView/GPU/DOM render, không phải RAM leak rõ ràng trong test ngắn.
+- Để test import 100 EPUB/1000-5000 sách đúng nghĩa, cần thêm debug harness trong app: tự import file từ bundled benchmark manifest hoặc một màn Benchmark chỉ bật ở debug build.
+
+## 15. Phase cuối: Search không dấu, Bookmark, Backup, Library Scale
+
+Ngày test: 2026-06-15  
+Giờ test: 15:56 +07:00  
+APK: `aurelia-books/AureliaBooks-lite-gemini-debug.apk`  
+Thiết bị Android thật: TECNO LI6, Android 15  
+Evidence:
+
+- `test-artifacts/epub-benchmark/library-scale-500-1000-5000.json`
+- `test-artifacts/android-real/settings-backup-2.png`
+- `test-artifacts/android-real/settings-backup-created.png`
+- `test-artifacts/android-real/logcat-backup.txt`
+
+### 15.1. Chức năng đã thêm
+
+| Feature | Kết quả |
+|---|---|
+| Search không dấu | Thêm `normalizeSearchText()` và áp dụng vào Library search |
+| Bookmark | Giữ Reader bookmark hiện có, Library vẫn có filter `Has Bookmarks`; backup đã bao gồm bookmarks |
+| Export Library | Thêm nút `Settings > Backup > Export library` xuất JSON |
+| Import Library | Thêm nút `Settings > Backup > Import library` để merge backup JSON |
+| Auto Backup | Thêm store `backups` trong IndexedDB, backup thủ công và auto backup sau thay đổi library/list |
+| Multi EPUB import | File picker Library hỗ trợ chọn nhiều `.epub` một lượt |
+
+Ghi chú backup: JSON backup chứa metadata, progress, bookmarks, lists, settings. EPUB blob không nhúng vào backup để tránh file backup rất lớn và gây đứng app; EPUB gốc cần lưu riêng.
+
+### 15.2. Test trên Android thật
+
+| ID | Test | Expected | Actual | Status |
+|---|---|---|---|---|
+| BACKUP-001 | Mở Settings > Backup | Thấy Export/Import/Create Auto Backup | UI hiển thị đúng | Pass |
+| BACKUP-002 | Create auto backup | Timestamp backup cập nhật, không crash | `Last backup 15:56:17 15/6/2026` | Pass |
+| BACKUP-003 | Logcat sau backup | Không FATAL/ANR | Không thấy `FATAL EXCEPTION`, `ANR`, `AndroidRuntime` trong mẫu log | Pass |
+| EXPORT-001 | Export library button | Có entry point export JSON | UI hiện `Export library - JSON`; chưa tự động xác nhận file picker/download bằng ADB | Partial |
+| IMPORT-001 | Import library button | Có entry point import JSON | UI hiện `Import library - Merge`; chưa chạy restore thật để tránh ghi đè data đang test | Partial |
+
+### 15.3. Search không dấu và library scale
+
+Benchmark dùng synthetic metadata để đo search/filter logic ở 500/1000/5000 sách.
+
+| Size | Query | Matches | Latency | Status |
+|---:|---|---:|---:|---|
+| 500 | `Bạch Nguyệt Quang` | 71 | 24.244 ms | Pass |
+| 500 | `Bach Nguyet Quang` | 71 | 6.943 ms | Pass |
+| 500 | `Dieu Tam` | 100 | 6.422 ms | Pass |
+| 1000 | `Bạch Nguyệt Quang` | 142 | See JSON | Pass |
+| 1000 | `Bach Nguyet Quang` | 142 | See JSON | Pass |
+| 5000 | `Bạch Nguyệt Quang` | 714 | 59.539 ms | Pass |
+| 5000 | `Bach Nguyet Quang` | 714 | 50.304 ms | Pass |
+| 5000 | `Dieu Tam` | 1000 | 44.641 ms | Pass |
+| 5000 | `bach hop` | 1666 | 54.089 ms | Pass |
+| 5000 | typo `Bach Nguyt Quang` | 0 | 49.380 ms | Expected |
+
+Ghi chú: search không dấu đã pass. Typo/fuzzy search chưa được thêm trong phase này, nên typo trả 0 là expected.
+
+### 15.4. EPUB data availability
+
+| Source | Count |
+|---|---:|
+| Recursive `.epub` trong workspace, bỏ qua build/toolchain | 1215 |
+| `.epub` trực tiếp trong `data/` | 1209 |
+
+Ghi chú: đã quét lại sau khi dữ liệu đầy đủ xuất hiện trong `data/`; hiện đã đủ hơn 1000 EPUB thật để benchmark.
+
+### 15.4.1. Benchmark 1209 EPUB thật
+
+Evidence: `test-artifacts/epub-benchmark/metadata-1209.json`
+
+| Metric | Result |
+|---|---:|
+| EPUB found | 1209 |
+| EPUB tested | 1209 |
+| Passed | 1209 |
+| Failed | 0 |
+| Avg parse latency | 20 ms |
+| P50 | 17 ms |
+| P90 | 35 ms |
+| P95 | 40 ms |
+| Max | 245 ms |
+| TOC-like descriptions detected | 4 |
+| Max spine count | 2207 |
+| Max nav chapter count | 2205 |
+
+### 15.5. Kết luận phase cuối
+
+- Chức năng Search không dấu, Export/Import Library, Auto Backup và multi EPUB import đã được thêm.
+- Auto Backup đã được xác nhận trên Android thật.
+- Scale search 500/1000/5000 sách đã benchmark bằng synthetic metadata, kết quả dưới 60ms ở 5000 sách.
+- Chưa test restore/import backup thật để tránh ghi đè dữ liệu đang test trên thiết bị.
+- Đã benchmark metadata/TOC với 1209 EPUB thật trong `data/`.
+- Chưa import 1209 EPUB thật vào IndexedDB trên Android vì app chưa có debug harness để tự import hàng loạt từ `/sdcard`; file picker Android không phù hợp để automation ADB số lượng lớn.
+
+## 16. Performance QA P0 - Android Real Device
+
+Ngày test: 2026-06-15  
+Giờ test: 16:47-16:59 +07:00  
+Thiết bị: TECNO LI6, Android 15, SDK 35  
+APK: `aurelia-books/AureliaBooks-lite-gemini-debug.apk`  
+Build APK: 2026-06-15 16:55:39 +07:00  
+
+Evidence:
+
+- `test-artifacts/performance-qa/home-after-launch.png`
+- `test-artifacts/performance-qa/after-20-loop.png`
+- `test-artifacts/performance-qa/after-bookinfo-cssfix-loop.png`
+- `test-artifacts/performance-qa/screenrecord-60s.mp4`
+- `test-artifacts/performance-qa/cdp-after-20-loop.json`
+- `test-artifacts/performance-qa/cdp-after-bookinfo-cssfix-loop.json`
+- `test-artifacts/performance-qa/gfxinfo-after-20-loop.txt`
+- `test-artifacts/performance-qa/gfxinfo-after-bookinfo-cssfix-loop.txt`
+- `test-artifacts/performance-qa/meminfo-after-bookinfo-cssfix-loop.txt`
+
+### 16.1. P0 tối ưu đã làm
+
+| Khu vực | Thay đổi | Kết quả |
+|---|---|---|
+| BookInfo modal | Không parse EPUB khi mở modal; chỉ parse khi bấm `Repair Info` | Tránh đứng khi mở review sách |
+| BookInfo/modal | Chặn Android text selection toolbar, thêm `contain: layout paint`, `touch-action: pan-y` | Không còn overlay `Sao chép/Chia sẻ` khi long press |
+| Cover | `loading="lazy"` + `decoding="async"` | Không ghi nhận slow bitmap upload sau loop |
+| Library | Virtual render grid/list, chỉ render item gần viewport | Giảm node/layout object khi đổi màn |
+| Library search/filter | Debounce search 180ms, memo filter/sort/stats | Giảm render lại khi gõ/search |
+| TOC | Flatten + virtual list + memo row, search không dấu | Tránh render toàn bộ TOC dài |
+| App shell | Lazy load Reader/TOC/Settings/BookInfo/Lists bằng `React.lazy` | Giảm tải ban đầu, có fallback loading |
+| Auto backup | Debounce + chạy qua `requestIdleCallback`, bỏ qua reading pulse | Không backup khi đang mở đọc tiếp/progress nhẹ |
+
+### 16.2. Chrome DevTools / WebView inspect
+
+| Check | Result |
+|---|---|
+| WebView socket | `webview_devtools_remote_<pid>` available |
+| Forward | `adb forward tcp:9223 localabstract:webview_devtools_remote_<pid>` |
+| Target | `Aurelia Books — Premium Reading Experience`, `https://localhost/` |
+| CDP observer | Inject được `PerformanceObserver` cho `longtask` và `layout-shift` |
+
+### 16.3. Kết quả đo
+
+| Test | Metric | Result | Nhận xét |
+|---|---|---:|---|
+| Cold start | Launch TotalTime | 1062-1632 ms | Chấp nhận được; cold start vẫn có jank do initial surface/WebView |
+| Cold start | FCP | 776-1412 ms | Tùy phiên sau install/cold start |
+| 20 vòng Home/Library/Lists/Settings | Janky frames | 46/1508 = 3.05% | Tốt hơn rõ, p90 17ms, p95 20ms |
+| 20 vòng Home/Library/Lists/Settings | Long task | 0 | Không thấy JS long task sau thao tác lặp |
+| 20 vòng Home/Library/Lists/Settings | CLS | 0 | Không layout shift sau thao tác lặp |
+| BookInfo trước CSS fix | Janky frames | 28/170 = 16.47% | Modal là nghi phạm đúng |
+| BookInfo sau CSS fix | Janky frames | 2/23 = 8.70% | Giảm khoảng một nửa |
+| BookInfo sau CSS fix | p95 frame | 26 ms | Trước fix là 57ms |
+| BookInfo sau CSS fix | Long task | 1 task, 54 ms | Còn một spike nhỏ khi mở modal |
+| BookInfo sau CSS fix | CLS | 0.0219 | Thấp, xảy ra đầu phiên |
+| BookInfo sau CSS fix | Views | 10 | Trước khi fix selection toolbar có lúc lên 278 |
+| BookInfo sau CSS fix | TOTAL PSS | 219,354 KB | Ổn hơn trước BookInfo loop 255,805 KB |
+
+### 16.4. Màn còn cần theo dõi
+
+| Màn | Kết luận |
+|---|---|
+| Home | Không thấy long task trong loop, nhưng cold start vẫn có jank ban đầu |
+| Library | Đã virtualize; 20 vòng tab/scroll đạt jank 3.05% |
+| BookInfo | Đã giảm jank, nhưng vẫn là màn cần tối ưu tiếp nếu muốn mượt hơn |
+| Reader | Chưa chạy full reader stress 2 giờ trong vòng này |
+| TOC | Đã virtualize code; cần test với EPUB 2000+ chương trong WebView thật |
+| Settings | Đã lazy load; không thấy crash/ANR trong loop |
+
+### 16.5. Giới hạn của vòng test này
+
+- Đã quay `screenrecord-60s.mp4`; chưa quay đủ 15 phút liên tục trong vòng này.
+- Chưa import 1000+ EPUB thật vào IndexedDB trên Android vì cần debug harness import hàng loạt.
+- Chưa đo manual “đọc liên tục 2 giờ” và “chuyển 500 chương liên tục”.
+- `gfxinfo reset` trên thiết bị đôi lúc in thống kê cũ ra stdout, nên kết quả chính lấy từ file `gfxinfo-after-*.txt` và CDP JSON.
+
+### 16.6. Kết luận Performance QA
+
+- App không còn fail kiểu “JS đứng lâu” trong vòng 20 thao tác cơ bản: CDP ghi nhận 0 long task/0 CLS ở tab loop.
+- BookInfo đúng là điểm gây khựng nhất; đã giảm jank từ 16.47% xuống 8.70% và loại bỏ Android text selection overlay.
+- RAM sau BookInfo CSS fix ở mức TOTAL PSS 219MB, WebView 1 instance, không thấy dấu hiệu leak rõ trong loop ngắn.
+- Việc còn lại nên tập trung vào: giảm jank cold start, test TOC 2000+ chương trong WebView thật, và tạo debug harness import 1000 EPUB vào IndexedDB để đo Library ở dữ liệu thật.

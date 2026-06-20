@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
+import { includesSearchText } from '../../utils/searchText';
 
 const ROW_HEIGHT = 46;
 const VIRTUAL_THRESHOLD = 120;
@@ -17,7 +18,7 @@ function flattenToc(items = [], depth = 0, rows = []) {
   return rows;
 }
 
-function TocRow({ row, currentChapter, onJumpTo }) {
+const TocRow = memo(function TocRow({ row, currentChapter, onJumpTo }) {
   const isActive = row.label === currentChapter;
 
   return (
@@ -66,16 +67,16 @@ function TocRow({ row, currentChapter, onJumpTo }) {
       </span>
     </button>
   );
-}
+});
 
 export default function TOCModal({ toc, currentChapter, onJumpTo, onClose }) {
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const rows = useMemo(() => flattenToc(toc), [toc]);
   const filteredRows = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = query.trim();
     if (!needle) return rows;
-    return rows.filter(row => row.label.toLowerCase().includes(needle));
+    return rows.filter(row => includesSearchText(row.label, needle));
   }, [query, rows]);
 
   const useVirtual = filteredRows.length > VIRTUAL_THRESHOLD;

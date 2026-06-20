@@ -1,19 +1,8 @@
 import ePub from 'epubjs';
 
-const PREVIEW_SECTION_LIMIT = 10;
+const PREVIEW_SECTION_LIMIT = 6;
 const PREVIEW_CHAR_LIMIT = 1200;
 const WORDS_PER_PAGE = 280;
-const CHAPTER_TOKEN_RE = /\b(?:chương|chÆ°Æ¡ng|chapter)\s*\d+/gi;
-const CHAPTER_LABEL_RE = /(?:chương|chÆ°Æ¡ng|chapter)\s*(\d+)/i;
-const LABELS = {
-  author: 'Tác giả|TÃ¡c giáº£|Tac gia|Author',
-  genre: 'Thể loại|Thá»ƒ loáº¡i|The loai|Genre|Tags',
-  originalTitle: 'Tên gốc|TÃªn gá»‘c|Ten goc|Original',
-  characters: 'Nhân vật|NhÃ¢n váº­t|Nhan vat|Characters?',
-  synopsis: 'Văn án|VÄƒn Ã¡n|Van an|Synopsis|Summary',
-  intro: 'Giới thiệu|Giá»›i thiá»‡u|Gioi thieu|Introduction',
-  toc: 'Mục lục|Má»¥c lá»¥c|Muc luc',
-};
 
 const FALLBACK_GENRES = [
   'Fiction',
@@ -21,6 +10,20 @@ const FALLBACK_GENRES = [
   'Classic',
   'Literary',
 ];
+
+function normalizeTextForSearch(text = '') {
+  return text
+    .replace(/chÆ°Æ¡ng|chÃ†Â°Ã†Â¡ng/gi, 'chuong')
+    .replace(/TÃ¡c gi.+?/gi, 'tac gia')
+    .replace(/Th.+?lo.+?i/gi, 'the loai')
+    .replace(/VÄƒn Ã¡n|VÃ„Æ’n ÃƒÂ¡n/gi, 'van an')
+    .replace(/Gi.+?thi.+?u/gi, 'gioi thieu')
+    .replace(/Nh.+?n v.+?t/gi, 'nhan vat')
+    .replace(/TÃªn g.+?c/gi, 'ten goc')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
 
 function normalizeCreator(creator) {
   if (Array.isArray(creator)) return creator.filter(Boolean).join(', ');
@@ -49,11 +52,16 @@ function cleanPreview(text) {
 }
 
 function countChapterTokens(text = '') {
-  const matches = text.match(CHAPTER_TOKEN_RE);
+  const normalized = normalizeTextForSearch(text);
+  const matches = normalized.match(/\b(?:chuong|chapter)\s*\d+/g);
   return matches ? matches.length : 0;
 }
 
-function looksLikeTocText(text = '') {
+export function looksLikeTocText(text = '') {
+  const normalized = normalizeTextForSearch(text).replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  if (/^(chuong|chapter)$/.test(normalized)) return true;
+  if (/^(chuong|chapter)\s*(\d+)?\s*$/.test(normalized)) return true;
   return countChapterTokens(text) > 8;
 }
 
@@ -69,22 +77,29 @@ function countChaptersFromNavigation(navigation, fallback = 0) {
   const rows = flattenToc(navigation?.toc || []);
   const numbered = new Set();
   rows.forEach(item => {
-    const label = item.label?.trim() || '';
-    const match = label.match(CHAPTER_LABEL_RE);
+    const label = normalizeTextForSearch(item.label?.trim() || '');
+    const match = label.match(/(?:chuong|chapter)\s*(\d+)/i);
     if (match) numbered.add(Number(match[1]));
   });
   if (numbered.size > 0) return numbered.size;
 
   const contentRows = rows.filter(item => {
-    const label = item.label?.trim().toLowerCase() || '';
-    return label && !/^(cover|bìa|bia|title|nav|toc|mục lục|muc luc|giới thiệu|gioi thieu|introduction)$/i.test(label);
+    const label = normalizeTextForSearch(item.label?.trim() || '');
+    return label && !/^(cover|bia|title|nav|toc|muc luc|gioi thieu|introduction)$/.test(label);
   });
   return contentRows.length || fallback;
 }
 
-function valueAfterLabel(line, label) {
-  const match = line.match(new RegExp(`^(?:${label})\\s*[:：-]\\s*(.+)$`, 'i'));
-  return match?.[1]?.trim() || '';
+function valueAfterLabel(line, labels) {
+  const normalizedLine = normalizeTextForSearch(line);
+  for (const label of labels) {
+    const normalizedLabel = normalizeTextForSearch(label);
+    if (normalizedLine.startsWith(normalizedLabel)) {
+      const match = line.match(/[:：-]\s*(.+)$/);
+      return match?.[1]?.trim() || '';
+    }
+  }
+  return '';
 }
 
 function cleanListValue(value = '') {
@@ -94,13 +109,35 @@ function cleanListValue(value = '') {
     .trim();
 }
 
+function sectionAfterLabels(lines, labels, stopLabels) {
+  const startIndex = lines.findIndex(line => {
+    const normalized = normalizeTextForSearch(line);
+    return labels.some(label => normalized.startsWith(normalizeTextForSearch(label)));
+  });
+  if (startIndex === -1) return '';
+
+  const firstLine = lines[startIndex];
+  const firstValue = firstLine.match(/[:：-]\s*(.+)$/)?.[1]?.trim() || '';
+  const collected = firstValue ? [firstValue] : [];
+
+  for (let i = startIndex + 1; i < lines.length; i += 1) {
+    const normalized = normalizeTextForSearch(lines[i]);
+    const shouldStop = stopLabels.some(label => normalized.startsWith(normalizeTextForSearch(label)))
+      || /^(chuong|chapter)\s*\d+/.test(normalized)
+      || normalized === 'muc luc';
+    if (shouldStop) break;
+    collected.push(lines[i]);
+  }
+
+  return cleanPreview(collected.join(' '));
+}
+
 function extractIntroMetadata(rawText = '') {
-  const text = rawText.replace(/\r/g, '\n');
-  const lines = text
+  const lines = rawText
+    .replace(/\r/g, '\n')
     .split('\n')
     .map(line => line.replace(/\s+/g, ' ').trim())
     .filter(Boolean);
-  const joined = lines.join('\n');
 
   const intro = {
     title: '',
@@ -114,33 +151,27 @@ function extractIntroMetadata(rawText = '') {
   };
 
   for (const line of lines) {
-    intro.author ||= valueAfterLabel(line, LABELS.author);
-    intro.genre ||= valueAfterLabel(line, LABELS.genre);
-    intro.originalTitle ||= valueAfterLabel(line, LABELS.originalTitle);
-    intro.editor ||= valueAfterLabel(line, 'Editor');
-    intro.beta ||= valueAfterLabel(line, 'Beta');
+    intro.author ||= valueAfterLabel(line, ['tac gia', 'author']);
+    intro.genre ||= valueAfterLabel(line, ['the loai', 'genre', 'tags']);
+    intro.originalTitle ||= valueAfterLabel(line, ['ten goc', 'original']);
+    intro.characters ||= valueAfterLabel(line, ['nhan vat', 'characters']);
+    intro.editor ||= valueAfterLabel(line, ['editor']);
+    intro.beta ||= valueAfterLabel(line, ['beta']);
   }
 
-  const characterMatch = joined.match(new RegExp(`(?:${LABELS.characters})\\s*[:：-]?\\s*([\\s\\S]*?)(?:\\n\\s*(?:${LABELS.synopsis}|${LABELS.intro}|chương\\s*\\d+|chÆ°Æ¡ng\\s*\\d+|chapter\\s*\\d+)\\b|$)`, 'i'));
-  if (characterMatch) intro.characters = cleanListValue(characterMatch[1]);
-
-  const synopsisMatch = joined.match(new RegExp(`(?:${LABELS.synopsis})\\s*[:：-]?\\s*([\\s\\S]*?)(?:\\n\\s*(?:chương\\s*\\d+|chÆ°Æ¡ng\\s*\\d+|chapter\\s*\\d+|${LABELS.toc})\\b|$)`, 'i'));
-  if (synopsisMatch) {
-    intro.description = cleanPreview(synopsisMatch[1]);
-  } else {
-    const introMatch = joined.match(new RegExp(`(?:${LABELS.intro})\\s*[:：-]?\\s*([\\s\\S]*?)(?:\\n\\s*(?:chương\\s*\\d+|chÆ°Æ¡ng\\s*\\d+|chapter\\s*\\d+|${LABELS.toc})\\b|$)`, 'i'));
-    if (introMatch && !looksLikeTocText(introMatch[1])) {
-      intro.description = cleanPreview(introMatch[1]);
-    }
-  }
+  const synopsis = sectionAfterLabels(lines, ['van an', 'synopsis', 'summary'], ['chuong', 'chapter', 'muc luc']);
+  const introText = sectionAfterLabels(lines, ['gioi thieu', 'introduction'], ['chuong', 'chapter', 'muc luc']);
+  intro.description = synopsis || (!looksLikeTocText(introText) ? introText : '');
 
   const firstTitle = lines.find(line => {
+    const normalized = normalizeTextForSearch(line);
     return line.length <= 80
-      && !/^(tác giả|tac gia|author|thể loại|the loai|genre|giới thiệu|gioi thieu|văn án|van an|editor|beta|chương|chapter)\b/i.test(line);
+      && !/^(tac gia|author|the loai|genre|gioi thieu|van an|editor|beta|chuong|chapter|muc luc)\b/.test(normalized);
   });
   intro.title = firstTitle || '';
   intro.genre = cleanListValue(intro.genre);
   intro.author = cleanListValue(intro.author);
+  intro.characters = cleanListValue(intro.characters);
 
   return intro;
 }
@@ -220,7 +251,7 @@ export async function extractEpubMetadata(fileOrBlob, fallback = {}) {
     const genre = normalizeSubject(metadata.subject) || preview.genre || fallback.genre || FALLBACK_GENRES[0];
     const rawDescription = metadata.description || '';
     const description = (!rawDescription || looksLikeTocText(rawDescription))
-      ? (preview.description || fallback.description || '')
+      ? (preview.description || (!looksLikeTocText(fallback.description) ? fallback.description : '') || '')
       : rawDescription;
     const chapterCount = countChaptersFromNavigation(
       navigation,
@@ -252,7 +283,7 @@ export async function extractEpubMetadata(fileOrBlob, fallback = {}) {
       author: fallback.author || 'Unknown Author',
       coverUrl: fallback.coverUrl || null,
       genre: fallback.genre || FALLBACK_GENRES[0],
-      description: fallback.description || '',
+      description: looksLikeTocText(fallback.description) ? '' : (fallback.description || ''),
       publisher: '',
       language: '',
       publishedAt: '',
@@ -269,7 +300,7 @@ export async function extractEpubMetadata(fileOrBlob, fallback = {}) {
 export function normalizeBookMetadata(book) {
   return {
     genre: book.genre || 'Fiction',
-    description: book.description || '',
+    description: looksLikeTocText(book.description) ? '' : (book.description || ''),
     characters: book.characters || '',
     originalTitle: book.originalTitle || '',
     editor: book.editor || '',

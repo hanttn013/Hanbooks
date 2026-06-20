@@ -1,10 +1,11 @@
 // src/hooks/useLibrary.js
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { DEMO_BOOKS } from '../data/demoBooks';
 import { StorageManager } from '../utils/StorageManager';
 import { extractEpubMetadata, normalizeBookMetadata } from '../utils/epubMetadata';
 import { getLibraryStats } from '../utils/libraryStats';
+import { includesSearchText } from '../utils/searchText';
 
 const DEFAULT_LISTS = [
   {
@@ -44,10 +45,28 @@ export function useLibrary() {
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('aurelia_sort') || 'lastOpenedAt');
   const [filterBy, setFilterBy] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [lists, setLists] = useState([]);
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [bookmarkedBookIds, setBookmarkedBookIds] = useState(() => new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const autoBackupTimerRef = useRef(null);
+
+  const queueAutoBackup = useCallback((reason = 'library-change') => {
+    window.clearTimeout(autoBackupTimerRef.current);
+    autoBackupTimerRef.current = window.setTimeout(() => {
+      const run = () => {
+        StorageManager.createAutoBackup(reason).catch(err => {
+          console.warn('Auto backup failed:', err);
+        });
+      };
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(run, { timeout: 8000 });
+      } else {
+        window.setTimeout(run, 1200);
+      }
+    }, 1200);
+  }, []);
 
   // Load books from IndexedDB
   const refreshLibrary = useCallback(async () => {
@@ -105,10 +124,11 @@ export function useLibrary() {
       setBooks(normalized);
 
       let storedLists = await StorageManager.getAllLists();
-      if (storedLists.length === 0) {
+      if (storedLists.length === 0 && localStorage.getItem('aurelia_seeded_default_lists') !== '1') {
         for (const item of DEFAULT_LISTS) {
           await StorageManager.saveList(item);
         }
+        localStorage.setItem('aurelia_seeded_default_lists', '1');
         storedLists = await StorageManager.getAllLists();
       }
       setLists(storedLists);
@@ -131,8 +151,19 @@ export function useLibrary() {
   }, [refreshLibrary]);
 
   useEffect(() => {
+    return () => window.clearTimeout(autoBackupTimerRef.current);
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('aurelia_sort', sortBy);
   }, [sortBy]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   const addBook = useCallback(async (file, metadata) => {
     const bookMetadata = metadata || await extractEpubMetadata(file, { fileName: file.name });
@@ -166,8 +197,9 @@ export function useLibrary() {
     };
     await StorageManager.saveBook(book);
     setBooks(prev => [book, ...prev]);
+    queueAutoBackup('book-imported');
     return book;
-  }, []);
+  }, [queueAutoBackup]);
 
   const deleteBook = useCallback(async (id) => {
     await StorageManager.deleteBook(id);
@@ -181,18 +213,22 @@ export function useLibrary() {
       next.delete(id);
       return next;
     });
-  }, []);
+    queueAutoBackup('book-deleted');
+  }, [queueAutoBackup]);
 
   const updateBook = useCallback(async (id, updates) => {
     setBooks(prev => prev.map(b => {
       if (b.id === id) {
         const updated = { ...b, ...updates };
         StorageManager.saveBook(updated);
+        const keys = Object.keys(updates);
+        const isReadingPulse = keys.length > 0 && keys.every(key => ['lastOpenedAt', 'status'].includes(key));
+        if (!isReadingPulse) queueAutoBackup('book-updated');
         return updated;
       }
       return b;
     }));
-  }, []);
+  }, [queueAutoBackup]);
 
   const createList = useCallback(async ({ name, description = '', coverStyle = 'gold', bookIds = [] }) => {
     const item = {
@@ -207,8 +243,9 @@ export function useLibrary() {
     };
     await StorageManager.saveList(item);
     setLists(prev => [...prev, item]);
+    queueAutoBackup('list-created');
     return item;
-  }, []);
+  }, [queueAutoBackup]);
 
   const updateList = useCallback(async (id, updates) => {
     let saved = null;
@@ -216,15 +253,18 @@ export function useLibrary() {
       if (item.id !== id) return item;
       saved = { ...item, ...updates, updatedAt: Date.now() };
       StorageManager.saveList(saved);
+      queueAutoBackup('list-updated');
       return saved;
     }));
     return saved;
-  }, []);
+  }, [queueAutoBackup]);
 
   const deleteList = useCallback(async (id) => {
     await StorageManager.deleteList(id);
+    localStorage.setItem('aurelia_seeded_default_lists', '1');
     setLists(prev => prev.filter(item => item.id !== id));
-  }, []);
+    queueAutoBackup('list-deleted');
+  }, [queueAutoBackup]);
 
   const addBooksToList = useCallback(async (listId, bookIds) => {
     setLists(prev => prev.map(item => {
@@ -235,9 +275,10 @@ export function useLibrary() {
         updatedAt: Date.now(),
       };
       StorageManager.saveList(updated);
+      queueAutoBackup('list-books-added');
       return updated;
     }));
-  }, []);
+  }, [queueAutoBackup]);
 
   const removeBookFromList = useCallback(async (listId, bookId) => {
     setLists(prev => prev.map(item => {
@@ -248,9 +289,10 @@ export function useLibrary() {
         updatedAt: Date.now(),
       };
       StorageManager.saveList(updated);
+      queueAutoBackup('list-book-removed');
       return updated;
     }));
-  }, []);
+  }, [queueAutoBackup]);
 
   const getSorted = useCallback((bookList) => {
     return [...bookList].sort((a, b) => {
@@ -274,7 +316,7 @@ export function useLibrary() {
   }, [sortBy]);
 
   // Derived sections
-  const filteredBooks = books.filter(b => {
+  const filteredBooks = useMemo(() => books.filter(b => {
     if (filterBy === 'reading') return b.status === 'reading';
     if (filterBy === 'favorites') return b.isFavorite;
     if (filterBy === 'finished') return b.status === 'finished';
@@ -282,7 +324,7 @@ export function useLibrary() {
     if (filterBy === 'bookmarked') return bookmarkedBookIds.has(b.id);
     return true;
   }).filter(b => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = debouncedSearchQuery.trim();
     if (!query) return true;
     const listNames = lists
       .filter(list => list.bookIds.includes(b.id))
@@ -295,12 +337,12 @@ export function useLibrary() {
       b.description,
       b.publisher,
       listNames,
-    ].filter(Boolean).join(' ').toLowerCase();
-    return haystack.includes(query);
-  });
+    ].filter(Boolean).join(' ');
+    return includesSearchText(haystack, query);
+  }), [books, filterBy, bookmarkedBookIds, debouncedSearchQuery, lists]);
 
-  const sortedBooks = getSorted(filteredBooks);
-  const stats = getLibraryStats(books, lists, bookmarkCount);
+  const sortedBooks = useMemo(() => getSorted(filteredBooks), [filteredBooks, getSorted]);
+  const stats = useMemo(() => getLibraryStats(books, lists, bookmarkCount), [books, lists, bookmarkCount]);
 
   return {
     books: sortedBooks,

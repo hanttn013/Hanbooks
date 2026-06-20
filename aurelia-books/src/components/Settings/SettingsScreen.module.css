@@ -201,6 +201,13 @@
   color: #C7372F !important;
 }
 
+.note {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .sliderRow {
   display: block;
   padding: 14px;

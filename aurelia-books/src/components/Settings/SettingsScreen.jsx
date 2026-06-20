@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import styles from './SettingsScreen.module.css';
 import { StorageManager } from '../../utils/StorageManager';
 
@@ -37,6 +38,11 @@ function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
 export default function SettingsScreen({ settings, updateSetting, library }) {
   const activeTheme = THEMES.find(theme => theme.id === settings.theme) || THEMES[1];
   const stats = library?.stats || {};
+  const importRef = useRef(null);
+  const [backupStatus, setBackupStatus] = useState(() => {
+    const timestamp = Number(localStorage.getItem('aurelia_last_backup_at') || 0);
+    return timestamp ? `Last backup ${new Date(timestamp).toLocaleString()}` : 'No backup yet';
+  });
 
   const handleClearData = async () => {
     const confirmed = window.confirm(
@@ -49,9 +55,58 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
       Object.keys(localStorage)
         .filter(key => key.startsWith('aurelia_'))
         .forEach(key => localStorage.removeItem(key));
+      localStorage.setItem('aurelia_seeded_demo', '1');
+      localStorage.setItem('aurelia_seeded_default_lists', '1');
       window.location.reload();
     } catch (err) {
       alert(err.message || 'Khong the xoa du lieu. Hay dong va mo lai app roi thu lai.');
+    }
+  };
+
+  const downloadJson = (payload, fileName) => {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportLibrary = async () => {
+    try {
+      const snapshot = await StorageManager.exportLibrarySnapshot();
+      const stamp = new Date(snapshot.exportedAt).toISOString().replace(/[:.]/g, '-');
+      downloadJson(snapshot, `hanbooks-library-${stamp}.json`);
+    } catch (err) {
+      alert(err.message || 'Could not export library.');
+    }
+  };
+
+  const handleImportLibrary = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const snapshot = JSON.parse(text);
+      const confirmed = window.confirm('Import this Hanbooks backup? Existing library items with the same IDs will be updated.');
+      if (!confirmed) return;
+      await StorageManager.importLibrarySnapshot(snapshot, { merge: true });
+      await StorageManager.createAutoBackup('after-import');
+      window.location.reload();
+    } catch (err) {
+      alert(err.message || 'Could not import this backup file.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    try {
+      const backup = await StorageManager.createAutoBackup('manual');
+      setBackupStatus(`Last backup ${new Date(backup.createdAt).toLocaleString()}`);
+    } catch (err) {
+      alert(err.message || 'Could not create backup.');
     }
   };
 
@@ -185,6 +240,29 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
               <div className={styles.infoRow}><span>Import format</span><em>EPUB</em></div>
               <div className={styles.infoRow}><span>Metadata</span><em>Automatic extraction</em></div>
             </div>
+          </section>
+
+          <section className={styles.group}>
+            <h2>Backup</h2>
+            <div className={styles.card}>
+              <button onClick={handleExportLibrary}>
+                <span>Export library</span>
+                <em>JSON</em>
+              </button>
+              <button onClick={() => importRef.current?.click()}>
+                <span>Import library</span>
+                <em>Merge</em>
+              </button>
+              <button onClick={handleCreateBackup}>
+                <span>Create auto backup</span>
+                <em>Now</em>
+              </button>
+              <div className={styles.infoRow}><span>Auto backup</span><em>{backupStatus}</em></div>
+            </div>
+            <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={handleImportLibrary} />
+            <p className={styles.note}>
+              Backups include metadata, progress, bookmarks, lists, and settings. EPUB files are kept separate to avoid huge backup files.
+            </p>
           </section>
 
           <section className={styles.group}>

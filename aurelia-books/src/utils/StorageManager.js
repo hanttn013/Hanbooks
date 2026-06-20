@@ -1,6 +1,6 @@
 // src/utils/StorageManager.js
 const DB_NAME = 'aurelia_db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export class StorageManager {
   static openDB() {
@@ -26,6 +26,9 @@ export class StorageManager {
         }
         if (!db.objectStoreNames.contains('lists')) {
           db.createObjectStore('lists', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('backups')) {
+          db.createObjectStore('backups', { keyPath: 'id' });
         }
       };
 
@@ -205,6 +208,128 @@ export class StorageManager {
       deleteRequest.onblocked = () => {
         reject(new Error('Database is busy. Close and reopen the app, then try again.'));
       };
+    });
+  }
+
+  static stripBookForExport(book) {
+    const { fileBlob, coverUrl, ...rest } = book;
+    return {
+      ...rest,
+      hasFileBlob: Boolean(fileBlob),
+      coverUrl: typeof coverUrl === 'string' && coverUrl.startsWith('data:') ? null : coverUrl,
+      exportedWithoutEpub: true,
+    };
+  }
+
+  static async exportLibrarySnapshot() {
+    const [books, bookmarks, lists] = await Promise.all([
+      this.getAllBooks(),
+      this.getAllBookmarks(),
+      this.getAllLists(),
+    ]);
+
+    const progress = await this.getAllProgress();
+    const settings = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('aurelia_settings') || '{}');
+      } catch {
+        return {};
+      }
+    })();
+
+    return {
+      app: 'Hanbooks',
+      type: 'library-backup',
+      version: 1,
+      exportedAt: Date.now(),
+      note: 'This backup stores library metadata, lists, bookmarks, progress, and settings. EPUB file blobs are not embedded.',
+      books: books.map(book => this.stripBookForExport(book)),
+      bookmarks,
+      progress,
+      lists,
+      settings,
+    };
+  }
+
+  static async getAllProgress() {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('progress', 'readonly');
+      const store = transaction.objectStore('progress');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  static async importLibrarySnapshot(snapshot, { merge = true } = {}) {
+    if (!snapshot || snapshot.type !== 'library-backup') {
+      throw new Error('Invalid Hanbooks backup file.');
+    }
+
+    const db = await this.openDB();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(['books', 'bookmarks', 'progress', 'lists'], 'readwrite');
+      const stores = {
+        books: transaction.objectStore('books'),
+        bookmarks: transaction.objectStore('bookmarks'),
+        progress: transaction.objectStore('progress'),
+        lists: transaction.objectStore('lists'),
+      };
+
+      if (!merge) {
+        stores.books.clear();
+        stores.bookmarks.clear();
+        stores.progress.clear();
+        stores.lists.clear();
+      }
+
+      (snapshot.books || []).forEach(book => stores.books.put({
+        ...book,
+        fileBlob: null,
+        coverUrl: book.coverUrl || null,
+        restoredFromBackup: true,
+        restoredAt: Date.now(),
+      }));
+      (snapshot.bookmarks || []).forEach(bookmark => stores.bookmarks.put(bookmark));
+      (snapshot.progress || []).forEach(item => stores.progress.put(item));
+      (snapshot.lists || []).forEach(list => stores.lists.put(list));
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    if (snapshot.settings && typeof snapshot.settings === 'object') {
+      localStorage.setItem('aurelia_settings', JSON.stringify(snapshot.settings));
+    }
+  }
+
+  static async createAutoBackup(reason = 'auto') {
+    const snapshot = await this.exportLibrarySnapshot();
+    const db = await this.openDB();
+    const item = {
+      id: 'latest',
+      reason,
+      createdAt: Date.now(),
+      snapshot,
+    };
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction('backups', 'readwrite');
+      const request = transaction.objectStore('backups').put(item);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    localStorage.setItem('aurelia_last_backup_at', String(item.createdAt));
+    return item;
+  }
+
+  static async getLatestAutoBackup() {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('backups', 'readonly');
+      const request = transaction.objectStore('backups').get('latest');
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
     });
   }
 }

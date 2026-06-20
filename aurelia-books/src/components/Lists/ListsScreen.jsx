@@ -48,18 +48,29 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
               <h1 className="screen-title">Lists</h1>
               <p className={styles.subhead}>Shelves for series, genres, moods, and plans.</p>
             </div>
-            <button className={styles.createBtn} onClick={() => setEditingList({})}>+</button>
+            <button className={styles.createBtn} onClick={() => setEditingList({})} title="Create list">+</button>
           </header>
 
           <div className="screen-scroll">
             <div className={styles.listStack}>
+              {(library.lists || []).length === 0 && (
+                <div className={styles.emptyPanel}>
+                  <strong>No lists yet</strong>
+                  <span>Create a list or import a ZIP/RAR archive to group books automatically.</span>
+                </div>
+              )}
+
               {(library.lists || []).map(list => {
                 const previews = list.bookIds
                   .slice(0, 3)
                   .map(id => (library.allBooksRaw || []).find(book => book.id === id))
                   .filter(Boolean);
                 return (
-                  <button key={list.id} className={styles.listCard} onClick={() => setActiveListId(list.id)}>
+                  <button
+                    key={list.id}
+                    className={`${styles.listCard} ${styles[`${list.coverStyle || 'gold'}Card`] || styles.goldCard}`}
+                    onClick={() => setActiveListId(list.id)}
+                  >
                     <span className={`${styles.coverStyle} ${styles[list.coverStyle] || styles.gold}`}>
                       <span className={styles.previewCovers}>
                         {previews.map(book => (
@@ -72,7 +83,7 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
                       <small>{list.description || 'Personal reading shelf'}</small>
                       <small>{list.bookIds.length} {list.bookIds.length === 1 ? 'book' : 'books'}</small>
                     </span>
-                    <span className={styles.chevron}>›</span>
+                    <span className={styles.chevron}>&rsaquo;</span>
                   </button>
                 );
               })}
@@ -84,7 +95,7 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
       ) : (
         <>
           <header className={`${styles.detailHeader} safe-top`}>
-            <button className={styles.backBtn} onClick={() => setActiveListId(null)}>‹ Lists</button>
+            <button className={styles.backBtn} onClick={() => setActiveListId(null)}>&lsaquo; Lists</button>
             <div className={styles.detailTitleRow}>
               <span className={`${styles.coverStyle} ${styles[activeList.coverStyle] || styles.gold}`} />
               <div>
@@ -114,7 +125,7 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
                       <span>
                         <strong>{book.title}</strong>
                         <small>{book.author}</small>
-                        <small>{book.genre || 'Fiction'} · {Math.round(progressFor(book))}%</small>
+                        <small>{book.genre || 'Fiction'} - {Math.round(progressFor(book))}%</small>
                       </span>
                     </button>
                     <div className={styles.rowActions}>
@@ -173,7 +184,7 @@ function ListEditor({ list, onClose, onSave, onDelete }) {
         <div className="modal-handle" />
         <div className="modal-header">
           <span className="modal-title">{list ? 'Edit list' : 'New list'}</span>
-          <button className="btn-icon" onClick={onClose}>×</button>
+          <button className="btn-icon" onClick={onClose}>x</button>
         </div>
         <div className="modal-scroll" style={{ padding: '0 20px 28px' }}>
           <label className={styles.field}>
@@ -215,7 +226,7 @@ function AddBooksSheet({ books, list, onClose, onAdd }) {
         <div className="modal-handle" />
         <div className="modal-header">
           <span className="modal-title">Add books</span>
-          <button className="btn-icon" onClick={onClose}>×</button>
+          <button className="btn-icon" onClick={onClose}>x</button>
         </div>
         <div className="modal-scroll">
           {available.map(book => (
@@ -225,7 +236,7 @@ function AddBooksSheet({ books, list, onClose, onAdd }) {
                 <strong>{book.title}</strong>
                 <small>{book.author}</small>
               </span>
-              <b>{selected.includes(book.id) ? '✓' : ''}</b>
+              <b>{selected.includes(book.id) ? 'OK' : ''}</b>
             </button>
           ))}
           {available.length === 0 && <div className={styles.emptyState}>All books are already in this list.</div>}

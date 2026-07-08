@@ -1,4 +1,4 @@
-import { unzipSync } from 'fflate';
+import { unzip } from 'fflate';
 import { createExtractorFromData } from 'node-unrar-js/esm/index.esm.js';
 import unrarWasmUrl from 'node-unrar-js/esm/js/unrar.wasm?url';
 
@@ -22,6 +22,15 @@ function baseName(path) {
     .pop() || 'book.epub';
 }
 
+function folderName(path, archiveName) {
+  const parts = String(path || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(part => part && part !== '.' && part !== '..');
+  if (parts.length > 1) return parts[0].trim() || cleanArchiveName(archiveName);
+  return cleanArchiveName(archiveName);
+}
+
 function isHiddenOrSystemPath(path) {
   const normalized = String(path || '').replace(/\\/g, '/');
   return normalized.startsWith('__MACOSX/')
@@ -31,7 +40,9 @@ function isHiddenOrSystemPath(path) {
 function bytesToFile(bytes, name) {
   const source = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   const copy = source.slice();
-  return new File([copy], baseName(name), { type: 'application/epub+zip' });
+  const file = new File([copy], baseName(name), { type: 'application/epub+zip' });
+  Object.defineProperty(file, 'archivePath', { value: String(name || ''), enumerable: true });
+  return file;
 }
 
 async function getUnrarWasmBinary() {
@@ -46,7 +57,12 @@ async function getUnrarWasmBinary() {
 
 async function extractZip(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const entries = unzipSync(bytes);
+  const entries = await new Promise((resolve, reject) => {
+    unzip(bytes, (err, data) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
+  });
   return Object.entries(entries)
     .filter(([path]) => EPUB_EXT.test(path) && !isHiddenOrSystemPath(path))
     .map(([path, data]) => bytesToFile(data, path));
@@ -78,18 +94,32 @@ export function isSupportedImportFile(file) {
 export async function extractEpubsFromArchive(file) {
   const name = file?.name || '';
   if (ZIP_EXT.test(name)) {
+    const files = await extractZip(file);
     return {
       listName: cleanArchiveName(name),
       sourceName: name,
-      files: await extractZip(file),
+      files,
+      groups: groupArchiveFiles(files, name),
     };
   }
   if (RAR_EXT.test(name)) {
+    const files = await extractRar(file);
     return {
       listName: cleanArchiveName(name),
       sourceName: name,
-      files: await extractRar(file),
+      files,
+      groups: groupArchiveFiles(files, name),
     };
   }
   throw new Error('Unsupported archive. Use ZIP or RAR.');
+}
+
+export function groupArchiveFiles(files, archiveName) {
+  const groups = new Map();
+  for (const file of files || []) {
+    const name = folderName(file.archivePath || file.name, archiveName);
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(file);
+  }
+  return [...groups.entries()].map(([name, groupFiles]) => ({ name, files: groupFiles }));
 }

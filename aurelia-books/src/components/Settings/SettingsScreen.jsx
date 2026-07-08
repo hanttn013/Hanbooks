@@ -1,20 +1,7 @@
 import { useRef, useState } from 'react';
 import styles from './SettingsScreen.module.css';
 import { StorageManager } from '../../utils/StorageManager';
-
-const THEMES = [
-  { id: 'pure-white', label: 'White', bg: '#FFFFFF', text: '#1A1A1A' },
-  { id: 'warm-cream', label: 'Cream', bg: '#EDE8DC', text: '#2C2416' },
-  { id: 'vintage-paper', label: 'Paper', bg: '#F5EDD6', text: '#3D2B1F' },
-  { id: 'sepia', label: 'Sepia', bg: '#F1E4C3', text: '#3B2F0A' },
-  { id: 'dark-gray', label: 'Dark', bg: '#2A2A2A', text: '#E8E0D0' },
-  { id: 'amoled-black', label: 'Black', bg: '#000000', text: '#E0D8C8' },
-  { id: 'forest', label: 'Forest', bg: '#1C3329', text: '#E8F0E8' },
-  { id: 'ocean', label: 'Ocean', bg: '#E8F4F8', text: '#1A3040' },
-  { id: 'midnight-blue', label: 'Midnight', bg: '#1A2035', text: '#D8E0F0' },
-];
-
-const FONTS = ['Merriweather', 'EB Garamond', 'Noto Serif', 'Georgia', 'Times New Roman'];
+import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
 
 function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
   return (
@@ -36,7 +23,7 @@ function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
 }
 
 export default function SettingsScreen({ settings, updateSetting, library }) {
-  const activeTheme = THEMES.find(theme => theme.id === settings.theme) || THEMES[1];
+  const activeTheme = getThemeById(settings.theme);
   const stats = library?.stats || {};
   const importRef = useRef(null);
   const [backupStatus, setBackupStatus] = useState(() => {
@@ -46,7 +33,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
 
   const handleClearData = async () => {
     const confirmed = window.confirm(
-      'Xoa toan bo du lieu Hanbooks? Viec nay se xoa sach da import, bookmarks, lists, tien do doc va cai dat.'
+      'Xoa toan bo du lieu ShanBooks? Viec nay se xoa sach da import, bookmarks, lists, tien do doc va cai dat.'
     );
     if (!confirmed) return;
 
@@ -89,7 +76,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     try {
       const text = await file.text();
       const snapshot = JSON.parse(text);
-      const confirmed = window.confirm('Import this Hanbooks backup? Existing library items with the same IDs will be updated.');
+      const confirmed = window.confirm('Import this ShanBooks backup? Existing library items with the same IDs will be updated.');
       if (!confirmed) return;
       await StorageManager.importLibrarySnapshot(snapshot, { merge: true });
       await StorageManager.createAutoBackup('after-import');
@@ -113,7 +100,10 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
   return (
     <div className={styles.screen}>
       <header className={`${styles.header} safe-top`}>
-        <p className="aurelia-wordmark">AURELIA</p>
+        <div className="brand-lockup">
+          <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
+          <p className="aurelia-wordmark">ShanBooks</p>
+        </div>
         <h1 className="screen-title">Settings</h1>
       </header>
 
@@ -122,35 +112,23 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
           <section className={styles.group}>
             <h2>Statistics</h2>
             <div className={styles.statsPanel}>
-              <div className={styles.heroStat}>
-                <strong>{stats.streak || 0}</strong>
-                <span>day streak</span>
-              </div>
               <div className={styles.statsGrid}>
                 <Stat label="Books" value={stats.totalBooks || 0} />
-                <Stat label="Reading" value={stats.readingBooks || 0} />
-                <Stat label="Finished" value={stats.finishedBooks || 0} />
-                <Stat label="Unread" value={stats.unreadBooks || 0} />
-                <Stat label="Favorites" value={stats.favoriteBooks || 0} />
                 <Stat label="Lists" value={stats.totalLists || 0} />
-                <Stat label="Bookmarks" value={stats.bookmarkCount || 0} />
-                <Stat label="Progress" value={`${stats.averageProgress || 0}%`} />
-                <Stat label="Pages" value={stats.totalPages || 0} />
+                <Stat label="Reading" value={stats.readingBooks || 0} />
                 <Stat label="Storage" value={stats.totalStorageLabel || '0 MB'} />
-                <Stat label="Read time" value={stats.totalReadingLabel || '0m'} />
-                <Stat label="Today" value={`${stats.pagesReadToday || 0} pages`} />
               </div>
             </div>
           </section>
 
-          <section className={styles.preview} style={{ background: activeTheme.bg, color: activeTheme.text, fontFamily: settings.font, fontSize: settings.fontSize, lineHeight: settings.lineHeight }}>
+          <section className={styles.preview} style={{ background: activeTheme.bg, color: activeTheme.text, fontFamily: getFontStack(settings.font), fontSize: settings.fontSize, lineHeight: settings.lineHeight }}>
             She turned the page without thinking, and the story carried her further from the quiet street below.
           </section>
 
           <section className={styles.group}>
             <h2>Theme</h2>
             <div className={styles.themeGrid}>
-              {THEMES.map(theme => (
+              {APP_THEMES.map(theme => (
                 <button
                   key={theme.id}
                   className={settings.theme === theme.id ? styles.themeActive : ''}
@@ -167,14 +145,14 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
           <section className={styles.group}>
             <h2>Typeface</h2>
             <div className={styles.card}>
-              {FONTS.map(font => (
+              {READER_FONTS.map(font => (
                 <button
-                  key={font}
-                  className={settings.font === font ? styles.rowActive : ''}
-                  onClick={() => updateSetting('font', font)}
+                  key={font.id}
+                  className={settings.font === font.id ? styles.rowActive : ''}
+                  onClick={() => updateSetting('font', font.id)}
                 >
-                  <span style={{ fontFamily: font }}>{font}</span>
-                  <em>{settings.font === font ? 'Selected' : 'Aa'}</em>
+                  <span style={{ fontFamily: font.stack }}>{font.label}</span>
+                  <em>{settings.font === font.id ? 'Selected' : 'Aa'}</em>
                 </button>
               ))}
             </div>
@@ -240,6 +218,33 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
               <div className={styles.infoRow}><span>Import format</span><em>EPUB</em></div>
               <div className={styles.infoRow}><span>Metadata</span><em>Automatic extraction</em></div>
             </div>
+          </section>
+
+          <section className={styles.group}>
+            <h2>Metadata Queue</h2>
+            <div className={styles.card}>
+              <div className={styles.infoRow}>
+                <span>Pending books</span>
+                <em>{library?.pendingMetadataTotal || 0}</em>
+              </div>
+              <div className={styles.infoRow}>
+                <span>Queue status</span>
+                <em>
+                  {library?.metadataProcessingCount > 0
+                    ? `Processing ${library.metadataProcessingCount}...`
+                    : library?.isMetadataQueuePaused ? 'Paused' : 'Idle'}
+                </em>
+              </div>
+              {library?.pendingMetadataTotal > 0 && (
+                <button onClick={() => library.setIsMetadataQueuePaused(prev => !prev)}>
+                  <span>{library?.isMetadataQueuePaused ? 'Resume queue' : 'Pause queue'}</span>
+                  <em>{library?.isMetadataQueuePaused ? 'Play' : 'Pause'}</em>
+                </button>
+              )}
+            </div>
+            <p className={styles.note}>
+              ShanBooks extracts cover and info in the background to keep imports fast. You can pause this if your device slows down.
+            </p>
           </section>
 
           <section className={styles.group}>

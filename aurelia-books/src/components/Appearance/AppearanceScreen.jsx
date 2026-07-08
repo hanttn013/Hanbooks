@@ -1,28 +1,7 @@
 // src/components/Appearance/AppearanceScreen.jsx
 import { motion } from 'framer-motion';
 import styles from './AppearanceScreen.module.css';
-
-const THEMES = [
-  { id: 'pure-white', label: 'Pure White', bg: '#FFFFFF', text: '#1A1A1A', border: '#E0E0E0' },
-  { id: 'warm-cream', label: 'Warm Cream', bg: '#EDE8DC', text: '#2C2416', border: '#C4A35A' },
-  { id: 'vintage-paper', label: 'Vintage Paper', bg: '#F5EDD6', text: '#3D2B1F', border: 'transparent' },
-  { id: 'sepia', label: 'Sepia', bg: '#F1E4C3', text: '#3B2F0A', border: 'transparent' },
-  { id: 'dark-gray', label: 'Dark Gray', bg: '#2A2A2A', text: '#E8E0D0', border: 'transparent' },
-  { id: 'amoled-black', label: 'AMOLED Black', bg: '#000000', text: '#E0D8C8', border: '#333' },
-  { id: 'forest', label: 'Forest', bg: '#1C3329', text: '#E8F0E8', border: 'transparent' },
-  { id: 'ocean', label: 'Ocean', bg: '#E8F4F8', text: '#1A3040', border: 'transparent' },
-  { id: 'midnight-blue', label: 'Midnight Blue', bg: '#1A2035', text: '#D8E0F0', border: 'transparent' },
-];
-
-const FONTS = [
-  { id: 'Merriweather', label: 'Merriweather' },
-  { id: 'EB Garamond', label: 'EB Garamond' },
-  { id: 'Literata', label: 'Literata' },
-  { id: 'Crimson Pro', label: 'Crimson Pro' },
-  { id: 'Noto Serif', label: 'Noto Serif' },
-  { id: 'Georgia', label: 'Georgia' },
-  { id: 'Times New Roman', label: 'Times New Roman' },
-];
+import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
 
 const READING_MODES = [
   { id: 'classic', label: 'Classic Page' },
@@ -58,19 +37,22 @@ function Slider({ label, value, min, max, step, unit, onChange }) {
 
 export default function AppearanceScreen({ settings, updateSetting }) {
   const previewStyle = {
-    fontFamily: settings.font,
+    fontFamily: getFontStack(settings.font),
     fontSize: settings.fontSize,
     lineHeight: settings.lineHeight,
     letterSpacing: settings.letterSpacing,
     padding: `${settings.marginWidth}px`,
-    backgroundColor: THEMES.find(t => t.id === settings.theme)?.bg || '#EDE8DC',
-    color: THEMES.find(t => t.id === settings.theme)?.text || '#2C2416',
+    backgroundColor: getThemeById(settings.theme).bg,
+    color: getThemeById(settings.theme).text,
   };
 
   return (
     <div className={styles.screen}>
       <div className={`${styles.header} safe-top`}>
-        <p className="aurelia-wordmark">AURELIA</p>
+        <div className="brand-lockup">
+          <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
+          <p className="aurelia-wordmark">ShanBooks</p>
+        </div>
         <h1 className="screen-title">Appearance</h1>
       </div>
 
@@ -88,14 +70,14 @@ export default function AppearanceScreen({ settings, updateSetting }) {
         <div className={styles.sectionBlock}>
           <h2 className="section-title" style={{ marginBottom: 12 }}>Typeface</h2>
           <div className="card" style={{ overflow: 'hidden' }}>
-            {FONTS.map((font, i) => (
+            {READER_FONTS.map((font, i) => (
               <div key={font.id}>
                 <button
                   className={`${styles.fontRow} ${settings.font === font.id ? styles.fontActive : ''}`}
                   onClick={() => updateSetting('font', font.id)}
                 >
-                  <span style={{ fontFamily: font.id, fontSize: 17 }}>{font.label}</span>
-                  <span style={{ fontFamily: font.id, fontSize: 14, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: font.stack, fontSize: 17 }}>{font.label}</span>
+                  <span style={{ fontFamily: font.stack, fontSize: 14, color: 'var(--text-secondary)' }}>
                     The quiet morning
                   </span>
                   {settings.font === font.id && (
@@ -104,7 +86,7 @@ export default function AppearanceScreen({ settings, updateSetting }) {
                     </svg>
                   )}
                 </button>
-                {i < FONTS.length - 1 && <div className="divider" />}
+                {i < READER_FONTS.length - 1 && <div className="divider" />}
               </div>
             ))}
           </div>
@@ -114,13 +96,13 @@ export default function AppearanceScreen({ settings, updateSetting }) {
         <div className={styles.sectionBlock}>
           <h2 className="section-title" style={{ marginBottom: 12 }}>Theme</h2>
           <div className={styles.themeGrid}>
-            {THEMES.map(theme => (
+            {APP_THEMES.map(theme => (
               <motion.button
                 key={theme.id}
                 className={`${styles.themeCard} ${settings.theme === theme.id ? styles.themeActive : ''}`}
                 style={{
                   backgroundColor: theme.bg,
-                  borderColor: settings.theme === theme.id ? 'var(--accent)' : theme.border || 'var(--border)',
+                  borderColor: settings.theme === theme.id ? 'var(--accent)' : 'var(--border)',
                 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={() => updateSetting('theme', theme.id)}

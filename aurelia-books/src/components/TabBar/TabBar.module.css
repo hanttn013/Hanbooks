@@ -1,10 +1,18 @@
 .tabBar {
   display: flex;
-  align-items: stretch;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border);
-  padding-bottom: 28px; /* home indicator */
+  align-items: center;
+  gap: 6px;
+  margin: 0 16px max(10px, var(--app-safe-bottom));
+  padding: 6px;
+  min-height: 64px;
+  border-radius: 22px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-floating);
+  backdrop-filter: blur(18px);
   flex-shrink: 0;
+  position: relative;
+  z-index: 80;
 }
 
 .tab {
@@ -13,8 +21,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 10px 4px 4px;
+  gap: 3px;
+  min-height: 50px;
+  padding: 6px 4px 4px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -28,7 +37,10 @@
 }
 
 .tab.active {
-  color: var(--accent);
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-radius: 18px;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 26%, transparent);
 }
 
 .icon {
@@ -40,8 +52,8 @@
 }
 
 .label {
-  font-family: -apple-system, system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
+  font-weight: 850;
+  letter-spacing: 0;
 }

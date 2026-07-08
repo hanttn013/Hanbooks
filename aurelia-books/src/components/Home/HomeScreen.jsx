@@ -14,12 +14,20 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
   const queue = reading.filter(book => book.id !== current?.id).slice(0, 6);
   const recent = [...books].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 6);
   const lists = (library.lists || []).slice(0, 4);
-  const stats = library.stats || {};
+  const openHeroOnKey = (event, book) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onOpenBook(book);
+    }
+  };
 
   return (
     <div className={styles.screen}>
       <header className={`${styles.header} safe-top`}>
-        <p className="aurelia-wordmark">AURELIA</p>
+        <div className="brand-lockup">
+          <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
+          <p className="aurelia-wordmark">ShanBooks</p>
+        </div>
         <h1 className="screen-title">Home</h1>
       </header>
 
@@ -30,10 +38,16 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
               <div className={styles.sectionHeading}>
                 <h2>Continue Reading</h2>
               </div>
-              <button className={styles.heroCard} onClick={() => onOpenBook(current)}>
+              <div
+                className={styles.heroCard}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenBook(current)}
+                onKeyDown={event => openHeroOnKey(event, current)}
+              >
                 <BookCover book={current} size="hero" />
                 <span className={styles.heroInfo}>
-                  <span className={styles.eyebrow}>{current.chapterTitle || current.genre || 'Current book'}</span>
+                  <span className={styles.eyebrow}>Now reading</span>
                   <span className={styles.heroTitle}>{current.title}</span>
                   <span className={styles.heroAuthor}>{current.author}</span>
                   <span className={styles.progressMeta}>
@@ -43,18 +57,30 @@ export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpen
                   <span className="progress-track">
                     <span className="progress-fill" style={{ width: `${progressFor(current)}%` }} />
                   </span>
+                  <span className={styles.heroActions}>
+                    <button
+                      type="button"
+                      onClick={event => {
+                        event.stopPropagation();
+                        onOpenBook(current);
+                      }}
+                    >
+                      Read now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={event => {
+                        event.stopPropagation();
+                        onOpenBookInfo(current);
+                      }}
+                    >
+                      Info
+                    </button>
+                  </span>
                 </span>
-              </button>
+              </div>
             </section>
           )}
-
-          <section>
-            <div className={styles.activityLine}>
-              <span>{stats.streak || 0}-day streak</span>
-              <span>{stats.totalReadingLabel || '0m'} read</span>
-              <span>{stats.totalStorageLabel || '0 MB'}</span>
-            </div>
-          </section>
 
           {queue.length > 0 && (
             <section>

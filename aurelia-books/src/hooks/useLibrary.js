@@ -40,6 +40,69 @@ const DEFAULT_LISTS = [
   },
 ];
 
+function normalizeIdentity(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function normalizeListName(value) {
+  return String(value || '').normalize('NFC').trim().toLowerCase();
+}
+
+async function sampleFileHash(file) {
+  if (!file?.slice) return '';
+  const chunkSize = 64 * 1024;
+  const size = file.size || 0;
+  const parts = [file.slice(0, Math.min(chunkSize, size))];
+  if (size > chunkSize) parts.push(file.slice(Math.max(0, size - chunkSize), size));
+  const sample = new Uint8Array(await new Blob(parts).arrayBuffer());
+  let hash = 2166136261;
+  for (let i = 0; i < sample.length; i += 1) {
+    hash ^= sample[i];
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+async function buildDuplicateKeys(file, metadata = {}) {
+  const title = normalizeIdentity(metadata.title || file?.name?.replace(/\.epub$/i, ''));
+  const author = normalizeIdentity(metadata.author || '');
+  const size = metadata.fileSize || file?.size || 0;
+  const sampleHash = await sampleFileHash(file);
+  return {
+    titleAuthorKey: [title, author].filter(Boolean).join('|'),
+    fileKey: [size, sampleHash].filter(Boolean).join('|'),
+  };
+}
+
+function basicMetadataFromFile(file) {
+  const rawName = String(file?.name || 'Untitled Book').replace(/\.epub$/i, '').trim();
+  const [titlePart, ...authorParts] = rawName.split(/\s+-\s+/);
+  const author = authorParts.join(' - ').trim();
+  return {
+    title: titlePart?.trim() || rawName || 'Untitled Book',
+    author: author || 'Unknown Author',
+    genre: 'Fiction',
+    description: '',
+    publisher: '',
+    language: '',
+    publishedAt: '',
+    fileSize: file?.size || 0,
+    chapterCount: 0,
+    estimatedPages: Math.max(1, Math.round((file?.size || 0) / 7000)),
+    coverColor: '#2D4A6E',
+    coverAccent: '#C4A35A',
+    coverUrl: null,
+    metadataPending: true,
+    metadataStatus: 'pending',
+    metadataExtractedAt: null,
+  };
+}
+
 export function useLibrary() {
   const [books, setBooks] = useState([]);
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('aurelia_sort') || 'lastOpenedAt');
@@ -50,7 +113,11 @@ export function useLibrary() {
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [bookmarkedBookIds, setBookmarkedBookIds] = useState(() => new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [isMetadataQueuePaused, setIsMetadataQueuePaused] = useState(() => localStorage.getItem('aurelia_metadata_paused') === '1');
+  const [metadataProcessingCount, setMetadataProcessingCount] = useState(0);
   const autoBackupTimerRef = useRef(null);
+  const booksRef = useRef([]);
+  const metadataProcessingRef = useRef(false);
 
   const queueAutoBackup = useCallback((reason = 'library-change') => {
     window.clearTimeout(autoBackupTimerRef.current);
@@ -122,6 +189,7 @@ export function useLibrary() {
         };
       });
       setBooks(normalized);
+      booksRef.current = normalized;
 
       let storedLists = await StorageManager.getAllLists();
       if (storedLists.length === 0 && localStorage.getItem('aurelia_seeded_default_lists') !== '1') {
@@ -144,6 +212,10 @@ export function useLibrary() {
   }, []);
 
   useEffect(() => {
+    booksRef.current = books;
+  }, [books]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       refreshLibrary();
     }, 0);
@@ -159,14 +231,29 @@ export function useLibrary() {
   }, [sortBy]);
 
   useEffect(() => {
+    localStorage.setItem('aurelia_metadata_paused', isMetadataQueuePaused ? '1' : '0');
+  }, [isMetadataQueuePaused]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 180);
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
-  const addBook = useCallback(async (file, metadata) => {
-    const bookMetadata = metadata || await extractEpubMetadata(file, { fileName: file.name });
+  const addBook = useCallback(async (file, metadata, options = {}) => {
+    const bookMetadata = metadata
+      || (options.fastMetadata ? basicMetadataFromFile(file) : await extractEpubMetadata(file, { fileName: file.name }));
+    const duplicateKeys = await buildDuplicateKeys(file, bookMetadata);
+    const duplicate = booksRef.current.find(item => {
+      const storedTitleAuthor = item.titleAuthorKey || [normalizeIdentity(item.title), normalizeIdentity(item.author)].filter(Boolean).join('|');
+      const storedFile = item.fileKey || '';
+      return Boolean(duplicateKeys.titleAuthorKey && storedTitleAuthor === duplicateKeys.titleAuthorKey)
+        || Boolean(duplicateKeys.fileKey && storedFile === duplicateKeys.fileKey);
+    });
+    if (duplicate) {
+      return { ...duplicate, skippedDuplicate: true };
+    }
     const book = {
       id: uuidv4(),
       title: bookMetadata.title || file.name.replace(/\.epub$/i, ''),
@@ -194,8 +281,12 @@ export function useLibrary() {
       chapterCount: bookMetadata.chapterCount || 0,
       estimatedPages: bookMetadata.estimatedPages || 0,
       metadataExtractedAt: bookMetadata.metadataExtractedAt || Date.now(),
+      titleAuthorKey: duplicateKeys.titleAuthorKey,
+      fileKey: duplicateKeys.fileKey,
+      sourcePath: file.archivePath || file.webkitRelativePath || file.name || '',
     };
     await StorageManager.saveBook(book);
+    booksRef.current = [book, ...booksRef.current];
     setBooks(prev => [book, ...prev]);
     queueAutoBackup('book-imported');
     return book;
@@ -230,14 +321,89 @@ export function useLibrary() {
     }));
   }, [queueAutoBackup]);
 
+  const repairMetadata = useCallback(async (id) => {
+    const book = booksRef.current.find(b => b.id === id);
+    if (!book || !book.fileBlob || book.metadataStatus === 'ready') return;
+    
+    updateBook(id, { metadataStatus: 'processing' });
+    try {
+      const metadata = await extractEpubMetadata(book.fileBlob, {
+        title: book.title,
+        author: book.author,
+        genre: book.genre,
+        description: book.description,
+        characters: book.characters,
+        originalTitle: book.originalTitle,
+        editor: book.editor,
+        beta: book.beta,
+        chapterCount: book.chapterCount,
+        estimatedPages: book.estimatedPages,
+        fileSize: book.fileSize,
+      });
+      await updateBook(id, { ...metadata, metadataStatus: 'ready', metadataPending: false });
+    } catch (err) {
+      console.warn('Metadata auto-repair failed for', book.title, err);
+      await updateBook(id, { metadataStatus: 'failed' });
+    }
+  }, [updateBook]);
+
+  // Background Metadata Queue
+  useEffect(() => {
+    if (isMetadataQueuePaused) return;
+    const processNext = async () => {
+      if (metadataProcessingRef.current) return;
+      const pendingBooks = booksRef.current.filter(b => b.metadataStatus === 'pending');
+      if (pendingBooks.length === 0) {
+        setMetadataProcessingCount(0);
+        return;
+      }
+      
+      metadataProcessingRef.current = true;
+      setMetadataProcessingCount(pendingBooks.length);
+      
+      // Process up to 2 books concurrently
+      const batch = pendingBooks.slice(0, 2);
+      await Promise.all(batch.map(book => repairMetadata(book.id)));
+      
+      metadataProcessingRef.current = false;
+      
+      // Yield to main thread and trigger next batch
+      setTimeout(() => {
+        setMetadataProcessingCount(prev => Math.max(0, prev - batch.length));
+        if (booksRef.current.some(b => b.metadataStatus === 'pending')) {
+          processNext();
+        }
+      }, 500);
+    };
+    
+    const timer = setTimeout(processNext, 2000); // Wait 2s after render before starting queue
+    return () => clearTimeout(timer);
+  }, [books, isMetadataQueuePaused, repairMetadata]);
+
   const createList = useCallback(async ({ name, description = '', coverStyle = 'gold', bookIds = [] }) => {
+    const cleanName = name.trim();
+    const incomingIds = Array.from(new Set(bookIds));
+    const existing = lists.find(item => normalizeListName(item.name) === normalizeListName(cleanName));
+    if (existing) {
+      const updated = {
+        ...existing,
+        description: existing.description || description.trim(),
+        coverStyle: existing.coverStyle || coverStyle,
+        bookIds: Array.from(new Set([...(existing.bookIds || []), ...incomingIds])),
+        updatedAt: Date.now(),
+      };
+      await StorageManager.saveList(updated);
+      setLists(prev => prev.map(item => item.id === updated.id ? updated : item));
+      queueAutoBackup('list-merged');
+      return updated;
+    }
     const item = {
       id: uuidv4(),
-      name: name.trim(),
+      name: cleanName,
       description: description.trim(),
       coverStyle,
       sortBy: 'addedAt',
-      bookIds: Array.from(new Set(bookIds)),
+      bookIds: incomingIds,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -245,7 +411,7 @@ export function useLibrary() {
     setLists(prev => [...prev, item]);
     queueAutoBackup('list-created');
     return item;
-  }, [queueAutoBackup]);
+  }, [lists, queueAutoBackup]);
 
   const updateList = useCallback(async (id, updates) => {
     let saved = null;
@@ -367,5 +533,10 @@ export function useLibrary() {
     addBooksToList,
     removeBookFromList,
     refreshLibrary,
+    isMetadataQueuePaused,
+    setIsMetadataQueuePaused,
+    metadataProcessingCount,
+    repairMetadata,
+    pendingMetadataTotal: books.filter(b => b.metadataStatus === 'pending').length,
   };
 }

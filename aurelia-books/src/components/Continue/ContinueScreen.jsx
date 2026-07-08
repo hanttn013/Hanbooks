@@ -22,7 +22,10 @@ export default function ContinueScreen({ library, onOpenBook }) {
   return (
     <div className={styles.screen}>
       <div className={`${styles.header} safe-top`}>
-        <p className="aurelia-wordmark">AURELIA</p>
+        <div className="brand-lockup">
+          <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
+          <p className="aurelia-wordmark">ShanBooks</p>
+        </div>
         <h1 className="screen-title">Continue</h1>
       </div>
 

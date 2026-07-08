@@ -27,7 +27,7 @@
 }
 
 .heroLabel {
-  font-family: -apple-system, system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.15em;
@@ -36,7 +36,7 @@
 }
 
 .heroTitle {
-  font-family: 'EB Garamond', Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 22px;
   font-weight: 500;
   color: var(--text-primary);

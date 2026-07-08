@@ -1,13 +1,5 @@
 // Quick settings accessible from within the reader
-
-const THEMES = [
-  { id: 'warm-cream', label: 'Cream', bg: '#EDE8DC', text: '#2C2416' },
-  { id: 'pure-white', label: 'White', bg: '#FFFFFF', text: '#1A1A1A' },
-  { id: 'sepia', label: 'Sepia', bg: '#F1E4C3', text: '#3B2F0A' },
-  { id: 'dark-gray', label: 'Dark', bg: '#2A2A2A', text: '#E8E0D0' },
-  { id: 'amoled-black', label: 'Black', bg: '#000000', text: '#E0D8C8' },
-  { id: 'forest', label: 'Forest', bg: '#1C3329', text: '#E8F0E8' },
-];
+import { APP_THEMES } from '../../styles/designTokens';
 
 const READING_MODES = [
   { id: 'classic', label: 'Pages' },
@@ -38,8 +30,8 @@ function segmentStyle(active) {
     borderRadius: 10,
     border: '1.5px solid',
     borderColor: active ? 'var(--accent)' : 'var(--border)',
-    background: active ? 'var(--accent-dark)' : 'var(--bg-secondary)',
-    color: active ? '#F5E6C0' : 'var(--text-secondary)',
+    background: active ? 'var(--accent)' : 'var(--bg-secondary)',
+    color: active ? 'var(--accent-contrast)' : 'var(--text-secondary)',
     fontFamily: 'inherit',
     fontSize: 14,
     fontWeight: 600,
@@ -160,7 +152,7 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
           <div>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Theme</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              {THEMES.map(theme => (
+              {APP_THEMES.map(theme => (
                 <button
                   key={theme.id}
                   onClick={() => updateSetting('theme', theme.id)}

@@ -1,11 +1,12 @@
 // src/hooks/useSettings.js
 import { useState, useEffect } from 'react';
+import { getFontStack, normalizeFont, normalizeTheme } from '../styles/designTokens';
 
 const STORAGE_KEY = 'aurelia_settings';
 
 export const DEFAULT_SETTINGS = {
   theme: 'warm-cream',
-  font: 'Merriweather',
+  font: 'Georgia',
   fontSize: 18,
   lineHeight: 1.7,
   marginWidth: 24,
@@ -16,7 +17,7 @@ export const DEFAULT_SETTINGS = {
   readingStatusLine: 'off',
   reducedMotion: true,
   readerMode: 'lite',
-  settingsVersion: 5,
+  settingsVersion: 6,
 };
 
 export function useSettings() {
@@ -26,6 +27,8 @@ export function useSettings() {
       if (!stored) return { ...DEFAULT_SETTINGS };
       const parsed = JSON.parse(stored);
       const merged = { ...DEFAULT_SETTINGS, ...parsed };
+      merged.theme = normalizeTheme(merged.theme);
+      merged.font = normalizeFont(merged.font);
       if (!parsed.settingsVersion && merged.readingMode === 'classic') {
         merged.readingMode = 'scroll';
       }
@@ -45,20 +48,29 @@ export function useSettings() {
   });
 
   useEffect(() => {
+    const normalized = {
+      ...settings,
+      theme: normalizeTheme(settings.theme),
+      font: normalizeFont(settings.font),
+    };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
     } catch (e) {
       console.warn("localStorage quota exceeded or blocked:", e);
     }
-    // Apply theme to phone frame
+    document.documentElement.setAttribute('data-theme', normalized.theme);
+    document.documentElement.style.setProperty('--reader-font-family', getFontStack(normalized.font));
     const frame = document.getElementById('phone-frame');
     if (frame) {
-      frame.setAttribute('data-theme', settings.theme);
+      frame.setAttribute('data-theme', normalized.theme);
     }
   }, [settings]);
 
   const updateSetting = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => ({
+      ...prev,
+      [key]: key === 'theme' ? normalizeTheme(value) : key === 'font' ? normalizeFont(value) : value,
+    }));
   };
 
   return { settings, updateSetting };

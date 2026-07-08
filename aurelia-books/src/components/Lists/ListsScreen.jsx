@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import BookCover from '../Library/BookCover';
 import styles from './ListsScreen.module.css';
 
@@ -44,7 +44,10 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
         <>
           <header className={`${styles.header} safe-top`}>
             <div>
-              <p className="aurelia-wordmark">AURELIA</p>
+              <div className="brand-lockup">
+                <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
+                <p className="aurelia-wordmark">ShanBooks</p>
+              </div>
               <h1 className="screen-title">Lists</h1>
               <p className={styles.subhead}>Shelves for series, genres, moods, and plans.</p>
             </div>
@@ -62,26 +65,35 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
 
               {(library.lists || []).map(list => {
                 const previews = list.bookIds
-                  .slice(0, 3)
+                  .slice(0, 8)
                   .map(id => (library.allBooksRaw || []).find(book => book.id === id))
                   .filter(Boolean);
+                const updatedAt = list.updatedAt || list.createdAt;
                 return (
                   <button
                     key={list.id}
-                    className={`${styles.listCard} ${styles[`${list.coverStyle || 'gold'}Card`] || styles.goldCard}`}
+                    className={`${styles.listCard} ${styles[`${list.coverStyle || 'gold'}Card`] || styles.goldCard} ${list.coverImageUrl ? styles.imageCard : ''}`}
+                    style={list.coverImageUrl ? { '--list-image': `url("${list.coverImageUrl}")` } : undefined}
                     onClick={() => setActiveListId(list.id)}
                   >
-                    <span className={`${styles.coverStyle} ${styles[list.coverStyle] || styles.gold}`}>
-                      <span className={styles.previewCovers}>
-                        {previews.map(book => (
-                          <img key={book.id} src={book.coverUrl || ''} alt="" />
-                        ))}
-                      </span>
-                    </span>
+                    <span
+                      className={`${styles.coverStyle} ${styles[list.coverStyle] || styles.gold} ${list.coverImageUrl ? styles.imageThumb : ''}`}
+                      style={list.coverImageUrl ? { backgroundImage: `url("${list.coverImageUrl}")` } : undefined}
+                    />
                     <span className={styles.listInfo}>
                       <strong>{list.name}</strong>
                       <small>{list.description || 'Personal reading shelf'}</small>
-                      <small>{list.bookIds.length} {list.bookIds.length === 1 ? 'book' : 'books'}</small>
+                      <small style={{marginBottom: 4}}>
+                        {list.bookIds.length} {list.bookIds.length === 1 ? 'book' : 'books'}
+                        {updatedAt ? ` - Updated ${new Date(updatedAt).toLocaleDateString()}` : ''}
+                      </small>
+                      {previews.length > 0 && (
+                        <span className={styles.previewCovers}>
+                          {previews.map(book => (
+                            <img key={book.id} src={book.coverUrl || ''} alt="" />
+                          ))}
+                        </span>
+                      )}
                     </span>
                     <span className={styles.chevron}>&rsaquo;</span>
                   </button>
@@ -97,7 +109,10 @@ export default function ListsScreen({ library, activeListId, setActiveListId, on
           <header className={`${styles.detailHeader} safe-top`}>
             <button className={styles.backBtn} onClick={() => setActiveListId(null)}>&lsaquo; Lists</button>
             <div className={styles.detailTitleRow}>
-              <span className={`${styles.coverStyle} ${styles[activeList.coverStyle] || styles.gold}`} />
+              <span
+                className={`${styles.coverStyle} ${styles[activeList.coverStyle] || styles.gold} ${activeList.coverImageUrl ? styles.imageThumb : ''}`}
+                style={activeList.coverImageUrl ? { backgroundImage: `url("${activeList.coverImageUrl}")` } : undefined}
+              />
               <div>
                 <h1>{activeList.name}</h1>
                 <p>{activeList.description || `${activeList.bookIds.length} books`}</p>
@@ -177,6 +192,21 @@ function ListEditor({ list, onClose, onSave, onDelete }) {
   const [name, setName] = useState(list?.name || '');
   const [description, setDescription] = useState(list?.description || '');
   const [coverStyle, setCoverStyle] = useState(list?.coverStyle || 'gold');
+  const [coverImageUrl, setCoverImageUrl] = useState(list?.coverImageUrl || '');
+  const imageRef = useRef(null);
+
+  const handleImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImage(file);
+      setCoverImageUrl(dataUrl);
+    } catch (err) {
+      alert(err.message || 'Could not use this image.');
+    } finally {
+      event.target.value = '';
+    }
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -204,7 +234,15 @@ function ListEditor({ list, onClose, onSave, onDelete }) {
               />
             ))}
           </div>
-          <button className="btn-primary" disabled={!name.trim()} onClick={() => onSave({ name, description, coverStyle })}>
+          <div className={styles.imageTools}>
+            <button type="button" onClick={() => imageRef.current?.click()}>
+              {coverImageUrl ? 'Change background' : 'Upload background'}
+            </button>
+            {coverImageUrl && <button type="button" onClick={() => setCoverImageUrl('')}>Remove image</button>}
+            <input ref={imageRef} type="file" accept="image/*" hidden onChange={handleImage} />
+          </div>
+          {coverImageUrl && <div className={styles.imagePreview} style={{ backgroundImage: `url("${coverImageUrl}")` }} />}
+          <button className="btn-primary" disabled={!name.trim()} onClick={() => onSave({ name, description, coverStyle, coverImageUrl })}>
             {list ? 'Save changes' : 'Create list'}
           </button>
           {list && <button className={styles.deleteBtn} onClick={() => onDelete(list.id)}>Delete list</button>}
@@ -212,6 +250,43 @@ function ListEditor({ list, onClose, onSave, onDelete }) {
       </div>
     </div>
   );
+}
+
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file.type?.startsWith('image/')) {
+      reject(new Error('Please choose an image file.'));
+      return;
+    }
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      const targetRatio = 3 / 2;
+      let sx = 0;
+      let sy = 0;
+      let sw = image.width;
+      let sh = image.height;
+      if (image.width / image.height > targetRatio) {
+        sw = Math.round(image.height * targetRatio);
+        sx = Math.round((image.width - sw) / 2);
+      } else {
+        sh = Math.round(image.width / targetRatio);
+        sy = Math.round((image.height - sh) / 2);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = 900;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/webp', 0.82));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not load this image.'));
+    };
+    image.src = url;
+  });
 }
 
 function AddBooksSheet({ books, list, onClose, onAdd }) {

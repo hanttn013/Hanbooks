@@ -4,18 +4,22 @@
   flex-direction: column;
   background: var(--bg-primary);
   overflow: hidden;
+  color: var(--text-primary);
 }
 
 .header {
-  padding: 0 20px 12px;
+  padding: 0 20px 18px;
   flex-shrink: 0;
+  background:
+    radial-gradient(circle at 28% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 64%, transparent), transparent);
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  padding: 0 20px 28px;
+  gap: 30px;
+  padding: 0 18px 104px;
 }
 
 .sectionHeading {
@@ -26,11 +30,12 @@
 }
 
 .sectionHeading h2 {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: 24px;
-  font-weight: 500;
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 650;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 0.95;
+  letter-spacing: 0;
 }
 
 .sectionHeading button {
@@ -44,15 +49,32 @@
 
 .heroCard {
   width: 100%;
+  min-height: 286px;
   border: 1px solid var(--border);
-  background: var(--bg-card);
-  border-radius: 16px;
-  box-shadow: none;
-  padding: 14px;
+  background:
+    linear-gradient(135deg, var(--surface-raised), color-mix(in srgb, var(--bg-card) 72%, transparent)),
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 30%),
+    var(--bg-card);
+  border-radius: var(--radius-card-lg);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
   display: flex;
-  gap: 16px;
+  gap: 18px;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  position: relative;
+}
+
+.heroCard::after {
+  content: '';
+  position: absolute;
+  inset: auto -40px -80px 42%;
+  height: 160px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
+  filter: blur(10px);
+  pointer-events: none;
 }
 
 .heroInfo {
@@ -65,40 +87,75 @@
 .eyebrow {
   color: var(--accent);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .heroTitle {
-  margin-top: 6px;
+  margin-top: 10px;
   color: var(--text-primary);
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: 25px;
-  font-weight: 600;
-  line-height: 1.05;
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 750;
+  line-height: 0.98;
+  letter-spacing: 0;
 }
 
 .heroAuthor {
-  margin-top: 5px;
+  margin-top: 8px;
   color: var(--text-secondary);
   font-size: 14px;
+  font-weight: 700;
 }
 
 .progressMeta {
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 24px;
   display: flex;
   justify-content: space-between;
   color: var(--text-secondary);
   font-size: 11px;
+  font-weight: 800;
+}
+
+.heroActions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.heroActions button {
+  min-height: 42px;
+  border: none;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.heroActions button:first-child {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.heroActions button:last-child {
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
 .activityLine {
-  min-height: 38px;
+  min-height: 48px;
   border: 1px solid var(--border);
-  border-radius: 19px;
-  background: var(--bg-secondary);
+  border-radius: 18px;
+  background: var(--surface-raised);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -162,7 +219,7 @@
 
 .bookRail {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 3px;
@@ -170,7 +227,7 @@
 .bookRail::-webkit-scrollbar { display: none; }
 
 .railBook {
-  width: 106px;
+  width: 118px;
   flex: 0 0 auto;
   border: none;
   background: transparent;
@@ -181,10 +238,12 @@
 
 .railBook span {
   display: block;
-  margin-top: 8px;
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: 15px;
-  line-height: 1.1;
+  margin-top: 10px;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.03;
+  letter-spacing: 0;
 }
 
 .railBook small {
@@ -207,9 +266,9 @@
   width: 100%;
   border: 1px solid var(--border);
   background: var(--bg-card);
-  border-radius: 12px;
-  box-shadow: none;
-  padding: 12px;
+  border-radius: var(--radius-card);
+  padding: 14px;
+  box-shadow: var(--shadow-card);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -220,8 +279,8 @@
 .listThumb {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
-  box-shadow: none;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   flex-shrink: 0;
 }
 

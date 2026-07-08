@@ -116,13 +116,14 @@ const BookListItem = memo(function BookListItem({ book, selected, selecting, pct
   );
 });
 
-export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
+export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onGoLists }) {
   const [viewMode, setViewMode] = useState('grid');
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [targetListId, setTargetListId] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState('');
+  const [importSummary, setImportSummary] = useState(null);
   const [scrollTop, setScrollTop] = useState(0);
   const fileRef = useRef(null);
   const scrollRef = useRef(null);
@@ -208,36 +209,73 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
 
     setIsImporting(true);
     setImportStatus('Preparing import...');
+    let totalEpubs = 0;
+    let importedCount = 0;
+    let skippedCount = 0;
+    let listsCreated = 0;
+    let errorCount = 0;
+
     try {
-      let looseCount = 0;
       for (const file of files) {
         if (isArchiveFile(file)) {
           setImportStatus(`Extracting ${file.name}...`);
           const archive = await extractEpubsFromArchive(file);
           if (archive.files.length === 0) {
-            throw new Error(`No EPUB files were found in ${archive.sourceName}.`);
+            errorCount++;
+            continue;
           }
-          const importedIds = [];
-          for (let index = 0; index < archive.files.length; index += 1) {
-            const epubFile = archive.files[index];
-            setImportStatus(`Importing ${index + 1}/${archive.files.length} from ${archive.sourceName}...`);
-            const book = await addBook(epubFile);
-            importedIds.push(book.id);
-            await new Promise(resolve => window.setTimeout(resolve, 0));
+          let processed = 0;
+          for (const group of archive.groups || [{ name: archive.listName, files: archive.files }]) {
+            const importedIds = [];
+            for (let index = 0; index < group.files.length; index += 1) {
+              const epubFile = group.files[index];
+              processed += 1;
+              totalEpubs += 1;
+              setImportStatus(`Importing ${processed}/${archive.files.length} from ${archive.sourceName}...`);
+              try {
+                const book = await addBook(epubFile, null, { fastMetadata: true });
+                if (book.skippedDuplicate) skippedCount += 1;
+                else {
+                  importedCount += 1;
+                  importedIds.push(book.id);
+                }
+              } catch (e) {
+                errorCount++;
+              }
+              await new Promise(resolve => window.setTimeout(resolve, 0));
+            }
+            if (importedIds.length > 0) {
+              await createList({
+                name: group.name || archive.listName,
+                description: `${importedIds.length} books imported from ${archive.sourceName}`,
+                coverStyle: 'forest',
+                bookIds: importedIds,
+              });
+              listsCreated += 1;
+              await new Promise(resolve => window.setTimeout(resolve, 0));
+            }
           }
-          await createList({
-            name: archive.listName,
-            description: `${archive.files.length} books imported from ${archive.sourceName}`,
-            coverStyle: 'forest',
-            bookIds: importedIds,
-          });
         } else {
-          looseCount += 1;
           setImportStatus(`Importing ${file.name}...`);
-          await addBook(file);
+          totalEpubs += 1;
+          try {
+            const book = await addBook(file, null, { fastMetadata: true });
+            if (book.skippedDuplicate) skippedCount += 1;
+            else importedCount += 1;
+          } catch (e) {
+            errorCount++;
+          }
+          await new Promise(resolve => window.setTimeout(resolve, 0));
         }
       }
-      setImportStatus(looseCount > 1 ? `Imported ${looseCount} EPUB files.` : 'Import complete.');
+      setImportSummary({
+        totalEpubs,
+        importedCount,
+        skippedCount,
+        listsCreated,
+        errorCount,
+        pendingCount: importedCount,
+      });
     } catch (err) {
       console.error('Failed to import EPUB:', err);
       alert(err.message || 'Failed to import. Please use valid EPUB, ZIP, or RAR files.');
@@ -246,7 +284,9 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
         setIsImporting(false);
         setImportStatus('');
       }, 350);
-      e.target.value = '';
+      if (fileRef.current) {
+        fileRef.current.value = '';
+      }
     }
   };
 
@@ -274,9 +314,47 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo }) {
         </div>
       )}
 
+      {importSummary && (
+        <div className="modal-overlay" onClick={() => setImportSummary(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-handle" />
+            <div className="modal-header">
+              <span className="modal-title">Import Summary</span>
+              <button className="btn-icon" onClick={() => setImportSummary(null)}>x</button>
+            </div>
+            <div className="modal-scroll" style={{ padding: '0 20px 24px' }}>
+              <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+                Đã import {importSummary.totalEpubs} sách
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)' }}>
+                <li style={{ marginBottom: 6 }}>- {importSummary.importedCount} sách mới</li>
+                <li style={{ marginBottom: 6 }}>- {importSummary.skippedCount} sách trùng đã bỏ qua</li>
+                {importSummary.errorCount > 0 && <li style={{ marginBottom: 6, color: '#D33' }}>- {importSummary.errorCount} sách lỗi</li>}
+                {importSummary.listsCreated > 0 && <li style={{ marginBottom: 6 }}>- {importSummary.listsCreated} list được tạo</li>}
+                {importSummary.pendingCount > 0 && <li style={{ marginBottom: 6 }}>- {importSummary.pendingCount} sách đang chờ cập nhật thông tin</li>}
+              </ul>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <button className="btn-primary" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: 'none' }} onClick={() => setImportSummary(null)}>
+                  Xem thư viện
+                </button>
+                <button className="btn-primary" onClick={() => {
+                  setImportSummary(null);
+                  if (onGoLists) onGoLists();
+                }}>
+                  Xem lists
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className={`${styles.header} safe-top`}>
         <div>
-          <p className="aurelia-wordmark">AURELIA</p>
+          <div className="brand-lockup">
+            <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
+            <p className="aurelia-wordmark">ShanBooks</p>
+          </div>
           <h1 className="screen-title">Library</h1>
         </div>
         <div className={styles.headerActions}>

@@ -8,6 +8,7 @@ import HomeScreen from './components/Home/HomeScreen';
 import LibraryScreen from './components/Library/LibraryScreen';
 import { useLibrary } from './hooks/useLibrary';
 import { useSettings } from './hooks/useSettings';
+import './styles/fonts.css';
 import './styles/globals.css';
 import './styles/themes.css';
 
@@ -249,6 +250,7 @@ export default function App() {
                         library={library}
                         onOpenBook={handleOpenBook}
                         onOpenBookInfo={handleOpenBookInfo}
+                        onGoLists={() => setActiveTab('lists')}
                       />
                     </motion.div>
                   )}

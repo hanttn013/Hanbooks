@@ -22,6 +22,10 @@ android/local.properties
 *.apk
 *.aab
 
+# Generated QA/performance screenshots
+perf-shots/
+perf-shots-*/
+
 # Python virtual environments
 .venv/
 venv/

@@ -8,22 +8,15 @@ import TOCModal from './TOCModal';
 import SearchModal from './SearchModal';
 import ReaderSettingsPanel from './ReaderSettingsPanel';
 import { StorageManager } from '../../utils/StorageManager';
+import { getFontStack, getThemeById } from '../../styles/designTokens';
 import styles from './ReaderScreen.module.css';
 
+const PULL_THRESHOLD_RATIO = 0.4;
+const PULL_MAX_RATIO = 0.52;
+
 function getThemePalette(theme) {
-  const bgColor = {
-    'warm-cream': '#F5F0E8', 'pure-white': '#FFFFFF', 'vintage-paper': '#F5EDD6',
-    'sepia': '#F1E4C3', 'dark-gray': '#2A2A2A', 'amoled-black': '#000000',
-    'forest': '#1C3329', 'ocean': '#E8F4F8', 'midnight-blue': '#1A2035',
-  }[theme] || '#F5F0E8';
-
-  const textColor = {
-    'warm-cream': '#2C2416', 'pure-white': '#1A1A1A', 'vintage-paper': '#3D2B1F',
-    'sepia': '#3B2F0A', 'dark-gray': '#E8E0D0', 'amoled-black': '#E0D8C8',
-    'forest': '#E8F0E8', 'ocean': '#1A3040', 'midnight-blue': '#D8E0F0',
-  }[theme] || '#2C2416';
-
-  return { bgColor, textColor };
+  const tokens = getThemeById(theme);
+  return { bgColor: tokens.bg, textColor: tokens.text };
 }
 
 function readerThemeRules(settings) {
@@ -34,7 +27,7 @@ function readerThemeRules(settings) {
       'color': `${textColor} !important`,
     },
     body: {
-      'font-family': `'${settings.font}', Georgia, serif !important`,
+      'font-family': `${getFontStack(settings.font)} !important`,
       'font-size': `${settings.fontSize}px !important`,
       'line-height': `${settings.lineHeight} !important`,
       'letter-spacing': `${settings.letterSpacing}px !important`,
@@ -79,12 +72,12 @@ function readerThemeRules(settings) {
   };
 }
 
-function appendNextChapterControl(contents, epubBookInstance, rendition, settings) {
+function appendChapterEndMarker(contents, epubBookInstance, settings) {
   if (settings.readingMode !== 'scroll') return;
 
   const doc = contents?.document;
   const body = doc?.body;
-  if (!doc || !body || doc.getElementById('hanbooks-next-chapter')) return;
+  if (!doc || !body || doc.getElementById('hanbooks-chapter-end')) return;
 
   const spineItems = epubBookInstance?.spine?.spineItems || [];
   const sectionIndex = contents?.section?.index;
@@ -93,55 +86,34 @@ function appendNextChapterControl(contents, epubBookInstance, rendition, setting
   const { bgColor, textColor } = getThemePalette(settings.theme);
 
   const wrapper = doc.createElement('div');
-  wrapper.id = 'hanbooks-next-chapter';
+  wrapper.id = 'hanbooks-chapter-end';
   const isContinuous = (settings.chapterFlow || 'continuous') === 'continuous';
 
   wrapper.style.cssText = [
     'display:block',
-    `margin:${isContinuous ? 28 : 48}px 0 0`,
-    `padding:${isContinuous ? '32px 16px 48px' : '56px 16px 72px'}`,
+    `margin:${isContinuous ? 10 : 24}px 0 0`,
+    `padding:${isContinuous ? '16px 16px 48px' : '24px 16px 64px'}`,
+    'min-height:140px',
     `background:${bgColor}`,
     `color:${textColor}`,
     'text-align:center',
-    'border-top:1px solid rgba(139,105,20,0.22)',
     'break-inside:avoid',
+    'opacity:0.52',
   ].join(';');
 
   const hint = doc.createElement('p');
   hint.textContent = hasNext
-    ? (isContinuous ? 'Chuong tiep theo' : 'Keo len de sang chuong tiep theo')
-    : 'Ban da doc den cuoi sach';
+    ? 'Kéo để sang chương tiếp'
+    : 'Bạn đã đọc hết sách';
   hint.style.cssText = [
-    'margin:0 0 16px',
-    'opacity:0.62',
-    'font:500 14px system-ui,-apple-system,sans-serif',
+    'margin:0 auto',
+    'opacity:0.5',
+    'font:500 13px system-ui,-apple-system,sans-serif',
     'letter-spacing:0',
+    'max-width:240px',
   ].join(';');
-
-  const button = doc.createElement('button');
-  button.type = 'button';
-  button.textContent = hasNext ? 'Chuong tiep theo' : 'Het sach';
-  button.disabled = !hasNext;
-  button.style.cssText = [
-    'min-height:48px',
-    `min-width:${isContinuous ? 144 : 176}px`,
-    'padding:0 22px',
-    'border-radius:24px',
-    'border:1px solid rgba(139,105,20,0.55)',
-    hasNext ? 'background:#8B6914' : 'background:transparent',
-    hasNext ? 'color:#FFF8EC' : `color:${textColor}`,
-    `font:600 ${isContinuous ? 14 : 15}px system-ui,-apple-system,sans-serif`,
-    hasNext ? 'opacity:1' : 'opacity:0.45',
-  ].join(';');
-
-  button.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (hasNext) rendition?.next?.();
-  });
 
   wrapper.appendChild(hint);
-  wrapper.appendChild(button);
   body.appendChild(wrapper);
 }
 
@@ -199,6 +171,20 @@ function getScrollState(contents, root) {
   return usable[0] || null;
 }
 
+function getTouchY(event) {
+  return event?.touches?.[0]?.clientY ?? event?.changedTouches?.[0]?.clientY ?? null;
+}
+
+function pullThresholdPx() {
+  const viewport = window.innerHeight || document.documentElement.clientHeight || 720;
+  return Math.max(132, Math.round(viewport * PULL_THRESHOLD_RATIO));
+}
+
+function pullMaxPx() {
+  const viewport = window.innerHeight || document.documentElement.clientHeight || 720;
+  return Math.max(176, Math.round(viewport * PULL_MAX_RATIO));
+}
+
 export default function ReaderScreen({ book, settings, updateSetting, onClose, onBookUpdate }) {
   const [showControls, setShowControls] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -218,6 +204,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const [chapterPercentage, setChapterPercentage] = useState(0);
   const [chapterProgressAvailable, setChapterProgressAvailable] = useState(false);
   const [previousLocation, setPreviousLocation] = useState(null);
+  const [pullVisual, setPullVisual] = useState({ distance: 0, opacity: 0, message: '', direction: 'next' });
 
   const viewerRef = useRef(null);
   const bookRef = useRef(null);
@@ -231,6 +218,14 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const finishedMarkedRef = useRef(book.status === 'finished');
   const progressTimerRef = useRef(null);
   const pendingProgressRef = useRef(null);
+  const contentCleanupRef = useRef([]);
+  const pullStartYRef = useRef(null);
+  const pullActiveRef = useRef(false);
+  const pullDistanceRef = useRef(0);
+  const pullDirectionRef = useRef('next');
+  const pullFrameRef = useRef(null);
+  const pullVisualRef = useRef({ distance: 0, opacity: 0, message: '', direction: 'next' });
+  const bookmarkBusyRef = useRef(false);
 
   const {
     saveProgress,
@@ -317,8 +312,146 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     scrollState.scrolling.dispatchEvent?.(new Event('scroll', { bubbles: true }));
     setChapterProgressAvailable(true);
     setChapterPercentage(Math.round(ratio * 100));
+    window.requestAnimationFrame?.(() => updateScrollChapterProgress(currentContentsRef.current));
     return true;
+  }, [updateScrollChapterProgress]);
+
+  const hasNextChapter = useCallback(() => {
+    const spineItems = bookRef.current?.spine?.spineItems || [];
+    const sectionIndex = currentContentsRef.current?.section?.index;
+    if (!spineItems.length || !Number.isInteger(sectionIndex)) return true;
+    return sectionIndex < spineItems.length - 1;
   }, []);
+
+  const hasPreviousChapter = useCallback(() => {
+    const spineItems = bookRef.current?.spine?.spineItems || [];
+    const sectionIndex = currentContentsRef.current?.section?.index;
+    if (!spineItems.length || !Number.isInteger(sectionIndex)) return true;
+    return sectionIndex > 0;
+  }, []);
+
+  const isAtScrollChapterEnd = useCallback(() => {
+    const scrollState = getScrollState(currentContentsRef.current, viewerRef.current);
+    if (!scrollState) return false;
+    return scrollState.maxScroll <= 0 || scrollState.scrolling.scrollTop >= scrollState.maxScroll - 6;
+  }, []);
+
+  const isAtScrollChapterStart = useCallback(() => {
+    const scrollState = getScrollState(currentContentsRef.current, viewerRef.current);
+    if (!scrollState) return false;
+    return scrollState.scrolling.scrollTop <= 6;
+  }, []);
+
+  const applyPullTransform = useCallback((distance, released = false, direction = 'next') => {
+    const doc = currentContentsRef.current?.document;
+    const body = doc?.body;
+    if (!body) return;
+    const translate = Math.min(42, Math.max(0, distance * 0.16));
+    const signedTranslate = direction === 'previous' ? translate : -translate;
+    // eslint-disable-next-line react-hooks/immutability
+    body.style.transition = released ? 'transform 180ms cubic-bezier(.2,.8,.2,1)' : 'none';
+    body.style.transform = translate > 0 ? `translate3d(0, ${signedTranslate}px, 0)` : '';
+    body.style.willChange = translate > 0 ? 'transform' : '';
+    if (released) {
+      window.setTimeout(() => {
+        if (body.style.transform === '') body.style.transition = '';
+      }, 200);
+    }
+  }, []);
+
+  const schedulePullVisual = useCallback((distance, message, direction = 'next') => {
+    const threshold = pullThresholdPx();
+    pullVisualRef.current = {
+      distance,
+      opacity: Math.min(1, Math.max(0, distance / threshold)),
+      message,
+      direction,
+    };
+    if (pullFrameRef.current) return;
+    pullFrameRef.current = window.requestAnimationFrame(() => {
+      pullFrameRef.current = null;
+      setPullVisual(pullVisualRef.current);
+    });
+  }, []);
+
+  const resetPullHint = useCallback(() => {
+    pullActiveRef.current = false;
+    pullStartYRef.current = null;
+    pullDistanceRef.current = 0;
+    pullDirectionRef.current = 'next';
+    pullVisualRef.current = { distance: 0, opacity: 0, message: '', direction: 'next' };
+    if (pullFrameRef.current) {
+      window.cancelAnimationFrame(pullFrameRef.current);
+      pullFrameRef.current = null;
+    }
+    setPullVisual(pullVisualRef.current);
+    applyPullTransform(0, true, pullDirectionRef.current);
+  }, [applyPullTransform]);
+
+  const beginPull = useCallback((event) => {
+    if (settings.readingMode !== 'scroll') return;
+    pullStartYRef.current = getTouchY(event);
+    pullActiveRef.current = false;
+    pullDistanceRef.current = 0;
+    pullDirectionRef.current = 'next';
+    schedulePullVisual(0, '', 'next');
+    applyPullTransform(0, false, 'next');
+  }, [applyPullTransform, schedulePullVisual, settings.readingMode]);
+
+  const updatePull = useCallback((event, isEdgeSwipe = false) => {
+    if (settings.readingMode !== 'scroll' || isEdgeSwipe) return false;
+    const startY = pullStartYRef.current;
+    const currentY = getTouchY(event);
+    if (startY === null || currentY === null) return false;
+    const dy = currentY - startY;
+    const direction = dy > 0 ? 'previous' : 'next';
+    if (Math.abs(dy) < 16 && !pullActiveRef.current) return false;
+    if (!pullActiveRef.current) {
+      const canPullNext = direction === 'next' && isAtScrollChapterEnd();
+      const canPullPrevious = direction === 'previous' && isAtScrollChapterStart();
+      if (!canPullNext && !canPullPrevious) return false;
+    }
+
+    const threshold = pullThresholdPx();
+    const distance = Math.min(pullMaxPx(), Math.max(0, Math.abs(dy) - 16));
+    pullActiveRef.current = true;
+    pullDistanceRef.current = distance;
+    pullDirectionRef.current = direction;
+    applyPullTransform(distance, false, direction);
+    const message = !hasNextChapter()
+      ? 'Bạn đã đọc hết sách'
+      : distance >= threshold
+        ? 'Thả để sang chương tiếp'
+        : 'Kéo để sang chương tiếp';
+    const effectiveMessage = direction === 'previous'
+      ? (!hasPreviousChapter()
+        ? 'Bạn đang ở đầu sách'
+        : distance >= threshold
+          ? 'Thả để quay lại chương trước'
+          : 'Kéo xuống để quay lại chương trước')
+      : message;
+    schedulePullVisual(distance, effectiveMessage, direction);
+    if (event.cancelable) event.preventDefault();
+    return true;
+  }, [applyPullTransform, hasNextChapter, hasPreviousChapter, isAtScrollChapterEnd, isAtScrollChapterStart, schedulePullVisual, settings.readingMode]);
+
+  const finishPull = useCallback((event) => {
+    if (!pullActiveRef.current) return false;
+    if (event?.cancelable) event.preventDefault();
+    const direction = pullDirectionRef.current;
+    const shouldNavigate = pullDistanceRef.current >= pullThresholdPx()
+      && (direction === 'next' ? hasNextChapter() : hasPreviousChapter());
+    resetPullHint();
+    if (shouldNavigate) {
+      if (direction === 'next') {
+        renditionRef.current?.next?.();
+      } else {
+        renditionRef.current?.prev?.();
+      }
+      return true;
+    }
+    return false;
+  }, [hasNextChapter, hasPreviousChapter, resetPullHint]);
 
   const queueProgressSave = useCallback((cfi, bookPercentage, chapterTitle) => {
     if (!cfi) return;
@@ -458,13 +591,32 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         // Apply reading theme inside the EPUB iframe.
         rendition.themes.default(readerThemeRules(settings));
         rendition.hooks.content.register((contents) => {
+          contentCleanupRef.current.forEach(cleanup => cleanup());
+          contentCleanupRef.current = [];
           currentContentsRef.current = contents;
-          appendNextChapterControl(contents, epubBookInstance, rendition, settings);
-          contents?.window?.addEventListener?.('scroll', () => {
+          appendChapterEndMarker(contents, epubBookInstance, settings);
+          const onContentScroll = () => {
             updateScrollChapterProgress(contents);
             setShowControls(false);
             setShowMore(false);
-          }, { passive: true });
+            resetPullHint();
+          };
+          const onContentTouchStart = (event) => beginPull(event);
+          const onContentTouchMove = (event) => updatePull(event, false);
+          const onContentTouchEnd = (event) => finishPull(event);
+
+          contents?.window?.addEventListener?.('scroll', onContentScroll, { passive: true });
+          contents?.window?.addEventListener?.('touchstart', onContentTouchStart, { passive: true });
+          contents?.window?.addEventListener?.('touchmove', onContentTouchMove, { passive: false });
+          contents?.window?.addEventListener?.('touchend', onContentTouchEnd, { passive: false });
+          contents?.window?.addEventListener?.('touchcancel', onContentTouchEnd, { passive: false });
+          contentCleanupRef.current.push(() => {
+            contents?.window?.removeEventListener?.('scroll', onContentScroll);
+            contents?.window?.removeEventListener?.('touchstart', onContentTouchStart);
+            contents?.window?.removeEventListener?.('touchmove', onContentTouchMove);
+            contents?.window?.removeEventListener?.('touchend', onContentTouchEnd);
+            contents?.window?.removeEventListener?.('touchcancel', onContentTouchEnd);
+          });
           window.setTimeout(() => updateScrollChapterProgress(contents), 80);
         });
 
@@ -542,6 +694,12 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       try {
         rendition?.off?.('relocated', handleRelocated);
         rendition?.off?.('locationChanged', handleRelocated);
+        contentCleanupRef.current.forEach(cleanup => cleanup());
+        contentCleanupRef.current = [];
+        if (pullFrameRef.current) {
+          window.cancelAnimationFrame(pullFrameRef.current);
+          pullFrameRef.current = null;
+        }
         currentContentsRef.current = null;
         epubBookInstance?.destroy();
       } catch (err) {
@@ -590,18 +748,24 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   }, [goNext, goPrev, closeReader]);
 
   // Bookmark toggle with visual feedback
-  const handleBookmark = useCallback(() => {
+  const handleBookmark = useCallback(async () => {
+    if (bookmarkBusyRef.current) return;
     const cfi = currentCfiRef.current;
     if (!cfi) return;
+    bookmarkBusyRef.current = true;
     const existing = bookmarks.find(b => b.cfi === cfi);
-    if (existing) {
-      removeBookmark(existing.id);
-      setBookmarkFeedback('removed');
-    } else {
-      addBookmark(cfi, currentChapterRef.current, '');
-      setBookmarkFeedback('added');
+    try {
+      if (existing) {
+        await removeBookmark(existing.id);
+        setBookmarkFeedback('removed');
+      } else {
+        await addBookmark(cfi, currentChapterRef.current, '');
+        setBookmarkFeedback('added');
+      }
+      window.setTimeout(() => setBookmarkFeedback(null), 1500);
+    } finally {
+      bookmarkBusyRef.current = false;
     }
-    setTimeout(() => setBookmarkFeedback(null), 1500);
   }, [addBookmark, removeBookmark, bookmarks]);
 
   const handleJumpTo = useCallback((cfi) => {
@@ -637,8 +801,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       window.setTimeout(() => {
         isSeekingRef.current = false;
         updateScrollChapterProgress(currentContentsRef.current);
+        if (value >= 100) setChapterPercentage(100);
         saveLatestProgress();
-      }, 120);
+      }, value >= 100 ? 180 : 120);
       return;
     }
 
@@ -650,11 +815,16 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
 
     if (value <= 0) {
       rendition.display(currentSpineItemRef.current?.href || undefined);
+      window.setTimeout(() => {
+        isSeekingRef.current = false;
+        updateScrollChapterProgress(currentContentsRef.current);
+        saveLatestProgress();
+      }, 160);
       return;
     }
 
     try {
-      const ratio = Math.min(0.999, Math.max(0.001, value / 100));
+      const ratio = value >= 100 ? 0.9999 : Math.min(0.999, Math.max(0.001, value / 100));
       if (chapterProgressAvailable && currentSpineItemRef.current?.cfiFromPercentage) {
         const chapterCfi = currentSpineItemRef.current.cfiFromPercentage(ratio);
         if (chapterCfi) {
@@ -670,6 +840,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       window.setTimeout(() => {
         isSeekingRef.current = false;
         updateScrollChapterProgress(currentContentsRef.current);
+        saveLatestProgress();
       }, 120);
     }
   }, [chapterProgressAvailable, rememberCurrentLocation, saveLatestProgress, seekWithinScrollChapter, settings.readingMode, updateScrollChapterProgress]);
@@ -688,6 +859,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     edgeSwipeRef.current = touchStartX.current < 28;
+    beginPull(e);
   };
   const handleTouchMove = (e) => {
     if (touchStartX.current !== null && touchStartY.current !== null) {
@@ -698,6 +870,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         setShowMore(false);
       }
     }
+    if (updatePull(e, edgeSwipeRef.current)) return;
     if (!edgeSwipeRef.current || touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = e.touches[0].clientY - touchStartY.current;
@@ -720,6 +893,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       }
     }
     if (settings.readingMode === 'scroll') {
+      finishPull(e);
       touchStartX.current = null;
       touchStartY.current = null;
       edgeSwipeRef.current = false;
@@ -733,6 +907,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     touchStartX.current = null;
     touchStartY.current = null;
     edgeSwipeRef.current = false;
+    resetPullHint();
   };
 
   const handleReaderTap = useCallback((event) => {
@@ -768,6 +943,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         color: textColor,
         '--reader-bg': bgColor,
         '--reader-text': textColor,
+        '--reader-font-family': getFontStack(settings.font),
       }}
     >
       {/* Loading */}
@@ -787,7 +963,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Could not open book</p>
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>{error}</p>
           <button
-            style={{ padding: '12px 28px', background: '#8B6914', color: '#FFF8EC', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+            style={{ padding: '12px 28px', background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
             onClick={closeReader}
           >
             Back to Library
@@ -804,6 +980,23 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         onTouchEnd={handleTouchEnd}
         onClick={handleReaderTap}
       />
+
+      {settings.readingMode === 'scroll' && pullVisual.opacity > 0 && (
+        <div
+          className={`${styles.pullIndicator} ${pullVisual.opacity >= 1 ? styles.pullReady : ''} ${pullVisual.direction === 'previous' ? styles.pullPrevious : ''}`}
+          style={{
+            opacity: pullVisual.opacity,
+            transform: `translate3d(-50%, ${
+              pullVisual.direction === 'previous'
+                ? Math.min(18, pullVisual.distance * 0.06)
+                : Math.max(0, 18 - pullVisual.distance * 0.12)
+            }px, 0)`,
+          }}
+        >
+          <span />
+          <strong>{pullVisual.message}</strong>
+        </div>
+      )}
 
       {/* Page navigation zones */}
       {settings.readingMode !== 'scroll' && (

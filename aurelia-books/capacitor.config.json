@@ -1,6 +1,6 @@
 {
   "appId": "com.aurelia.books",
-  "appName": "Aurelia Books",
+  "appName": "ShanBooks",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "android": {

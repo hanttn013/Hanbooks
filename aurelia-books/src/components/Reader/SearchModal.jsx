@@ -117,7 +117,7 @@ export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose })
               <button
                 onClick={handleSearch}
                 style={{
-                  border: 'none', background: 'var(--accent)', color: '#FFF8EC',
+                  border: 'none', background: 'var(--accent)', color: 'var(--accent-contrast)',
                   borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 }}
               >
@@ -139,7 +139,7 @@ export default function SearchModal({ epubBook, currentCfi, onJumpTo, onClose })
                   border: 'none',
                   borderRadius: 15,
                   background: scope === option.id ? 'var(--accent-dark)' : 'var(--bg-secondary)',
-                  color: scope === option.id ? '#F5E6C0' : 'var(--text-secondary)',
+                  color: scope === option.id ? 'var(--accent-contrast)' : 'var(--text-secondary)',
                   fontSize: 12,
                   fontWeight: 700,
                 }}

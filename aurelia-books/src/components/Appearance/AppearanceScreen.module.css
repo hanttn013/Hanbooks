@@ -78,7 +78,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  font-family: -apple-system, system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   color: var(--text-primary);
 }
@@ -144,7 +144,7 @@
   border-radius: 24px;
   border: 1.5px solid var(--border);
   background: var(--bg-card);
-  font-family: -apple-system, system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -154,8 +154,8 @@
 .chip:active { transform: scale(0.94); }
 
 .chipActive {
-  background: var(--accent-dark);
-  border-color: var(--accent-dark);
-  color: #F5E6C0;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 600;
 }

@@ -238,7 +238,7 @@ export class StorageManager {
     })();
 
     return {
-      app: 'Hanbooks',
+      app: 'ShanBooks',
       type: 'library-backup',
       version: 1,
       exportedAt: Date.now(),
@@ -264,7 +264,7 @@ export class StorageManager {
 
   static async importLibrarySnapshot(snapshot, { merge = true } = {}) {
     if (!snapshot || snapshot.type !== 'library-backup') {
-      throw new Error('Invalid Hanbooks backup file.');
+      throw new Error('Invalid ShanBooks backup file.');
     }
 
     const db = await this.openDB();

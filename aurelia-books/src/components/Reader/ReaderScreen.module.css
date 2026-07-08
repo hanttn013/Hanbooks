@@ -6,6 +6,7 @@
   z-index: 100;
   overscroll-behavior-x: none;
   touch-action: pan-y;
+  font-family: var(--font-ui);
 }
 
 .viewer {
@@ -60,7 +61,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid rgba(0,0,0,0.1);
-  border-top-color: #8B6914;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -137,6 +138,52 @@
   pointer-events: none;
 }
 
+.pullIndicator {
+  position: absolute;
+  left: 50%;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  max-width: min(86vw, 360px);
+  min-height: 54px;
+  padding: 0 14px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--reader-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  z-index: 24;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.pullIndicator span {
+  width: 12px;
+  height: 12px;
+  border-left: 1.8px solid currentColor;
+  border-bottom: 1.8px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.55;
+}
+
+.pullPrevious span {
+  transform: rotate(135deg);
+}
+
+.pullIndicator strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.pullReady {
+  color: var(--accent);
+}
+
 /* Bottom bar */
 .bottomBar {
   position: absolute;
@@ -145,7 +192,7 @@
   right: 0;
   padding: 10px 12px max(12px, env(safe-area-inset-bottom));
   background: var(--reader-bg);
-  border-top: 1px solid rgba(139,105,20,0.16);
+  border-top: 1px solid var(--border);
   z-index: 20;
 }
 
@@ -170,7 +217,7 @@
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
-  accent-color: #8B6914;
+  accent-color: var(--accent);
   position: relative;
   z-index: 2;
   pointer-events: auto;
@@ -184,7 +231,7 @@
 .progressSlider::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: rgba(139,105,20,0.24);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .progressSlider::-webkit-slider-thumb {
@@ -195,13 +242,13 @@
   margin-top: -8px;
   border-radius: 50%;
   border: 2px solid var(--reader-bg);
-  background: #8B6914;
+  background: var(--accent);
 }
 
 .progressSlider::-moz-range-track {
   height: 4px;
   border-radius: 2px;
-  background: rgba(139,105,20,0.24);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .progressSlider::-moz-range-thumb {
@@ -209,12 +256,12 @@
   height: 20px;
   border-radius: 50%;
   border: 2px solid var(--reader-bg);
-  background: #8B6914;
+  background: var(--accent);
 }
 
 .progressFill {
   height: 100%;
-  background: #8B6914;
+  background: var(--accent);
   border-radius: 1px;
   transition: width 120ms linear;
 }
@@ -231,7 +278,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(139,105,20,0.24);
+  border: 1px solid var(--border);
   background: var(--reader-bg);
   border-radius: 50%;
   cursor: pointer;
@@ -240,7 +287,7 @@
   transition: opacity 80ms ease, background 80ms ease;
 }
 .actionBtn:active { opacity: 1; }
-.actionActive { opacity: 1; color: #8B6914; }
+.actionActive { opacity: 1; color: var(--accent); }
 
 .moreWrap {
   position: relative;
@@ -287,7 +334,7 @@
 }
 
 .aaLabel {
-  font-family: Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   font-weight: 700;
 }

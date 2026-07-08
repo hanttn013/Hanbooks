@@ -21,6 +21,7 @@ dist-ssr/
 **/.jdk/
 .android-sdk/
 **/.android-sdk/
+.android-build/
 **/.android-build/
 **/android/.gradle/
 **/android/build/
@@ -37,6 +38,12 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
+# Generated QA artifacts
+test-artifacts/
+**/perf-shots/
+**/perf-shots-*/
+*.mp4
+
 # Editor / OS
 .idea/
 .vscode/*
@@ -48,7 +55,11 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Local project context
 context.md
 .agent
 Anh_UX_UI
 Data
+.tmp-font/
+KQ Test.md

@@ -11,9 +11,15 @@
 | QA-007 | P1 | Open Settings at any baseline viewport. | Header is fully visible. | Header/title are clipped above the framed content. | Open; Phase 3. |
 | QA-008 | P2 | Open the app at 768x1024 or 1440x900. | Layout uses tablet/desktop space. | UI remains a centered narrow phone shell. | Open; Phase 3. |
 | QA-009 | P2 | Open the demo EPUB and inspect console. | Safe content produces no console errors. | Sandboxed `about:srcdoc` blocks five script executions; security posture is correct but console is noisy. | Open; Phase 2. |
-| QA-010 | P1 | Fast-import an EPUB that needs background metadata extraction. | Persisted status enters the worker queue and finishes/retries. | `addBook()` drops the pending state expected by the metadata processor. | Confirmed by code inspection; Phase 1 reproduction/fix pending. |
+| QA-010 | P1 | Fast-import an EPUB that needs background metadata extraction. | Persisted status enters the worker queue and finishes/retries. | `addBook()` dropped the pending state expected by the metadata processor. | Fixed Phase 1; pending/processing/retry/reload regression tests pass. |
 | QA-011 | P1 | Run `npm audit --omit=dev`. | No unresolved production advisories. | 11 vulnerabilities: 2 critical, 6 high, 3 moderate; some have no fix. | Open; dependency review required. |
 | QA-012 | P2 | Run the full Playwright suite and watch the Vite server output. | No unhandled browser error reaches the dev server. | `ResizeObserver loop completed with undelivered notifications` appears once per viewport; all assertions still pass. | Open; isolate observer/layout source in Phase 1/3. |
+| QA-013 | P1 | Read, then close Reader or background the app before another React render. | Elapsed time and latest progress persist immediately. | Stats previously depended on a later state-effect write; progress only flushed on Reader cleanup/button close. | Fixed Phase 1; unit lifecycle and Playwright page-background tests added. |
+| QA-014 | P1 | Open Library → Book Detail → Reader, then press browser Back repeatedly. | Reader → Detail → Library → Home. | State-only unwinding and new history pushes skipped/duplicated views. | Fixed Phase 1; Playwright passes at all three viewports. |
+| QA-015 | P1 | Change `chapterFlow` or `pageTurnEffect`. | Setting changes renderer behavior. | Page animation was unused; chapter flow only changed spacing. | Fixed Phase 1 by removing both controls and stale values. |
+| QA-016 | P1 | Run two identical imports concurrently. | One new book and one duplicate result. | Both calls checked the same stale `booksRef` before either persisted. | Fixed Phase 1 by serializing the import critical section. |
+| QA-017 | P2 | Import a zero-byte EPUB. | Clear failure without a stored unreadable item. | Fast import previously accepted and stored the empty file. | Fixed Phase 1; unit regression added. |
+| QA-018 | P2 | Repeatedly call StorageManager operations during a long session. | One managed IndexedDB connection is reused and can close for deletion/version changes. | `openDB()` created a new connection for every operation. | Fixed Phase 1 with cached connection and explicit close lifecycle. |
 
 Detailed screenshots, raw console entries, and raw axe violations are stored in
-`qa/baseline/`.
+`qa/baseline/`. Phase 1 navigation evidence is stored in `qa/phase1/`.

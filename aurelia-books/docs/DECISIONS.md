@@ -31,3 +31,33 @@ upgrade that could change EPUB or Capacitor behavior without regression coverage
 Future renaming will keep `com.aurelia.books` so existing Android installations
 continue to address the same app data. Storage key renaming must be implemented
 as an explicit read-old/write-new migration in Phase 1.
+
+## 2026-10-22 — Migrate localStorage, preserve IndexedDB and appId
+
+Phase 1 copies each `aurelia_*` localStorage value to its `shanbooks_*`
+equivalent only when the new key does not already exist, then removes the old
+key. Per-book progress keys are migrated dynamically. `aurelia_db` remains at
+schema v4 and `com.aurelia.books` remains the Android appId because renaming
+either would disconnect existing installations from their data.
+
+## 2026-10-22 — Persist metadata work in book records
+
+Metadata jobs use fields on the existing book record (`metadataStatus`, attempt
+count, next retry timestamp, and error) instead of an in-memory-only queue or a
+new IndexedDB store. This avoids a schema bump while making jobs resumable.
+Concurrency is capped at two and automatic retries stop after three attempts;
+manual Repair Info remains available.
+
+## 2026-10-22 — Remove settings that do not change reader behavior
+
+`pageTurnEffect` had no renderer implementation. `chapterFlow` only changed end
+marker spacing while both options used the same navigation behavior. Both were
+removed from defaults and UI rather than presenting controls that overpromise.
+
+## 2026-10-22 — Use history snapshots as navigation state
+
+Each internal view stores tab, list, detail-book, reader-book, and tab scroll
+state in `history.state`. Browser and Android Back consume the same stack.
+Android exits only when the current state is Home. Native back-button behavior
+still requires the manual device checklist because Playwright cannot emit the
+Capacitor native event.

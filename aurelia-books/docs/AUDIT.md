@@ -100,3 +100,31 @@ Phase 0 does not claim support for PDF, DOCX, TXT/MD/HTML, PPTX, CBZ, or FB2;
 does not certify IndexedDB migration or full backup/restore; and does not certify
 Android-native navigation or lifecycle persistence. Those remain explicit work
 for Phases 1–5.
+
+## Phase 1 follow-up — 2026-10-22
+
+The following Phase 0 risks are now covered by regression tests and fixed:
+
+- Fast imports persist metadata queue state; extraction runs with concurrency 2,
+  retries up to three attempts with backoff, and resumes interrupted `processing`
+  records as `pending` after reload.
+- Concurrent imports are serialized around duplicate detection and persistence;
+  empty files are rejected before storage.
+- Reading time and the latest reader progress are flushed on unmount,
+  `visibilitychange`, `pagehide`, `beforeunload`, and Capacitor
+  `appStateChange`.
+- Browser history restores Reader → Book Detail → previous tab → Home, including
+  the tab scroll position. Android Back uses the same history and exits only from
+  Home.
+- Legacy `aurelia_*` localStorage values migrate to `shanbooks_*`; the IndexedDB
+  name and Android appId intentionally remain unchanged to retain installed data.
+- Non-functional `chapterFlow` and `pageTurnEffect` controls and unreferenced
+  Continue/Appearance screens were removed.
+
+Remaining visual, accessibility, font, bundle, console, and dependency findings
+keep their Phase 0 priority and are not claimed as resolved by Phase 1.
+
+Phase 1 verification completed with 13 unit tests and 15 Playwright tests, plus
+clean ESLint and production builds. The Capacitor debug APK also compiled with
+JDK 21. Native device behavior remains explicitly manual; see
+`qa/phase1/MANUAL_ANDROID_CHECKLIST.md`.

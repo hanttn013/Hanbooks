@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import styles from './SettingsScreen.module.css';
 import { StorageManager } from '../../utils/StorageManager';
 import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
+import { removeShanBooksLocalStorage, STORAGE_KEYS } from '../../utils/storageKeys';
 
 function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
   return (
@@ -27,7 +28,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
   const stats = library?.stats || {};
   const importRef = useRef(null);
   const [backupStatus, setBackupStatus] = useState(() => {
-    const timestamp = Number(localStorage.getItem('aurelia_last_backup_at') || 0);
+    const timestamp = Number(localStorage.getItem(STORAGE_KEYS.lastBackupAt) || 0);
     return timestamp ? `Last backup ${new Date(timestamp).toLocaleString()}` : 'No backup yet';
   });
 
@@ -39,11 +40,9 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
 
     try {
       await StorageManager.clearAllData();
-      Object.keys(localStorage)
-        .filter(key => key.startsWith('aurelia_'))
-        .forEach(key => localStorage.removeItem(key));
-      localStorage.setItem('aurelia_seeded_demo', '1');
-      localStorage.setItem('aurelia_seeded_default_lists', '1');
+      removeShanBooksLocalStorage();
+      localStorage.setItem(STORAGE_KEYS.seededDemo, '1');
+      localStorage.setItem(STORAGE_KEYS.seededDefaultLists, '1');
       window.location.reload();
     } catch (err) {
       alert(err.message || 'Khong the xoa du lieu. Hay dong va mo lai app roi thu lai.');
@@ -190,15 +189,6 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
             <h2>Reader controls</h2>
             <div className={styles.card}>
               <SettingSelect
-                label="Chapter flow"
-                value={settings.chapterFlow || 'continuous'}
-                options={[
-                  { id: 'continuous', label: 'Continuous' },
-                  { id: 'manual', label: 'Manual' },
-                ]}
-                onChange={value => updateSetting('chapterFlow', value)}
-              />
-              <SettingSelect
                 label="Status line"
                 value={settings.readingStatusLine || 'off'}
                 options={[
@@ -234,6 +224,10 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
                     ? `Processing ${library.metadataProcessingCount}...`
                     : library?.isMetadataQueuePaused ? 'Paused' : 'Idle'}
                 </em>
+              </div>
+              <div className={styles.infoRow}>
+                <span>Failed books</span>
+                <em>{library?.failedMetadataTotal || 0}</em>
               </div>
               {library?.pendingMetadataTotal > 0 && (
                 <button onClick={() => library.setIsMetadataQueuePaused(prev => !prev)}>

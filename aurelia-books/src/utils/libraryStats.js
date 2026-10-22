@@ -1,15 +1,11 @@
-const STATS_KEY = 'aurelia_stats';
+import { readProgressPercent, STORAGE_KEYS } from './storageKeys';
 
 function readReaderStats() {
   try {
-    return JSON.parse(localStorage.getItem(STATS_KEY)) || {};
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.stats)) || {};
   } catch {
     return {};
   }
-}
-
-function progressFor(book) {
-  return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
 }
 
 export function formatBytes(bytes) {
@@ -40,7 +36,7 @@ export function getLibraryStats(books = [], lists = [], bookmarkCount = 0) {
   }, 0);
   const totalPages = books.reduce((sum, book) => sum + (book.estimatedPages || book.totalLocations || 0), 0);
   const averageProgress = totalBooks
-    ? Math.round(books.reduce((sum, book) => sum + progressFor(book), 0) / totalBooks)
+    ? Math.round(books.reduce((sum, book) => sum + readProgressPercent(book), 0) / totalBooks)
     : 0;
   const lastRead = books
     .map(book => book.lastOpenedAt || 0)

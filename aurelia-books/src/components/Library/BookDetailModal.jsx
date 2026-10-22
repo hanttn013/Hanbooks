@@ -3,9 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
 import { StorageManager } from '../../utils/StorageManager';
 import { extractEpubMetadata, looksLikeTocText } from '../../utils/epubMetadata';
+import { readProgressPercent } from '../../utils/storageKeys';
 
 function progressFor(book) {
-  return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
+  return readProgressPercent(book);
 }
 
 function formatFileSize(size) {
@@ -38,12 +39,13 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const [isAddingToList, setIsAddingToList] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
-  const [displayBook, setDisplayBook] = useState(book);
+  const [displayOverrides, setDisplayOverrides] = useState({});
   const mountedRef = useRef(true);
   const repairMetadata = library?.repairMetadata;
   const shouldRefreshMetadata = needsMetadataRefresh(book);
   const isAutoRefreshingMeta = book.metadataStatus === 'pending' || book.metadataStatus === 'processing';
   const isRefreshingMeta = isManualRefreshingMeta || isAutoRefreshingMeta;
+  const displayBook = { ...book, ...displayOverrides };
   const pct = progressFor(displayBook);
   const infoBookmark = bookmarks.find(item => item.cfi === '' && item.chapterTitle === 'Book info');
   const isBusy = isDeleting || isRefreshingMeta || isBookmarking || isAddingToList || isRenaming || isFavoriting;
@@ -95,10 +97,16 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
         estimatedPages: book.estimatedPages,
         fileSize: book.fileSize,
       });
-      const updated = { ...book, ...metadata };
       if (!mountedRef.current) return;
-      setDisplayBook(updated);
-      await library?.updateBook?.(book.id, metadata);
+      setDisplayOverrides(prev => ({ ...prev, ...metadata }));
+      await library?.updateBook?.(book.id, {
+        ...metadata,
+        metadataStatus: 'ready',
+        metadataPending: false,
+        metadataAttempts: 0,
+        metadataNextRetryAt: null,
+        metadataError: null,
+      });
     } catch (err) {
       console.warn('Could not refresh EPUB metadata:', err);
       if (mountedRef.current) alert('Could not repair this EPUB metadata.');
@@ -136,7 +144,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     try {
       await library?.updateBook?.(book.id, { title: cleanTitle, author: cleanAuthor });
       if (!mountedRef.current) return;
-      setDisplayBook(prev => ({ ...prev, title: cleanTitle, author: cleanAuthor }));
+      setDisplayOverrides(prev => ({ ...prev, title: cleanTitle, author: cleanAuthor }));
       setRenaming(false);
     } finally {
       if (mountedRef.current) setIsRenaming(false);
@@ -150,7 +158,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     try {
       await library?.updateBook?.(book.id, { isFavorite: next });
       if (!mountedRef.current) return;
-      setDisplayBook(prev => ({ ...prev, isFavorite: next }));
+      setDisplayOverrides(prev => ({ ...prev, isFavorite: next }));
     } finally {
       if (mountedRef.current) setIsFavoriting(false);
     }
@@ -235,7 +243,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
           </div>
 
           <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button className="btn-primary" style={{ padding: 12, fontSize: 14 }} onClick={() => { if (!isBusy) { onOpen(book); onClose(); } }} disabled={isBusy}>
+            <button className="btn-primary" style={{ padding: 12, fontSize: 14 }} onClick={() => { if (!isBusy) onOpen(book); }} disabled={isBusy}>
               {pct > 0 ? 'Continue' : 'Read'}
             </button>
             <button className="btn-primary" style={secondaryBtn} onClick={handleFavorite} disabled={isBusy}>
@@ -247,7 +255,12 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
             <p style={sectionLabel}>Synopsis</p>
             {isRefreshingMeta && (
               <p style={{ marginTop: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
-                Repairing EPUB info...
+                {book.metadataStatus === 'pending' ? 'Waiting for metadata queue...' : 'Repairing EPUB info...'}
+              </p>
+            )}
+            {book.metadataStatus === 'failed' && (
+              <p role="alert" style={{ marginTop: 6, color: 'var(--danger, #9B2C2C)', fontSize: 12 }}>
+                Automatic metadata repair failed after {book.metadataAttempts || 0} attempts. You can retry manually.
               </p>
             )}
             <p style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-line' }}>

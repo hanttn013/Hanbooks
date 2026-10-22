@@ -6,6 +6,11 @@ import { StorageManager } from '../utils/StorageManager';
 import { extractEpubMetadata, normalizeBookMetadata } from '../utils/epubMetadata';
 import { getLibraryStats } from '../utils/libraryStats';
 import { includesSearchText } from '../utils/searchText';
+import { migrateLegacyLocalStorage, readProgressPercent, STORAGE_KEYS } from '../utils/storageKeys';
+
+const METADATA_MAX_ATTEMPTS = 3;
+const METADATA_CONCURRENCY = 2;
+const METADATA_RETRY_DELAYS = [1000, 5000, 15000];
 
 const DEFAULT_LISTS = [
   {
@@ -104,8 +109,9 @@ function basicMetadataFromFile(file) {
 }
 
 export function useLibrary() {
+  migrateLegacyLocalStorage();
   const [books, setBooks] = useState([]);
-  const [sortBy, setSortBy] = useState(() => localStorage.getItem('aurelia_sort') || 'lastOpenedAt');
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem(STORAGE_KEYS.sort) || 'lastOpenedAt');
   const [filterBy, setFilterBy] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -113,11 +119,13 @@ export function useLibrary() {
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [bookmarkedBookIds, setBookmarkedBookIds] = useState(() => new Set());
   const [isLoading, setIsLoading] = useState(true);
-  const [isMetadataQueuePaused, setIsMetadataQueuePaused] = useState(() => localStorage.getItem('aurelia_metadata_paused') === '1');
+  const [isMetadataQueuePaused, setIsMetadataQueuePaused] = useState(() => localStorage.getItem(STORAGE_KEYS.metadataPaused) === '1');
   const [metadataProcessingCount, setMetadataProcessingCount] = useState(0);
+  const [metadataQueueTick, setMetadataQueueTick] = useState(0);
   const autoBackupTimerRef = useRef(null);
   const booksRef = useRef([]);
-  const metadataProcessingRef = useRef(false);
+  const metadataActiveIdsRef = useRef(new Set());
+  const importQueueRef = useRef(Promise.resolve());
 
   const queueAutoBackup = useCallback((reason = 'library-change') => {
     window.clearTimeout(autoBackupTimerRef.current);
@@ -140,7 +148,7 @@ export function useLibrary() {
     setIsLoading(true);
     try {
       let list = await StorageManager.getAllBooks();
-      if (list.length === 0 && localStorage.getItem('aurelia_seeded_demo') !== '1') {
+      if (list.length === 0 && localStorage.getItem(STORAGE_KEYS.seededDemo) !== '1') {
         // Load demo books from public URLs or assets
         for (const demo of DEMO_BOOKS) {
           try {
@@ -169,13 +177,14 @@ export function useLibrary() {
             await StorageManager.saveBook({ ...demo, ...normalizeBookMetadata(demo), fileBlob: null });
           }
         }
-        localStorage.setItem('aurelia_seeded_demo', '1');
+        localStorage.setItem(STORAGE_KEYS.seededDemo, '1');
         list = await StorageManager.getAllBooks();
       }
 
+      const interrupted = [];
       const normalized = list.map(book => {
         const demoFallback = DEMO_BOOKS.find(item => item.id === book.id);
-        return {
+        const normalizedBook = {
           ...normalizeBookMetadata({ ...demoFallback, ...book }),
           ...book,
           genre: book.genre || demoFallback?.genre || 'Fiction',
@@ -187,16 +196,24 @@ export function useLibrary() {
           chapterCount: book.chapterCount || demoFallback?.chapterCount || 0,
           estimatedPages: book.estimatedPages || demoFallback?.estimatedPages || 0,
         };
+        if (normalizedBook.metadataStatus === 'processing') {
+          normalizedBook.metadataStatus = 'pending';
+          normalizedBook.metadataPending = true;
+          normalizedBook.metadataError = 'Metadata extraction was interrupted and will resume.';
+          interrupted.push(normalizedBook);
+        }
+        return normalizedBook;
       });
+      await Promise.all(interrupted.map(book => StorageManager.saveBook(book)));
       setBooks(normalized);
       booksRef.current = normalized;
 
       let storedLists = await StorageManager.getAllLists();
-      if (storedLists.length === 0 && localStorage.getItem('aurelia_seeded_default_lists') !== '1') {
+      if (storedLists.length === 0 && localStorage.getItem(STORAGE_KEYS.seededDefaultLists) !== '1') {
         for (const item of DEFAULT_LISTS) {
           await StorageManager.saveList(item);
         }
-        localStorage.setItem('aurelia_seeded_default_lists', '1');
+        localStorage.setItem(STORAGE_KEYS.seededDefaultLists, '1');
         storedLists = await StorageManager.getAllLists();
       }
       setLists(storedLists);
@@ -227,11 +244,11 @@ export function useLibrary() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('aurelia_sort', sortBy);
+    localStorage.setItem(STORAGE_KEYS.sort, sortBy);
   }, [sortBy]);
 
   useEffect(() => {
-    localStorage.setItem('aurelia_metadata_paused', isMetadataQueuePaused ? '1' : '0');
+    localStorage.setItem(STORAGE_KEYS.metadataPaused, isMetadataQueuePaused ? '1' : '0');
   }, [isMetadataQueuePaused]);
 
   useEffect(() => {
@@ -241,20 +258,22 @@ export function useLibrary() {
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
-  const addBook = useCallback(async (file, metadata, options = {}) => {
-    const bookMetadata = metadata
-      || (options.fastMetadata ? basicMetadataFromFile(file) : await extractEpubMetadata(file, { fileName: file.name }));
-    const duplicateKeys = await buildDuplicateKeys(file, bookMetadata);
-    const duplicate = booksRef.current.find(item => {
-      const storedTitleAuthor = item.titleAuthorKey || [normalizeIdentity(item.title), normalizeIdentity(item.author)].filter(Boolean).join('|');
-      const storedFile = item.fileKey || '';
-      return Boolean(duplicateKeys.titleAuthorKey && storedTitleAuthor === duplicateKeys.titleAuthorKey)
-        || Boolean(duplicateKeys.fileKey && storedFile === duplicateKeys.fileKey);
-    });
-    if (duplicate) {
-      return { ...duplicate, skippedDuplicate: true };
-    }
-    const book = {
+  const addBook = useCallback((file, metadata, options = {}) => {
+    const importTask = importQueueRef.current.then(async () => {
+      if (!file || file.size === 0) throw new Error('Cannot import an empty file.');
+      const bookMetadata = metadata
+        || (options.fastMetadata ? basicMetadataFromFile(file) : await extractEpubMetadata(file, { fileName: file.name }));
+      const duplicateKeys = await buildDuplicateKeys(file, bookMetadata);
+      const duplicate = booksRef.current.find(item => {
+        const storedTitleAuthor = item.titleAuthorKey || [normalizeIdentity(item.title), normalizeIdentity(item.author)].filter(Boolean).join('|');
+        const storedFile = item.fileKey || '';
+        return Boolean(duplicateKeys.titleAuthorKey && storedTitleAuthor === duplicateKeys.titleAuthorKey)
+          || Boolean(duplicateKeys.fileKey && storedFile === duplicateKeys.fileKey);
+      });
+      if (duplicate) return { ...duplicate, skippedDuplicate: true };
+
+      const isPendingMetadata = options.fastMetadata || bookMetadata.metadataStatus === 'pending';
+      const book = {
       id: uuidv4(),
       title: bookMetadata.title || file.name.replace(/\.epub$/i, ''),
       author: bookMetadata.author || 'Unknown Author',
@@ -280,21 +299,30 @@ export function useLibrary() {
       fileSize: bookMetadata.fileSize || file.size || 0,
       chapterCount: bookMetadata.chapterCount || 0,
       estimatedPages: bookMetadata.estimatedPages || 0,
-      metadataExtractedAt: bookMetadata.metadataExtractedAt || Date.now(),
+      metadataPending: isPendingMetadata,
+      metadataStatus: isPendingMetadata ? 'pending' : (bookMetadata.metadataStatus || 'ready'),
+      metadataAttempts: 0,
+      metadataNextRetryAt: null,
+      metadataError: null,
+      metadataExtractedAt: isPendingMetadata ? null : (bookMetadata.metadataExtractedAt || Date.now()),
       titleAuthorKey: duplicateKeys.titleAuthorKey,
       fileKey: duplicateKeys.fileKey,
       sourcePath: file.archivePath || file.webkitRelativePath || file.name || '',
-    };
-    await StorageManager.saveBook(book);
-    booksRef.current = [book, ...booksRef.current];
-    setBooks(prev => [book, ...prev]);
-    queueAutoBackup('book-imported');
-    return book;
+      };
+      await StorageManager.saveBook(book);
+      booksRef.current = [book, ...booksRef.current];
+      setBooks([...booksRef.current]);
+      queueAutoBackup('book-imported');
+      return book;
+    });
+    importQueueRef.current = importTask.catch(() => undefined);
+    return importTask;
   }, [queueAutoBackup]);
 
   const deleteBook = useCallback(async (id) => {
     await StorageManager.deleteBook(id);
-    setBooks(prev => prev.filter(b => b.id !== id));
+    booksRef.current = booksRef.current.filter(book => book.id !== id);
+    setBooks([...booksRef.current]);
     setLists(prev => prev.map(list => ({
       ...list,
       bookIds: list.bookIds.filter(bookId => bookId !== id),
@@ -308,24 +336,32 @@ export function useLibrary() {
   }, [queueAutoBackup]);
 
   const updateBook = useCallback(async (id, updates) => {
-    setBooks(prev => prev.map(b => {
-      if (b.id === id) {
-        const updated = { ...b, ...updates };
-        StorageManager.saveBook(updated);
-        const keys = Object.keys(updates);
-        const isReadingPulse = keys.length > 0 && keys.every(key => ['lastOpenedAt', 'status'].includes(key));
-        if (!isReadingPulse) queueAutoBackup('book-updated');
-        return updated;
-      }
-      return b;
-    }));
+    const current = booksRef.current.find(book => book.id === id);
+    if (!current) return null;
+    const updated = { ...current, ...updates };
+    await StorageManager.saveBook(updated);
+    booksRef.current = booksRef.current.map(book => book.id === id ? updated : book);
+    setBooks([...booksRef.current]);
+    const keys = Object.keys(updates);
+    const isReadingPulse = keys.length > 0 && keys.every(key => ['lastOpenedAt', 'status'].includes(key));
+    if (!isReadingPulse) queueAutoBackup('book-updated');
+    return updated;
   }, [queueAutoBackup]);
 
-  const repairMetadata = useCallback(async (id) => {
+  const repairMetadata = useCallback(async (id, { force = false } = {}) => {
     const book = booksRef.current.find(b => b.id === id);
-    if (!book || !book.fileBlob || book.metadataStatus === 'ready') return;
-    
-    updateBook(id, { metadataStatus: 'processing' });
+    if (!book || !book.fileBlob || book.metadataStatus === 'ready') return null;
+    if (metadataActiveIdsRef.current.has(id)) return null;
+    const attempts = force ? 0 : (book.metadataAttempts || 0);
+    if (!force && attempts >= METADATA_MAX_ATTEMPTS) return null;
+    metadataActiveIdsRef.current.add(id);
+    setMetadataProcessingCount(metadataActiveIdsRef.current.size);
+    await updateBook(id, {
+      metadataStatus: 'processing',
+      metadataPending: true,
+      metadataAttempts: attempts,
+      metadataError: null,
+    });
     try {
       const metadata = await extractEpubMetadata(book.fileBlob, {
         title: book.title,
@@ -340,45 +376,57 @@ export function useLibrary() {
         estimatedPages: book.estimatedPages,
         fileSize: book.fileSize,
       });
-      await updateBook(id, { ...metadata, metadataStatus: 'ready', metadataPending: false });
+      await updateBook(id, {
+        ...metadata,
+        metadataStatus: 'ready',
+        metadataPending: false,
+        metadataAttempts: attempts + 1,
+        metadataNextRetryAt: null,
+        metadataError: null,
+      });
+      return 'ready';
     } catch (err) {
       console.warn('Metadata auto-repair failed for', book.title, err);
-      await updateBook(id, { metadataStatus: 'failed' });
+      const nextAttempts = attempts + 1;
+      const retryable = nextAttempts < METADATA_MAX_ATTEMPTS;
+      await updateBook(id, {
+        metadataStatus: retryable ? 'pending' : 'failed',
+        metadataPending: retryable,
+        metadataAttempts: nextAttempts,
+        metadataNextRetryAt: retryable ? Date.now() + METADATA_RETRY_DELAYS[nextAttempts - 1] : null,
+        metadataError: err?.message || 'Metadata extraction failed.',
+      });
+      return retryable ? 'pending' : 'failed';
+    } finally {
+      metadataActiveIdsRef.current.delete(id);
+      setMetadataProcessingCount(metadataActiveIdsRef.current.size);
     }
   }, [updateBook]);
 
   // Background Metadata Queue
   useEffect(() => {
-    if (isMetadataQueuePaused) return;
-    const processNext = async () => {
-      if (metadataProcessingRef.current) return;
-      const pendingBooks = booksRef.current.filter(b => b.metadataStatus === 'pending');
-      if (pendingBooks.length === 0) {
-        setMetadataProcessingCount(0);
-        return;
-      }
-      
-      metadataProcessingRef.current = true;
-      setMetadataProcessingCount(pendingBooks.length);
-      
-      // Process up to 2 books concurrently
-      const batch = pendingBooks.slice(0, 2);
-      await Promise.all(batch.map(book => repairMetadata(book.id)));
-      
-      metadataProcessingRef.current = false;
-      
-      // Yield to main thread and trigger next batch
-      setTimeout(() => {
-        setMetadataProcessingCount(prev => Math.max(0, prev - batch.length));
-        if (booksRef.current.some(b => b.metadataStatus === 'pending')) {
-          processNext();
-        }
-      }, 500);
-    };
-    
-    const timer = setTimeout(processNext, 2000); // Wait 2s after render before starting queue
+    if (isLoading || isMetadataQueuePaused) return undefined;
+    const now = Date.now();
+    const capacity = Math.max(0, METADATA_CONCURRENCY - metadataActiveIdsRef.current.size);
+    const pendingBooks = booksRef.current.filter(book => (
+      book.metadataStatus === 'pending'
+      && (book.metadataAttempts || 0) < METADATA_MAX_ATTEMPTS
+      && !metadataActiveIdsRef.current.has(book.id)
+    ));
+    const ready = pendingBooks
+      .filter(book => !book.metadataNextRetryAt || book.metadataNextRetryAt <= now)
+      .slice(0, capacity);
+    const nextRetryAt = pendingBooks
+      .map(book => book.metadataNextRetryAt)
+      .filter(value => value && value > now)
+      .sort((a, b) => a - b)[0];
+    const delay = ready.length > 0 ? 250 : Math.max(250, Math.min(15000, (nextRetryAt || now + 15000) - now));
+    const timer = window.setTimeout(() => {
+      if (ready.length > 0) ready.forEach(book => repairMetadata(book.id));
+      else if (pendingBooks.length > 0) setMetadataQueueTick(value => value + 1);
+    }, delay);
     return () => clearTimeout(timer);
-  }, [books, isMetadataQueuePaused, repairMetadata]);
+  }, [books, isLoading, isMetadataQueuePaused, metadataQueueTick, repairMetadata]);
 
   const createList = useCallback(async ({ name, description = '', coverStyle = 'gold', bookIds = [] }) => {
     const cleanName = name.trim();
@@ -427,7 +475,7 @@ export function useLibrary() {
 
   const deleteList = useCallback(async (id) => {
     await StorageManager.deleteList(id);
-    localStorage.setItem('aurelia_seeded_default_lists', '1');
+    localStorage.setItem(STORAGE_KEYS.seededDefaultLists, '1');
     setLists(prev => prev.filter(item => item.id !== id));
     queueAutoBackup('list-deleted');
   }, [queueAutoBackup]);
@@ -470,8 +518,8 @@ export function useLibrary() {
         case 'addedAt':
           return b.addedAt - a.addedAt;
         case 'progress': {
-          const progA = parseFloat(localStorage.getItem(`aurelia_pct_${a.id}`) || 0);
-          const progB = parseFloat(localStorage.getItem(`aurelia_pct_${b.id}`) || 0);
+          const progA = readProgressPercent(a);
+          const progB = readProgressPercent(b);
           return progB - progA;
         }
         case 'lastOpenedAt':
@@ -538,5 +586,6 @@ export function useLibrary() {
     metadataProcessingCount,
     repairMetadata,
     pendingMetadataTotal: books.filter(b => b.metadataStatus === 'pending').length,
+    failedMetadataTotal: books.filter(b => b.metadataStatus === 'failed').length,
   };
 }

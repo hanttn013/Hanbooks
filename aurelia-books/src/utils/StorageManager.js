@@ -1,10 +1,15 @@
 // src/utils/StorageManager.js
+import { STORAGE_KEYS } from './storageKeys';
+
 const DB_NAME = 'aurelia_db';
 const DB_VERSION = 4;
 
 export class StorageManager {
+  static dbPromise = null;
+
   static openDB() {
-    return new Promise((resolve, reject) => {
+    if (this.dbPromise) return this.dbPromise;
+    this.dbPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onupgradeneeded = (e) => {
@@ -32,9 +37,20 @@ export class StorageManager {
         }
       };
 
-      request.onsuccess = (e) => resolve(e.target.result);
-      request.onerror = (e) => reject(e.target.error);
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        db.onversionchange = () => {
+          db.close();
+          this.dbPromise = null;
+        };
+        resolve(db);
+      };
+      request.onerror = (e) => {
+        this.dbPromise = null;
+        reject(e.target.error);
+      };
     });
+    return this.dbPromise;
   }
 
   static async getAllBooks() {
@@ -201,6 +217,14 @@ export class StorageManager {
   }
 
   static async clearAllData() {
+    if (this.dbPromise) {
+      try {
+        const db = await this.dbPromise;
+        db.close();
+      } finally {
+        this.dbPromise = null;
+      }
+    }
     return new Promise((resolve, reject) => {
       const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
       deleteRequest.onsuccess = () => resolve();
@@ -231,7 +255,7 @@ export class StorageManager {
     const progress = await this.getAllProgress();
     const settings = (() => {
       try {
-        return JSON.parse(localStorage.getItem('aurelia_settings') || '{}');
+        return JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || '{}');
       } catch {
         return {};
       }
@@ -300,7 +324,7 @@ export class StorageManager {
     });
 
     if (snapshot.settings && typeof snapshot.settings === 'object') {
-      localStorage.setItem('aurelia_settings', JSON.stringify(snapshot.settings));
+      localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(snapshot.settings));
     }
   }
 
@@ -319,7 +343,7 @@ export class StorageManager {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
-    localStorage.setItem('aurelia_last_backup_at', String(item.createdAt));
+    localStorage.setItem(STORAGE_KEYS.lastBackupAt, String(item.createdAt));
     return item;
   }
 

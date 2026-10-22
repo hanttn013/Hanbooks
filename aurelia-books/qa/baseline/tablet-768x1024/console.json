@@ -1,0 +1,57 @@
+[
+  {
+    "screen": "startup",
+    "type": "warning",
+    "text": "Failed to decode downloaded font: http://127.0.0.1:4173/src/assets/fonts/Montserrat-Bold.otf"
+  },
+  {
+    "screen": "startup",
+    "type": "warning",
+    "text": "OTS parsing error: Table directory is not correctly ordered\n(hea: invalid table offset"
+  },
+  {
+    "screen": "startup",
+    "type": "warning",
+    "text": "Failed to decode downloaded font: http://127.0.0.1:4173/src/assets/fonts/Montserrat-Regular.otf"
+  },
+  {
+    "screen": "startup",
+    "type": "warning",
+    "text": "OTS parsing error: GPOS: misaligned table"
+  },
+  {
+    "screen": "settings",
+    "type": "warning",
+    "text": "Failed to decode downloaded font: http://127.0.0.1:4173/src/assets/fonts/Montserrat-SemiBold.otf"
+  },
+  {
+    "screen": "settings",
+    "type": "warning",
+    "text": "OTS parsing error: Table directory is not correctly ordered\n(hea: invalid table offset"
+  },
+  {
+    "screen": "book-detail",
+    "type": "error",
+    "text": "Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set."
+  },
+  {
+    "screen": "book-detail",
+    "type": "error",
+    "text": "Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set."
+  },
+  {
+    "screen": "book-detail",
+    "type": "error",
+    "text": "Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set."
+  },
+  {
+    "screen": "book-detail",
+    "type": "error",
+    "text": "Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set."
+  },
+  {
+    "screen": "book-detail",
+    "type": "error",
+    "text": "Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set."
+  }
+]

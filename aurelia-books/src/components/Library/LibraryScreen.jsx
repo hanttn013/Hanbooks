@@ -1,6 +1,7 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import BookCover from './BookCover';
 import styles from './LibraryScreen.module.css';
+import { readProgressPercent } from '../../utils/storageKeys';
 import { extractEpubsFromArchive, isArchiveFile, isSupportedImportFile } from '../../utils/archiveImport';
 
 const GRID_COLUMNS = 3;
@@ -27,7 +28,7 @@ const SORT_OPTIONS = [
 ];
 
 function progressFor(book) {
-  return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
+  return readProgressPercent(book);
 }
 
 function SelectionBadge({ checked }) {

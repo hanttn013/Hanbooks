@@ -1,30 +1,34 @@
 // src/hooks/useReader.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { App as CapacitorApp } from '@capacitor/app';
 import { StorageManager } from '../utils/StorageManager';
+import { migrateLegacyLocalStorage, progressStorageKey, STORAGE_KEYS } from '../utils/storageKeys';
 
-const STATS_KEY = 'aurelia_stats';
+const EMPTY_STATS = {
+  totalReadingMs: 0,
+  streak: 0,
+  lastReadDate: null,
+  booksFinished: 0,
+  pagesReadToday: 0,
+  lastTodayDate: null,
+};
 
 function loadStats() {
   try {
-    const stored = localStorage.getItem(STATS_KEY);
-    return stored ? JSON.parse(stored) : {
-      totalReadingMs: 0,
-      streak: 0,
-      lastReadDate: null,
-      booksFinished: 0,
-      pagesReadToday: 0,
-      lastTodayDate: null,
-    };
+    migrateLegacyLocalStorage();
+    const stored = localStorage.getItem(STORAGE_KEYS.stats);
+    return stored ? { ...EMPTY_STATS, ...JSON.parse(stored) } : { ...EMPTY_STATS };
   } catch {
-    return {
-      totalReadingMs: 0,
-      streak: 0,
-      lastReadDate: null,
-      booksFinished: 0,
-      pagesReadToday: 0,
-      lastTodayDate: null,
-    };
+    return { ...EMPTY_STATS };
+  }
+}
+
+function persistStats(stats) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(stats));
+  } catch (error) {
+    console.warn('Could not persist reading stats:', error);
   }
 }
 
@@ -32,31 +36,46 @@ export function useReader(bookId) {
   const [progress, setProgress] = useState(null);
   const [bookmarks, setBookmarks] = useState([]);
   const [stats, setStats] = useState(loadStats);
+  const statsRef = useRef(stats);
   const startTimeRef = useRef(null);
   const lastPercentageRef = useRef(null);
+  const hasStartedRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  }, [stats]);
+  const commitStats = useCallback((update) => {
+    const next = typeof update === 'function' ? update(statsRef.current) : update;
+    statsRef.current = next;
+    persistStats(next);
+    if (mountedRef.current) setStats(next);
+    return next;
+  }, []);
 
   // Fetch initial progress & bookmarks
   useEffect(() => {
     if (!bookId) return;
-    StorageManager.getProgress(bookId).then(setProgress);
-    StorageManager.getBookmarks(bookId).then(setBookmarks);
+    let active = true;
+    StorageManager.getProgress(bookId).then(value => {
+      if (active) setProgress(value);
+    });
+    StorageManager.getBookmarks(bookId).then(value => {
+      if (active) setBookmarks(value);
+    });
+    return () => {
+      active = false;
+    };
   }, [bookId]);
 
   const saveProgress = useCallback(async (cfi, percentage, chapterTitle) => {
     if (!bookId) return;
     const record = { bookId, cfi, percentage, chapterTitle, lastReadAt: Date.now() };
     await StorageManager.saveProgress(record);
-    setProgress(record);
+    if (mountedRef.current) setProgress(record);
     try {
-      localStorage.setItem(`aurelia_pct_${bookId}`, String(percentage));
+      localStorage.setItem(progressStorageKey(bookId), String(percentage));
     } catch (e) {
       console.warn("localStorage quota exceeded or blocked:", e);
     }
-    setStats(prev => {
+    commitStats(prev => {
       const today = new Date().toDateString();
       const resetToday = prev.lastTodayDate !== today;
       const previousPct = lastPercentageRef.current ?? percentage;
@@ -69,7 +88,7 @@ export function useReader(bookId) {
         lastTodayDate: today,
       };
     });
-  }, [bookId]);
+  }, [bookId, commitStats]);
 
   const addBookmark = useCallback(async (cfi, chapterTitle, excerpt) => {
     if (!bookId) return null;
@@ -97,29 +116,65 @@ export function useReader(bookId) {
   }, [bookmarks]);
 
   const startReading = useCallback(() => {
+    hasStartedRef.current = true;
+    if (startTimeRef.current !== null) return;
     startTimeRef.current = Date.now();
     const today = new Date().toDateString();
-    setStats(prev => {
+    commitStats(prev => {
       if (prev.lastReadDate === today) return prev;
       const yesterday = new Date(Date.now() - 86400000).toDateString();
       const newStreak = prev.lastReadDate === yesterday ? prev.streak + 1 : 1;
       return { ...prev, streak: newStreak, lastReadDate: today };
     });
-  }, []);
+  }, [commitStats]);
 
   const stopReading = useCallback(() => {
-    if (!startTimeRef.current) return;
+    if (startTimeRef.current === null) return;
     const elapsed = Date.now() - startTimeRef.current;
-    setStats(prev => ({
-      ...prev,
-      totalReadingMs: prev.totalReadingMs + elapsed,
-    }));
     startTimeRef.current = null;
-  }, []);
+    commitStats(prev => ({
+      ...prev,
+      totalReadingMs: (prev.totalReadingMs || 0) + Math.max(0, elapsed),
+    }));
+  }, [commitStats]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    let nativeListener = null;
+    let disposed = false;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') stopReading();
+      else if (hasStartedRef.current) startReading();
+    };
+    const handlePageExit = () => stopReading();
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handlePageExit);
+    window.addEventListener('beforeunload', handlePageExit);
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive && hasStartedRef.current) startReading();
+      else if (!isActive) stopReading();
+    }).then(listener => {
+      if (disposed) listener.remove();
+      else nativeListener = listener;
+    }).catch(() => {
+      nativeListener = null;
+    });
+
+    return () => {
+      disposed = true;
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', handlePageExit);
+      window.removeEventListener('beforeunload', handlePageExit);
+      nativeListener?.remove?.();
+      mountedRef.current = false;
+      stopReading();
+    };
+  }, [startReading, stopReading]);
 
   const markFinished = useCallback(() => {
-    setStats(prev => ({ ...prev, booksFinished: prev.booksFinished + 1 }));
-  }, []);
+    commitStats(prev => ({ ...prev, booksFinished: prev.booksFinished + 1 }));
+  }, [commitStats]);
 
   return {
     progress,

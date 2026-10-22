@@ -1,8 +1,9 @@
 import BookCover from '../Library/BookCover';
 import styles from './HomeScreen.module.css';
+import { readProgressPercent } from '../../utils/storageKeys';
 
 function progressFor(book) {
-  return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
+  return readProgressPercent(book);
 }
 
 export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpenList, onGoLibrary, onGoLists }) {

@@ -45,6 +45,8 @@ export default function App() {
   const activeListIdRef = useRef(activeListId);
   const suppressHistoryPushRef = useRef(false);
   const edgeTouchRef = useRef(null);
+  const scrollPositionsRef = useRef(new Map());
+  const libraryBooksRef = useRef([]);
 
   const library = useLibrary();
   const { settings, updateSetting } = useSettings();
@@ -59,6 +61,7 @@ export default function App() {
   useEffect(() => { openBookRef.current = openBook; }, [openBook]);
   useEffect(() => { detailBookRef.current = detailBook; }, [detailBook]);
   useEffect(() => { activeListIdRef.current = activeListId; }, [activeListId]);
+  useEffect(() => { libraryBooksRef.current = library.allBooksRaw; }, [library.allBooksRaw]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform?.()) return undefined;
@@ -66,28 +69,36 @@ export default function App() {
     return () => document.body.classList.remove('native-app');
   }, []);
 
-  const goBackInsideApp = useCallback(() => {
-    if (detailBookRef.current) {
-      setDetailBook(null);
-      return true;
-    }
-    if (openBookRef.current) {
-      setOpenBook(null);
-      return true;
-    }
-    if (activeTabRef.current === 'lists' && activeListIdRef.current) {
-      setActiveListId(null);
-      return true;
-    }
-    if (activeTabRef.current !== 'home') {
-      setActiveTab('home');
-      return true;
-    }
-    return false;
+  const captureScroll = useCallback(() => {
+    const container = document.querySelector('#phone-frame .screen-scroll');
+    if (container) scrollPositionsRef.current.set(activeTabRef.current, container.scrollTop);
   }, []);
 
+  const restoreScroll = useCallback((tab) => {
+    window.requestAnimationFrame(() => {
+      const container = document.querySelector('#phone-frame .screen-scroll');
+      if (container) container.scrollTop = scrollPositionsRef.current.get(tab) || 0;
+    });
+  }, []);
+
+  const historySnapshot = useCallback((key) => ({
+    shanbooks: true,
+    key,
+    activeTab,
+    activeListId,
+    detailBookId: detailBook?.id || null,
+    openBookId: openBook?.id || null,
+  }), [activeListId, activeTab, detailBook, openBook]);
+
   useEffect(() => {
-    window.history.replaceState({ hanbooks: true, key: 'home' }, '');
+    window.history.replaceState({
+      shanbooks: true,
+      key: 'home',
+      activeTab: 'home',
+      activeListId: null,
+      detailBookId: null,
+      openBookId: null,
+    }, '');
   }, []);
 
   useEffect(() => {
@@ -101,21 +112,30 @@ export default function App() {
 
     if (suppressHistoryPushRef.current) {
       suppressHistoryPushRef.current = false;
-      window.history.replaceState({ hanbooks: true, key }, '');
+      window.history.replaceState(historySnapshot(key), '');
       return;
     }
     if (window.history.state?.key !== key) {
-      window.history.pushState({ hanbooks: true, key }, '');
+      captureScroll();
+      window.history.pushState(historySnapshot(key), '');
     }
-  }, [activeListId, activeTab, detailBook, openBook]);
+  }, [activeListId, activeTab, captureScroll, detailBook, historySnapshot, openBook]);
 
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (!state?.shanbooks) return;
       suppressHistoryPushRef.current = true;
-      if (!goBackInsideApp()) {
-        window.history.replaceState({ hanbooks: true, key: 'home' }, '');
-        window.history.pushState({ hanbooks: true, key: 'home-guard' }, '');
-      }
+      const nextTab = state.activeTab || 'home';
+      setActiveTab(nextTab);
+      setActiveListId(state.activeListId || null);
+      setDetailBook(state.detailBookId
+        ? libraryBooksRef.current.find(book => book.id === state.detailBookId) || null
+        : null);
+      setOpenBook(state.openBookId
+        ? libraryBooksRef.current.find(book => book.id === state.openBookId) || null
+        : null);
+      restoreScroll(nextTab);
     };
 
     const handleTouchStart = (event) => {
@@ -135,16 +155,17 @@ export default function App() {
     };
 
     let nativeBackListener = null;
+    let disposed = false;
     CapacitorApp.addListener('backButton', () => {
-      suppressHistoryPushRef.current = true;
-      if (!goBackInsideApp()) {
-        setActiveTab('home');
-        setActiveListId(null);
-        window.history.replaceState({ hanbooks: true, key: 'home' }, '');
-        window.history.pushState({ hanbooks: true, key: 'home-guard' }, '');
-      }
+      const hasInternalView = Boolean(openBookRef.current)
+        || Boolean(detailBookRef.current)
+        || Boolean(activeListIdRef.current)
+        || activeTabRef.current !== 'home';
+      if (hasInternalView) window.history.back();
+      else CapacitorApp.exitApp();
     }).then(listener => {
-      nativeBackListener = listener;
+      if (disposed) listener.remove();
+      else nativeBackListener = listener;
     }).catch(() => {
       nativeBackListener = null;
     });
@@ -153,12 +174,13 @@ export default function App() {
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     return () => {
+      disposed = true;
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       nativeBackListener?.remove?.();
     };
-  }, [goBackInsideApp]);
+  }, [restoreScroll]);
 
   const handleOpenBook = (book) => {
     library.updateBook(book.id, {
@@ -169,7 +191,8 @@ export default function App() {
   };
 
   const handleCloseBook = () => {
-    setOpenBook(null);
+    if (window.history.state?.shanbooks) window.history.back();
+    else setOpenBook(null);
   };
 
   const handleOpenBookInfo = (book) => {
@@ -303,9 +326,11 @@ export default function App() {
               <TabBar
                 activeTab={activeTab}
                 onTabChange={(tab) => {
+                  captureScroll();
                   if (tab !== 'lists') setActiveListId(null);
                   setDetailBook(null);
                   setActiveTab(tab);
+                  restoreScroll(tab);
                 }}
               />
             </motion.div>
@@ -317,7 +342,10 @@ export default function App() {
               <BookDetailModal
                 key={currentDetailBook.id}
                 book={currentDetailBook}
-                onClose={() => setDetailBook(null)}
+                onClose={() => {
+                  if (window.history.state?.shanbooks) window.history.back();
+                  else setDetailBook(null);
+                }}
                 onOpen={handleOpenBook}
                 library={library}
               />

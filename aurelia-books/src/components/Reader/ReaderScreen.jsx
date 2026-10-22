@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
+import { App as CapacitorApp } from '@capacitor/app';
 import { useReader } from '../../hooks/useReader';
 import BookmarksModal from './BookmarksModal';
 import TOCModal from './TOCModal';
@@ -87,12 +88,10 @@ function appendChapterEndMarker(contents, epubBookInstance, settings) {
 
   const wrapper = doc.createElement('div');
   wrapper.id = 'hanbooks-chapter-end';
-  const isContinuous = (settings.chapterFlow || 'continuous') === 'continuous';
-
   wrapper.style.cssText = [
     'display:block',
-    `margin:${isContinuous ? 10 : 24}px 0 0`,
-    `padding:${isContinuous ? '16px 16px 48px' : '24px 16px 64px'}`,
+    'margin:10px 0 0',
+    'padding:16px 16px 48px',
     'min-height:140px',
     `background:${bgColor}`,
     `color:${textColor}`,
@@ -483,6 +482,34 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     saveLatestProgress();
     onClose();
   }, [onClose, saveLatestProgress]);
+
+  useEffect(() => {
+    let nativeListener = null;
+    let disposed = false;
+    const flushProgress = () => saveLatestProgress();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushProgress();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', flushProgress);
+    window.addEventListener('beforeunload', flushProgress);
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) flushProgress();
+    }).then(listener => {
+      if (disposed) listener.remove();
+      else nativeListener = listener;
+    }).catch(() => {
+      nativeListener = null;
+    });
+    return () => {
+      disposed = true;
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', flushProgress);
+      window.removeEventListener('beforeunload', flushProgress);
+      nativeListener?.remove?.();
+      flushProgress();
+    };
+  }, [saveLatestProgress]);
 
   useEffect(() => {
     let isMounted = true;

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import BookCover from '../Library/BookCover';
 import styles from './ListsScreen.module.css';
+import { readProgressPercent } from '../../utils/storageKeys';
 
 const COVER_STYLES = ['gold', 'cream', 'burgundy', 'forest', 'ink'];
 const SORT_OPTIONS = [
@@ -12,7 +13,7 @@ const SORT_OPTIONS = [
 ];
 
 function progressFor(book) {
-  return parseFloat(localStorage.getItem(`aurelia_pct_${book.id}`) || (book.status === 'finished' ? 100 : 0));
+  return readProgressPercent(book);
 }
 
 function sortBooks(books, mode) {

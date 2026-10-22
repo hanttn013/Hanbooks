@@ -6,21 +6,10 @@ const READING_MODES = [
   { id: 'scroll', label: 'Scroll' },
 ];
 
-const CHAPTER_FLOWS = [
-  { id: 'continuous', label: 'Continuous' },
-  { id: 'manual', label: 'Manual' },
-];
-
 const STATUS_LINES = [
   { id: 'off', label: 'Off' },
   { id: 'minimal', label: 'Minimal' },
   { id: 'detailed', label: 'Detailed' },
-];
-
-const PAGE_EFFECTS = [
-  { id: 'slide', label: 'Slide' },
-  { id: 'realistic', label: '3D Page Curl' },
-  { id: 'none', label: 'None' },
 ];
 
 function segmentStyle(active) {
@@ -124,30 +113,12 @@ export default function ReaderSettingsPanel({ settings, updateSetting, onClose }
             onChange={value => updateSetting('readingMode', value)}
           />
 
-          {settings.readingMode === 'scroll' && (
-            <SettingSegment
-              label="Chapter Flow"
-              value={settings.chapterFlow || 'continuous'}
-              options={CHAPTER_FLOWS}
-              onChange={value => updateSetting('chapterFlow', value)}
-            />
-          )}
-
           <SettingSegment
             label="Status Line"
             value={settings.readingStatusLine || 'off'}
             options={STATUS_LINES}
             onChange={value => updateSetting('readingStatusLine', value)}
           />
-
-          {settings.readerMode !== 'lite' && settings.readingMode !== 'scroll' && (
-            <SettingSegment
-              label="Page Animation"
-              value={settings.pageTurnEffect}
-              options={PAGE_EFFECTS}
-              onChange={value => updateSetting('pageTurnEffect', value)}
-            />
-          )}
 
           <div>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>Theme</p>

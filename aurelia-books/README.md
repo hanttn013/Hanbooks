@@ -27,7 +27,26 @@ npm run dev -- --host 127.0.0.1 --port 5173
 ```powershell
 npm run lint
 npm run build
+npm run test:unit
+npm run test:e2e
 ```
+
+Generate the deterministic, license-safe document fixtures before tests that
+exercise file import:
+
+```powershell
+npm run fixtures
+```
+
+Run the complete automated suite with:
+
+```powershell
+npm run test:all
+```
+
+Playwright runs Chromium at 360x800, 768x1024, and 1440x900. The Phase 0
+visual, console, and axe accessibility baselines live in `qa/baseline/`.
+Transient Playwright reports and traces are ignored by Git.
 
 ## Android
 

@@ -25,6 +25,8 @@ android/local.properties
 # Generated QA/performance screenshots
 perf-shots/
 perf-shots-*/
+qa/playwright-report/
+qa/test-results/
 
 # Python virtual environments
 .venv/

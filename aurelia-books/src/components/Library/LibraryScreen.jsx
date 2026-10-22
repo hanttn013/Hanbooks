@@ -239,7 +239,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
                   importedCount += 1;
                   importedIds.push(book.id);
                 }
-              } catch (e) {
+              } catch {
                 errorCount++;
               }
               await new Promise(resolve => window.setTimeout(resolve, 0));
@@ -262,7 +262,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
             const book = await addBook(file, null, { fastMetadata: true });
             if (book.skippedDuplicate) skippedCount += 1;
             else importedCount += 1;
-          } catch (e) {
+          } catch {
             errorCount++;
           }
           await new Promise(resolve => window.setTimeout(resolve, 0));

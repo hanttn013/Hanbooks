@@ -33,14 +33,17 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isRefreshingMeta, setIsRefreshingMeta] = useState(false);
+  const [isManualRefreshingMeta, setIsManualRefreshingMeta] = useState(false);
   const [isBookmarking, setIsBookmarking] = useState(false);
   const [isAddingToList, setIsAddingToList] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
   const [displayBook, setDisplayBook] = useState(book);
   const mountedRef = useRef(true);
+  const repairMetadata = library?.repairMetadata;
   const shouldRefreshMetadata = needsMetadataRefresh(book);
+  const isAutoRefreshingMeta = book.metadataStatus === 'pending' || book.metadataStatus === 'processing';
+  const isRefreshingMeta = isManualRefreshingMeta || isAutoRefreshingMeta;
   const pct = progressFor(displayBook);
   const infoBookmark = bookmarks.find(item => item.cfi === '' && item.chapterTitle === 'Book info');
   const isBusy = isDeleting || isRefreshingMeta || isBookmarking || isAddingToList || isRenaming || isFavoriting;
@@ -60,38 +63,23 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   }, [book.id]);
 
   useEffect(() => {
-    let active = true;
-    StorageManager.getBookmarks(book.id)
-      .then(items => {
-        if (active && mountedRef.current) setBookmarks(items);
-      })
-      .catch(() => {
-        if (active && mountedRef.current) setBookmarks([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [book.id]);
-
-  useEffect(() => {
     mountedRef.current = true;
-    
+
     // Auto trigger lazy repair
-    if (book.metadataStatus === 'pending' || book.metadataStatus === 'processing') {
-      setIsRefreshingMeta(true);
-      library?.repairMetadata?.(book.id).finally(() => {
-        if (mountedRef.current) setIsRefreshingMeta(false);
+    if (isAutoRefreshingMeta && repairMetadata) {
+      Promise.resolve(repairMetadata(book.id)).catch(err => {
+        console.warn('Could not auto-repair EPUB metadata:', err);
       });
     }
 
     return () => {
       mountedRef.current = false;
     };
-  }, [book.id, book.metadataStatus, library]);
+  }, [book.id, isAutoRefreshingMeta, repairMetadata]);
 
   const handleRefreshMetadata = async () => {
     if (!book.fileBlob || isRefreshingMeta) return;
-    setIsRefreshingMeta(true);
+    setIsManualRefreshingMeta(true);
     try {
       await new Promise(resolve => window.setTimeout(resolve, 50));
       const metadata = await extractEpubMetadata(book.fileBlob, {
@@ -115,7 +103,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
       console.warn('Could not refresh EPUB metadata:', err);
       if (mountedRef.current) alert('Could not repair this EPUB metadata.');
     } finally {
-      if (mountedRef.current) setIsRefreshingMeta(false);
+      if (mountedRef.current) setIsManualRefreshingMeta(false);
     }
   };
 

@@ -61,3 +61,26 @@ state in `history.state`. Browser and Android Back consume the same stack.
 Android exits only when the current state is Home. Native back-button behavior
 still requires the manual device checklist because Playwright cannot emit the
 Capacitor native event.
+
+## 2026-10-23 — Keep one adapter contract and lazy-load heavy readers
+
+PDF.js, Mammoth, Marked/DOMPurify, `@web-ppt/core`, and fflate are loaded from
+format-specific chunks instead of the startup path. Every new reader implements
+the same adapter contract so progress, search, TOC, bookmarks, and Reader UI do
+not grow format-specific storage branches. The legacy PDF.js build is selected
+for older WebViews; a worker is still used when the runtime supports it.
+
+## 2026-10-23 — Prefer safe best-effort document support
+
+PPTX is exposed with a fidelity notice because browser conversion cannot promise
+PowerPoint layout parity. Legacy binary Office, FB2, and MOBI are rejected with
+an actionable unsupported-format message until dedicated adapters exist. HTML,
+Markdown, DOCX output, and archive extraction are treated as untrusted input and
+are bounded/sanitized before display.
+
+## 2026-10-23 — Full backup is an explicit ZIP format
+
+JSON backups remain the portable metadata format. Full backups add a manifest
+and the original blobs under `books/`, allowing offline restoration without a
+server. The implementation caps the archive at 500 MB and surfaces missing-file
+state instead of silently inventing a readable book.

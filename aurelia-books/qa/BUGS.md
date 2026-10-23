@@ -20,6 +20,9 @@
 | QA-016 | P1 | Run two identical imports concurrently. | One new book and one duplicate result. | Both calls checked the same stale `booksRef` before either persisted. | Fixed Phase 1 by serializing the import critical section. |
 | QA-017 | P2 | Import a zero-byte EPUB. | Clear failure without a stored unreadable item. | Fast import previously accepted and stored the empty file. | Fixed Phase 1; unit regression added. |
 | QA-018 | P2 | Repeatedly call StorageManager operations during a long session. | One managed IndexedDB connection is reused and can close for deletion/version changes. | `openDB()` created a new connection for every operation. | Fixed Phase 1 with cached connection and explicit close lifecycle. |
+| QA-019 | P2 | Import a PDF and trigger a second render before the first finishes. | The previous render is cancelled without an application error. | PDF.js rejects a concurrent canvas render; adapter now cancels per-canvas tasks and ignores expected cancellation errors. | Fixed Phase 2; three-viewport reader smoke passes. |
+| QA-020 | P1 | Import a full backup containing a document blob, then restore it offline. | The book and original file are restored together. | JSON-only backup could preserve metadata but not the offline file. | Fixed Phase 2 with manifest + blob ZIP backup; 500 MB cap remains. |
+| QA-021 | P2 | Share a supported document into the Android app. | The shared file enters the same import queue. | Browser cannot exercise Capacitor handoff; native Share Target and SEND filters are wired, but device verification remains manual. | Phase 2 implementation; manual check pending. |
 
 Detailed screenshots, raw console entries, and raw axe violations are stored in
 `qa/baseline/`. Phase 1 navigation evidence is stored in `qa/phase1/`.

@@ -2,7 +2,7 @@ import { memo, useMemo, useRef, useState } from 'react';
 import BookCover from './BookCover';
 import styles from './LibraryScreen.module.css';
 import { readProgressPercent } from '../../utils/storageKeys';
-import { extractEpubsFromArchive, isArchiveFile, isSupportedImportFile } from '../../utils/archiveImport';
+import { extractDocumentsFromArchive, isArchiveFile } from '../../utils/archiveImport';
 
 const GRID_COLUMNS = 3;
 const GRID_ROW_HEIGHT = 250;
@@ -56,6 +56,7 @@ const BookGridItem = memo(function BookGridItem({
   return (
     <button
       className={styles.gridItem}
+      data-book-format={book.format || 'epub'}
       onClick={() => onTap(book)}
       onPointerDown={() => onHoldStart(book)}
       onPointerUp={onHoldCancel}
@@ -92,7 +93,7 @@ const BookGridItem = memo(function BookGridItem({
       </span>
       <span className={styles.bookTitle}>{book.title}</span>
       <span className={styles.bookAuthor}>{book.author}</span>
-      <span className={styles.bookMeta}>{pct}% complete</span>
+      <span className={styles.bookMeta}>{String(book.format || 'epub').toUpperCase()} · {pct}% complete</span>
     </button>
   );
 });
@@ -102,6 +103,7 @@ const BookListItem = memo(function BookListItem({ book, selected, selecting, pct
     <li>
       <button
         className={styles.listItem}
+        data-book-format={book.format || 'epub'}
         onClick={() => selecting ? onToggleSelected(book.id) : onTap(book)}
         onContextMenu={e => { e.preventDefault(); onOpenInfo?.(book); }}
       >
@@ -109,7 +111,7 @@ const BookListItem = memo(function BookListItem({ book, selected, selecting, pct
         <span className={styles.listInfo}>
           <strong>{book.title}</strong>
           <small>{book.author}</small>
-          <small>{book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {pct}%</small>
+          <small>{String(book.format || 'epub').toUpperCase()} · {book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {pct}%</small>
         </span>
         {selecting && <SelectionBadge checked={selected} />}
       </button>
@@ -125,6 +127,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState('');
   const [importSummary, setImportSummary] = useState(null);
+  const [importItems, setImportItems] = useState([]);
   const [scrollTop, setScrollTop] = useState(0);
   const fileRef = useRef(null);
   const scrollRef = useRef(null);
@@ -205,44 +208,81 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
   };
 
   const handleFileImport = async (e) => {
-    const files = Array.from(e.target.files || []).filter(isSupportedImportFile);
+    const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     setIsImporting(true);
     setImportStatus('Preparing import...');
-    let totalEpubs = 0;
+    setImportItems(files.map((file, index) => ({ id: `selected-${index}`, name: file.name, status: 'pending', message: 'Waiting' })));
+    let totalFiles = 0;
     let importedCount = 0;
     let skippedCount = 0;
     let listsCreated = 0;
     let errorCount = 0;
 
+    const updateItem = (id, updates) => {
+      setImportItems(current => current.map(item => item.id === id ? { ...item, ...updates } : item));
+    };
+
+    const importOne = async (file, id) => {
+      totalFiles += 1;
+      updateItem(id, { name: file.name, status: 'processing', message: 'Checking format and content...' });
+      try {
+        let book = await addBook(file, null, { fastMetadata: true });
+        if (book.skippedDuplicate) {
+          const choice = window.prompt(
+            `"${file.name}" is already in your library. Type keep, replace, or skip.`,
+            'skip',
+          )?.trim().toLowerCase();
+          if (choice === 'keep' || choice === 'replace') {
+            book = await addBook(file, null, {
+              fastMetadata: true,
+              analysis: book.analysis,
+              duplicateStrategy: choice,
+            });
+            importedCount += 1;
+            updateItem(id, { status: 'success', message: choice === 'replace' ? 'Replaced existing copy' : 'Kept both copies' });
+            return book;
+          }
+          skippedCount += 1;
+          updateItem(id, { status: 'duplicate', message: 'Duplicate skipped' });
+          return null;
+        }
+        importedCount += 1;
+        updateItem(id, { status: 'success', message: `${String(book.format || 'document').toUpperCase()} imported` });
+        return book;
+      } catch (error) {
+        errorCount += 1;
+        updateItem(id, { status: 'error', message: error?.message || 'Import failed' });
+        return null;
+      }
+    };
+
     try {
-      for (const file of files) {
+      for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
+        const file = files[fileIndex];
+        const selectedId = `selected-${fileIndex}`;
         if (isArchiveFile(file)) {
           setImportStatus(`Extracting ${file.name}...`);
-          const archive = await extractEpubsFromArchive(file);
+          updateItem(selectedId, { status: 'processing', message: 'Inspecting archive...' });
+          const archive = await extractDocumentsFromArchive(file);
           if (archive.files.length === 0) {
             errorCount++;
+            updateItem(selectedId, { status: 'error', message: 'No supported documents in archive' });
             continue;
           }
+          updateItem(selectedId, { status: 'success', message: `${archive.files.length} documents found` });
           let processed = 0;
           for (const group of archive.groups || [{ name: archive.listName, files: archive.files }]) {
             const importedIds = [];
             for (let index = 0; index < group.files.length; index += 1) {
-              const epubFile = group.files[index];
+              const documentFile = group.files[index];
               processed += 1;
-              totalEpubs += 1;
               setImportStatus(`Importing ${processed}/${archive.files.length} from ${archive.sourceName}...`);
-              try {
-                const book = await addBook(epubFile, null, { fastMetadata: true });
-                if (book.skippedDuplicate) skippedCount += 1;
-                else {
-                  importedCount += 1;
-                  importedIds.push(book.id);
-                }
-              } catch {
-                errorCount++;
-              }
+              const itemId = `archive-${fileIndex}-${processed}`;
+              setImportItems(current => [...current, { id: itemId, name: documentFile.name, status: 'pending', message: `From ${archive.sourceName}` }]);
+              const book = await importOne(documentFile, itemId);
+              if (book) importedIds.push(book.id);
               await new Promise(resolve => window.setTimeout(resolve, 0));
             }
             if (importedIds.length > 0) {
@@ -258,19 +298,12 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
           }
         } else {
           setImportStatus(`Importing ${file.name}...`);
-          totalEpubs += 1;
-          try {
-            const book = await addBook(file, null, { fastMetadata: true });
-            if (book.skippedDuplicate) skippedCount += 1;
-            else importedCount += 1;
-          } catch {
-            errorCount++;
-          }
+          await importOne(file, selectedId);
           await new Promise(resolve => window.setTimeout(resolve, 0));
         }
       }
       setImportSummary({
-        totalEpubs,
+        totalFiles,
         importedCount,
         skippedCount,
         listsCreated,
@@ -278,8 +311,8 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
         pendingCount: importedCount,
       });
     } catch (err) {
-      console.error('Failed to import EPUB:', err);
-      alert(err.message || 'Failed to import. Please use valid EPUB, ZIP, or RAR files.');
+      console.error('Failed to import documents:', err);
+      alert(err.message || 'Import failed. Check the per-file status for details.');
     } finally {
       window.setTimeout(() => {
         setIsImporting(false);
@@ -306,12 +339,26 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
   };
 
   return (
-    <div className={styles.screen}>
+    <div
+      className={styles.screen}
+      onDragOver={event => event.preventDefault()}
+      onDrop={event => {
+        event.preventDefault();
+        handleFileImport({ target: { files: event.dataTransfer.files } });
+      }}
+    >
       {isImporting && (
         <div className={styles.importingOverlay}>
           <div className={styles.spinner} />
           <p>{importStatus || 'Importing...'}</p>
-          <small>EPUB, ZIP, and RAR archives are supported</small>
+          <small>Documents are checked by content and processed offline</small>
+          <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', maxHeight: 180, overflow: 'auto', textAlign: 'left' }}>
+            {importItems.map(item => (
+              <li key={item.id} style={{ marginBottom: 6 }}>
+                <strong>{item.name}</strong> — {item.message}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -325,7 +372,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
             </div>
             <div className="modal-scroll" style={{ padding: '0 20px 24px' }}>
               <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
-                Đã import {importSummary.totalEpubs} sách
+                Đã xử lý {importSummary.totalFiles} tài liệu
               </p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)' }}>
                 <li style={{ marginBottom: 6 }}>- {importSummary.importedCount} sách mới</li>
@@ -359,12 +406,12 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
           <h1 className="screen-title">Library</h1>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.importBtn} onClick={() => fileRef.current?.click()} title="Import EPUB">
+          <button className={styles.importBtn} onClick={() => fileRef.current?.click()} title="Import documents">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
-          <input ref={fileRef} type="file" accept=".epub,.zip,.rar,application/epub+zip,application/zip,application/x-rar-compressed" hidden multiple onChange={handleFileImport} />
+          <input ref={fileRef} type="file" accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt" hidden multiple onChange={handleFileImport} />
           <button
             className={styles.iconBtn}
             onClick={() => {
@@ -455,7 +502,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
         {books.length === 0 ? (
           <div className={styles.empty}>
             <strong>No books found</strong>
-            <span>Try another search, clear filters, or import an EPUB.</span>
+            <span>Try another search, clear filters, or import a document.</span>
           </div>
         ) : viewMode === 'grid' ? (
           <>

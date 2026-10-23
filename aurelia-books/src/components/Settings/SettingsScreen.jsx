@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './SettingsScreen.module.css';
 import { StorageManager } from '../../utils/StorageManager';
 import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
@@ -23,6 +23,12 @@ function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
   );
 }
 
+function formatBytes(bytes = 0) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
 export default function SettingsScreen({ settings, updateSetting, library }) {
   const activeTheme = getThemeById(settings.theme);
   const stats = library?.stats || {};
@@ -31,6 +37,26 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     const timestamp = Number(localStorage.getItem(STORAGE_KEYS.lastBackupAt) || 0);
     return timestamp ? `Last backup ${new Date(timestamp).toLocaleString()}` : 'No backup yet';
   });
+  const [storageState, setStorageState] = useState({ usage: 0, quota: 0, persisted: false, supported: true });
+
+  const refreshStorageState = useCallback(async () => {
+    if (!navigator.storage) {
+      setStorageState(current => ({ ...current, supported: false }));
+      return;
+    }
+    const [estimate, persisted] = await Promise.all([
+      navigator.storage.estimate?.() || {},
+      navigator.storage.persisted?.() || false,
+    ]);
+    setStorageState({ usage: estimate.usage || 0, quota: estimate.quota || 0, persisted: Boolean(persisted), supported: true });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      refreshStorageState().catch(() => setStorageState(current => ({ ...current, supported: false })));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshStorageState]);
 
   const handleClearData = async () => {
     const confirmed = window.confirm(
@@ -49,14 +75,17 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     }
   };
 
-  const downloadJson = (payload, fileName) => {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const downloadBlob = (blob, fileName) => {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = fileName;
     anchor.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadJson = (payload, fileName) => {
+    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), fileName);
   };
 
   const handleExportLibrary = async () => {
@@ -73,17 +102,42 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const snapshot = JSON.parse(text);
       const confirmed = window.confirm('Import this ShanBooks backup? Existing library items with the same IDs will be updated.');
       if (!confirmed) return;
-      await StorageManager.importLibrarySnapshot(snapshot, { merge: true });
+      if (/\.zip$/i.test(file.name) || file.type === 'application/zip') {
+        await StorageManager.importFullBackup(file, { merge: true });
+      } else {
+        const snapshot = JSON.parse(await file.text());
+        await StorageManager.importLibrarySnapshot(snapshot, { merge: true });
+      }
       await StorageManager.createAutoBackup('after-import');
       window.location.reload();
     } catch (err) {
       alert(err.message || 'Could not import this backup file.');
     } finally {
       event.target.value = '';
+    }
+  };
+
+  const handleExportFullBackup = async () => {
+    try {
+      setBackupStatus('Building full backup...');
+      const blob = await StorageManager.exportFullBackup();
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadBlob(blob, `shanbooks-full-${stamp}.zip`);
+      setBackupStatus(`Full backup ${formatBytes(blob.size)}`);
+    } catch (err) {
+      setBackupStatus('Full backup failed');
+      alert(err.message || 'Could not create a full backup.');
+    }
+  };
+
+  const handlePersistStorage = async () => {
+    try {
+      await navigator.storage?.persist?.();
+      await refreshStorageState();
+    } catch {
+      setStorageState(current => ({ ...current, supported: false }));
     }
   };
 
@@ -205,9 +259,20 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
             <h2>Library</h2>
             <div className={styles.card}>
               <div className={styles.infoRow}><span>Storage</span><em>IndexedDB</em></div>
-              <div className={styles.infoRow}><span>Import format</span><em>EPUB</em></div>
+              <div className={styles.infoRow}><span>Import formats</span><em>EPUB, PDF, DOCX, TXT/MD/HTML, PPTX, CBZ</em></div>
               <div className={styles.infoRow}><span>Metadata</span><em>Automatic extraction</em></div>
+              <div className={styles.infoRow}>
+                <span>Browser quota</span>
+                <em>{storageState.supported ? `${formatBytes(storageState.usage)} / ${formatBytes(storageState.quota)}` : 'Unavailable'}</em>
+              </div>
+              <div className={styles.infoRow}><span>Offline protection</span><em>{storageState.persisted ? 'Persistent' : 'Best effort'}</em></div>
+              {!storageState.persisted && storageState.supported && (
+                <button onClick={handlePersistStorage}><span>Protect offline library</span><em>Request</em></button>
+              )}
             </div>
+            {storageState.quota > 0 && storageState.usage / storageState.quota >= 0.8 && (
+              <p className={styles.note}>Storage is over 80% full. Export a full backup before importing more large documents.</p>
+            )}
           </section>
 
           <section className={styles.group}>
@@ -245,8 +310,12 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
             <h2>Backup</h2>
             <div className={styles.card}>
               <button onClick={handleExportLibrary}>
-                <span>Export library</span>
-                <em>JSON</em>
+                <span>Export data only</span>
+                <em>JSON · no files</em>
+              </button>
+              <button onClick={handleExportFullBackup}>
+                <span>Export full library</span>
+                <em>ZIP · includes files</em>
               </button>
               <button onClick={() => importRef.current?.click()}>
                 <span>Import library</span>
@@ -258,9 +327,9 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
               </button>
               <div className={styles.infoRow}><span>Auto backup</span><em>{backupStatus}</em></div>
             </div>
-            <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={handleImportLibrary} />
+            <input ref={importRef} type="file" accept="application/json,application/zip,.json,.zip" hidden onChange={handleImportLibrary} />
             <p className={styles.note}>
-              Backups include metadata, progress, bookmarks, lists, and settings. EPUB files are kept separate to avoid huge backup files.
+              Data-only backups are small but need files to be re-imported. Full backups include original documents and restore them ready to read. ShanBooks retains the latest three automatic snapshots.
             </p>
           </section>
 

@@ -1,0 +1,40 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { expect, test } from '@playwright/test';
+
+const DOCUMENTS = [
+  ['pdf', 'sample.pdf'],
+  ['docx', 'sample.docx'],
+  ['txt', 'sample.txt'],
+  ['md', 'sample.md'],
+  ['html', 'sample.html'],
+  ['pptx', 'sample.pptx'],
+  ['cbz', 'sample.cbz'],
+];
+
+test('imports and opens every Phase 2 reader format', async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  const evidenceDir = path.resolve('qa', 'phase2', testInfo.project.name);
+  await fs.mkdir(evidenceDir, { recursive: true });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+
+  const fixturePaths = DOCUMENTS.map(([, name]) => path.resolve('tests', 'fixtures', name));
+  await page.locator('input[type="file"]').first().setInputFiles(fixturePaths);
+  await expect(page.getByText(/Đã xử lý 7 tài liệu/)).toBeVisible({ timeout: 60_000 });
+  await page.screenshot({ path: path.join(evidenceDir, 'import-summary.png'), fullPage: true });
+  await page.locator('.modal-sheet .btn-icon').first().click();
+
+  for (const [format] of DOCUMENTS) {
+    const card = page.locator(`[data-book-format="${format}"]`).first();
+    await expect(card).toBeVisible({ timeout: 30_000 });
+    await card.click();
+    await expect(page.getByText(/^Opening /)).toBeHidden({ timeout: 30_000 });
+    await expect(page.locator(`[data-format="${format}"]`)).toBeVisible({ timeout: 30_000 });
+    await page.screenshot({ path: path.join(evidenceDir, `${format}.png`), fullPage: true });
+    await page.getByRole('button', { name: 'Close reader' }).click();
+    await expect(page.locator(`[data-format="${format}"]`)).toHaveCount(0);
+  }
+});

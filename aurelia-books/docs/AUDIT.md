@@ -128,3 +128,18 @@ Phase 1 verification completed with 13 unit tests and 15 Playwright tests, plus
 clean ESLint and production builds. The Capacitor debug APK also compiled with
 JDK 21. Native device behavior remains explicitly manual; see
 `qa/phase1/MANUAL_ANDROID_CHECKLIST.md`.
+
+## Phase 2 follow-up — 2026-10-23
+
+Phase 2 now exercises seven document formats through one import path and one
+generic Reader contract. The verification set is 43 unit tests plus the format
+reader smoke test at 360x800, 768x1024, and 1440x900. The production build is
+code-split into format chunks; Vite still reports a large lazy chunk for the
+PPTX/PDF ecosystem, but these dependencies are not on the initial reader UI
+path.
+
+New coverage includes content-based detection, duplicate hashing, archive
+limits, locator migration, full backup/restore, sanitized HTML, worker
+fallbacks, and missing-file restore behavior. Phase 2 does not claim exact
+PowerPoint visual fidelity, support for FB2/MOBI/legacy binary Office, or native
+Android `ACTION_VIEW` handling. Those remain explicit follow-ups.

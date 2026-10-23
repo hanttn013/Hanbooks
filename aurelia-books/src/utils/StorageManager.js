@@ -1,8 +1,32 @@
 // src/utils/StorageManager.js
 import { STORAGE_KEYS } from './storageKeys';
+import { migrateBookRecord, migrateBookmarkRecord, migrateProgressRecord } from './bookModelMigration';
 
 const DB_NAME = 'aurelia_db';
 const DB_VERSION = 4;
+const AUTO_BACKUP_LIMIT = 3;
+const FULL_BACKUP_LIMIT = 500 * 1024 * 1024;
+
+const MIME_BY_FORMAT = Object.freeze({
+  epub: 'application/epub+zip',
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  txt: 'text/plain',
+  md: 'text/markdown',
+  html: 'text/html',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  cbz: 'application/vnd.comicbook+zip',
+});
+
+function readBlobArrayBuffer(blob) {
+  if (typeof blob?.arrayBuffer === 'function') return blob.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+}
 
 export class StorageManager {
   static dbPromise = null;
@@ -59,7 +83,7 @@ export class StorageManager {
       const transaction = db.transaction('books', 'readonly');
       const store = transaction.objectStore('books');
       const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => resolve((request.result || []).map(migrateBookRecord));
       request.onerror = () => reject(request.error);
     });
   }
@@ -122,7 +146,7 @@ export class StorageManager {
       const transaction = db.transaction('progress', 'readonly');
       const store = transaction.objectStore('progress');
       const request = store.get(bookId);
-      request.onsuccess = () => resolve(request.result || null);
+      request.onsuccess = () => resolve(migrateProgressRecord(request.result || null));
       request.onerror = () => reject(request.error);
     });
   }
@@ -145,7 +169,7 @@ export class StorageManager {
       const store = transaction.objectStore('bookmarks');
       const index = store.index('bookId');
       const request = index.getAll(IDBKeyRange.only(bookId));
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => resolve((request.result || []).map(migrateBookmarkRecord));
       request.onerror = () => reject(request.error);
     });
   }
@@ -156,7 +180,7 @@ export class StorageManager {
       const transaction = db.transaction('bookmarks', 'readonly');
       const store = transaction.objectStore('bookmarks');
       const request = store.getAll();
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => resolve((request.result || []).map(migrateBookmarkRecord));
       request.onerror = () => reject(request.error);
     });
   }
@@ -241,7 +265,7 @@ export class StorageManager {
       ...rest,
       hasFileBlob: Boolean(fileBlob),
       coverUrl: typeof coverUrl === 'string' && coverUrl.startsWith('data:') ? null : coverUrl,
-      exportedWithoutEpub: true,
+      exportedWithoutFile: true,
     };
   }
 
@@ -264,9 +288,9 @@ export class StorageManager {
     return {
       app: 'ShanBooks',
       type: 'library-backup',
-      version: 1,
+      version: 2,
       exportedAt: Date.now(),
-      note: 'This backup stores library metadata, lists, bookmarks, progress, and settings. EPUB file blobs are not embedded.',
+      note: 'This data-only backup stores metadata, lists, bookmarks, progress, and settings. Original document files are not embedded.',
       books: books.map(book => this.stripBookForExport(book)),
       bookmarks,
       progress,
@@ -281,12 +305,12 @@ export class StorageManager {
       const transaction = db.transaction('progress', 'readonly');
       const store = transaction.objectStore('progress');
       const request = store.getAll();
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => resolve((request.result || []).map(migrateProgressRecord));
       request.onerror = () => reject(request.error);
     });
   }
 
-  static async importLibrarySnapshot(snapshot, { merge = true } = {}) {
+  static async importLibrarySnapshot(snapshot, { merge = true, filesByBookId = new Map() } = {}) {
     if (!snapshot || snapshot.type !== 'library-backup') {
       throw new Error('Invalid ShanBooks backup file.');
     }
@@ -308,13 +332,17 @@ export class StorageManager {
         stores.lists.clear();
       }
 
-      (snapshot.books || []).forEach(book => stores.books.put({
-        ...book,
-        fileBlob: null,
-        coverUrl: book.coverUrl || null,
-        restoredFromBackup: true,
-        restoredAt: Date.now(),
-      }));
+      (snapshot.books || []).forEach(book => {
+        const restoredFile = filesByBookId.get(book.id) || null;
+        stores.books.put({
+          ...migrateBookRecord(book),
+          fileBlob: restoredFile,
+          missingFile: Boolean(book.hasFileBlob && !restoredFile),
+          coverUrl: book.coverUrl || null,
+          restoredFromBackup: true,
+          restoredAt: Date.now(),
+        });
+      });
       (snapshot.bookmarks || []).forEach(bookmark => stores.bookmarks.put(bookmark));
       (snapshot.progress || []).forEach(item => stores.progress.put(item));
       (snapshot.lists || []).forEach(list => stores.lists.put(list));
@@ -332,7 +360,7 @@ export class StorageManager {
     const snapshot = await this.exportLibrarySnapshot();
     const db = await this.openDB();
     const item = {
-      id: 'latest',
+      id: `snapshot-${Date.now()}-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`,
       reason,
       createdAt: Date.now(),
       snapshot,
@@ -343,17 +371,75 @@ export class StorageManager {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+    const backups = await this.getAutoBackups();
+    if (backups.length > AUTO_BACKUP_LIMIT) {
+      const dbForCleanup = await this.openDB();
+      await new Promise((resolve, reject) => {
+        const transaction = dbForCleanup.transaction('backups', 'readwrite');
+        const store = transaction.objectStore('backups');
+        backups.slice(AUTO_BACKUP_LIMIT).forEach(backup => store.delete(backup.id));
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+    }
     localStorage.setItem(STORAGE_KEYS.lastBackupAt, String(item.createdAt));
     return item;
   }
 
   static async getLatestAutoBackup() {
+    const backups = await this.getAutoBackups();
+    return backups[0] || null;
+  }
+
+  static async getAutoBackups() {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('backups', 'readonly');
-      const request = transaction.objectStore('backups').get('latest');
-      request.onsuccess = () => resolve(request.result || null);
+      const request = transaction.objectStore('backups').getAll();
+      request.onsuccess = () => resolve((request.result || []).sort((left, right) => right.createdAt - left.createdAt));
       request.onerror = () => reject(request.error);
     });
+  }
+
+  static async exportFullBackup() {
+    const [{ zipSync, strToU8 }, snapshot, books] = await Promise.all([
+      import('fflate'),
+      this.exportLibrarySnapshot(),
+      this.getAllBooks(),
+    ]);
+    const entries = {};
+    const fileManifest = {};
+    let totalBytes = 0;
+    for (const book of books) {
+      if (!book.fileBlob) continue;
+      totalBytes += book.fileBlob.size;
+      if (totalBytes > FULL_BACKUP_LIMIT) {
+        throw new Error('Full backup is limited to 500 MB. Use the data-only backup for larger libraries.');
+      }
+      const extension = book.format || 'epub';
+      const path = `books/${encodeURIComponent(book.id)}.${extension}`;
+      entries[path] = new Uint8Array(await readBlobArrayBuffer(book.fileBlob));
+      fileManifest[book.id] = path;
+    }
+    const manifest = { ...snapshot, type: 'library-backup-full', fileManifest };
+    entries['manifest.json'] = strToU8(JSON.stringify(manifest));
+    return new Blob([zipSync(entries, { level: 0 })], { type: 'application/zip' });
+  }
+
+  static async importFullBackup(blob, { merge = true } = {}) {
+    const { unzipSync, strFromU8 } = await import('fflate');
+    if (!blob?.size || blob.size > FULL_BACKUP_LIMIT) throw new Error('Full backup is empty or exceeds the 500 MB limit.');
+    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    if (!entries['manifest.json']) throw new Error('Full backup manifest is missing.');
+    const manifest = JSON.parse(strFromU8(entries['manifest.json']));
+    if (manifest.type !== 'library-backup-full') throw new Error('This is not a ShanBooks full backup.');
+    const filesByBookId = new Map();
+    (manifest.books || []).forEach(book => {
+      const path = manifest.fileManifest?.[book.id];
+      const bytes = path ? entries[path] : null;
+      if (bytes) filesByBookId.set(book.id, new Blob([bytes], { type: MIME_BY_FORMAT[book.format] || 'application/octet-stream' }));
+    });
+    await this.importLibrarySnapshot({ ...manifest, type: 'library-backup' }, { merge, filesByBookId });
+    return { restoredBooks: manifest.books?.length || 0, restoredFiles: filesByBookId.size };
   }
 }

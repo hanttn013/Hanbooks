@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Phase 2 — Universal document readers
+
+- Added offline import and lazy reader adapters for PDF, DOCX, TXT, Markdown,
+  HTML, PPTX, CBZ, and existing EPUB files.
+- Added content-based format detection, SHA-256 duplicate identity, locator
+  migration, per-format reader smoke coverage, and bounded ZIP/RAR extraction.
+- Added worker-backed hashing/DOCX conversion, sanitized HTML output, generic
+  highlights/bookmarks, full ZIP backup/restore, storage quota status, and
+  Capacitor Share Target ingestion.
+- Added Phase 2 architecture notes and three-viewport import/reader evidence.
+
+Known limitations: PPTX fidelity is intentionally best-effort; FB2/MOBI and
+legacy binary Office files are rejected; Android `ACTION_VIEW`/"Open with"
+handling still needs a native-device pass; dependency advisories remain open.
+
 ### Phase 1 — Stability fixes
 
 - Made metadata extraction resumable, concurrency-limited, and retryable.

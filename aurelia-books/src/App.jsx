@@ -8,6 +8,7 @@ import HomeScreen from './components/Home/HomeScreen';
 import LibraryScreen from './components/Library/LibraryScreen';
 import { useLibrary } from './hooks/useLibrary';
 import { useSettings } from './hooks/useSettings';
+import { initializeNativeShareTarget } from './utils/nativeShareTarget';
 import './styles/fonts.css';
 import './styles/globals.css';
 import './styles/themes.css';
@@ -49,10 +50,33 @@ export default function App() {
   const libraryBooksRef = useRef([]);
 
   const library = useLibrary();
+  const { addBook } = library;
   const { settings, updateSetting } = useSettings();
   const currentDetailBook = detailBook
     ? library.allBooksRaw.find(book => book.id === detailBook.id) || detailBook
     : null;
+
+  useEffect(() => {
+    let active = true;
+    let cleanup = () => {};
+    initializeNativeShareTarget(async files => {
+      let imported = 0;
+      let skipped = 0;
+      for (const file of files) {
+        const result = await addBook(file, null, { fastMetadata: true });
+        if (result.skippedDuplicate) skipped += 1;
+        else imported += 1;
+      }
+      window.alert(`Shared documents: ${imported} imported, ${skipped} duplicates skipped.`);
+    }).then(remove => {
+      if (active) cleanup = remove;
+      else remove();
+    }).catch(error => console.warn('Native share target is unavailable:', error));
+    return () => {
+      active = false;
+      cleanup();
+    };
+  }, [addBook]);
   const instantMotion = settings.reducedMotion
     ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } }
     : null;

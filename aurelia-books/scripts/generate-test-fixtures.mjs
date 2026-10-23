@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 
@@ -67,5 +67,16 @@ await writeFile(path.join(outputDir, 'sample.cbz'), makeZip({ '001.png': onePixe
 await writeFile(path.join(outputDir, 'corrupt.epub'), 'not an epub archive', 'utf8');
 await writeFile(path.join(outputDir, 'empty.txt'), Buffer.alloc(0));
 await writeFile(path.join(outputDir, 'legacy.doc'), Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]));
+
+await writeFile(path.join(outputDir, 'mixed-documents.zip'), makeZip({
+  'library/sample.pdf': await readFile(path.join(outputDir, 'sample.pdf')),
+  'library/sample.docx': await readFile(path.join(outputDir, 'sample.docx')),
+  'notes/sample.md': await readFile(path.join(outputDir, 'sample.md')),
+  'ignored.exe': Buffer.from('not supported'),
+}));
+
+await writeFile(path.join(outputDir, 'too-deep.zip'), makeZip({
+  '1/2/3/4/5/6/7/8/9/10/11/12/13/sample.txt': Buffer.from('too deep'),
+}));
 
 console.log(`Generated deterministic fixtures in ${outputDir}`);

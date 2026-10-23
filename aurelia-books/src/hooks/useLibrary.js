@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { DEMO_BOOKS } from '../data/demoBooks';
 import { StorageManager } from '../utils/StorageManager';
 import { extractEpubMetadata, normalizeBookMetadata } from '../utils/epubMetadata';
+import { extractDocumentMetadata } from '../utils/documentMetadata';
+import { analyzeImportFile } from '../utils/importWorkerClient';
 import { getLibraryStats } from '../utils/libraryStats';
 import { includesSearchText } from '../utils/searchText';
 import { migrateLegacyLocalStorage, readProgressPercent, STORAGE_KEYS } from '../utils/storageKeys';
@@ -58,40 +60,29 @@ function normalizeListName(value) {
   return String(value || '').normalize('NFC').trim().toLowerCase();
 }
 
-async function sampleFileHash(file) {
-  if (!file?.slice) return '';
-  const chunkSize = 64 * 1024;
-  const size = file.size || 0;
-  const parts = [file.slice(0, Math.min(chunkSize, size))];
-  if (size > chunkSize) parts.push(file.slice(Math.max(0, size - chunkSize), size));
-  const sample = new Uint8Array(await new Blob(parts).arrayBuffer());
-  let hash = 2166136261;
-  for (let i = 0; i < sample.length; i += 1) {
-    hash ^= sample[i];
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16);
-}
-
-async function buildDuplicateKeys(file, metadata = {}) {
-  const title = normalizeIdentity(metadata.title || file?.name?.replace(/\.epub$/i, ''));
+function buildDuplicateKeys(file, metadata = {}, analysis = {}) {
+  const title = normalizeIdentity(metadata.title || file?.name?.replace(/\.[^.]+$/i, ''));
   const author = normalizeIdentity(metadata.author || '');
+  const format = metadata.format || analysis.detection?.format || 'epub';
   const size = metadata.fileSize || file?.size || 0;
-  const sampleHash = await sampleFileHash(file);
   return {
-    titleAuthorKey: [title, author].filter(Boolean).join('|'),
-    fileKey: [size, sampleHash].filter(Boolean).join('|'),
+    titleAuthorKey: [format, title, author].filter(Boolean).join('|'),
+    fileKey: [size, analysis.hash].filter(Boolean).join('|'),
   };
 }
 
-function basicMetadataFromFile(file) {
-  const rawName = String(file?.name || 'Untitled Book').replace(/\.epub$/i, '').trim();
+function basicMetadataFromFile(file, format = 'epub') {
+  const rawName = String(file?.name || 'Untitled Book').replace(/\.[^.]+$/i, '').trim();
   const [titlePart, ...authorParts] = rawName.split(/\s+-\s+/);
   const author = authorParts.join(' - ').trim();
+  let colorSeed = 0;
+  for (const character of rawName) colorSeed = ((colorSeed * 31) + character.codePointAt(0)) >>> 0;
+  const hue = colorSeed % 360;
   return {
     title: titlePart?.trim() || rawName || 'Untitled Book',
     author: author || 'Unknown Author',
-    genre: 'Fiction',
+    genre: format === 'epub' ? 'Fiction' : 'Document',
+    format,
     description: '',
     publisher: '',
     language: '',
@@ -99,8 +90,8 @@ function basicMetadataFromFile(file) {
     fileSize: file?.size || 0,
     chapterCount: 0,
     estimatedPages: Math.max(1, Math.round((file?.size || 0) / 7000)),
-    coverColor: '#2D4A6E',
-    coverAccent: '#C4A35A',
+    coverColor: `hsl(${hue} 36% 32%)`,
+    coverAccent: `hsl(${(hue + 42) % 360} 48% 65%)`,
     coverUrl: null,
     metadataPending: true,
     metadataStatus: 'pending',
@@ -165,6 +156,7 @@ export function useLibrary() {
             const bookRecord = {
               ...demo,
               ...metadata,
+              format: 'epub',
               title: metadata.title || demo.title,
               author: metadata.author || demo.author,
               coverUrl: metadata.coverUrl,
@@ -174,7 +166,7 @@ export function useLibrary() {
           } catch (e) {
             console.error('Failed to pre-fetch demo book:', demo.title, e);
             // Fallback save metadata only
-            await StorageManager.saveBook({ ...demo, ...normalizeBookMetadata(demo), fileBlob: null });
+            await StorageManager.saveBook({ ...demo, ...normalizeBookMetadata(demo), format: 'epub', fileBlob: null });
           }
         }
         localStorage.setItem(STORAGE_KEYS.seededDemo, '1');
@@ -195,6 +187,7 @@ export function useLibrary() {
           beta: book.beta || demoFallback?.beta || '',
           chapterCount: book.chapterCount || demoFallback?.chapterCount || 0,
           estimatedPages: book.estimatedPages || demoFallback?.estimatedPages || 0,
+          format: book.format || 'epub',
         };
         if (normalizedBook.metadataStatus === 'processing') {
           normalizedBook.metadataStatus = 'pending';
@@ -261,31 +254,46 @@ export function useLibrary() {
   const addBook = useCallback((file, metadata, options = {}) => {
     const importTask = importQueueRef.current.then(async () => {
       if (!file || file.size === 0) throw new Error('Cannot import an empty file.');
+      const analysis = options.analysis || await analyzeImportFile(file);
+      const detection = analysis.detection;
+      if (!detection?.supported || detection.format === 'zip' || detection.format === 'rar') {
+        throw new Error(detection?.message || `Unsupported document format: ${detection?.format || 'unknown'}.`);
+      }
+      const format = options.format || detection.format;
       const bookMetadata = metadata
-        || (options.fastMetadata ? basicMetadataFromFile(file) : await extractEpubMetadata(file, { fileName: file.name }));
-      const duplicateKeys = await buildDuplicateKeys(file, bookMetadata);
+        || (options.fastMetadata
+          ? basicMetadataFromFile(file, format)
+          : await extractDocumentMetadata(file, format, { fileName: file.name }));
+      const duplicateKeys = buildDuplicateKeys(file, bookMetadata, analysis);
       const duplicate = booksRef.current.find(item => {
-        const storedTitleAuthor = item.titleAuthorKey || [normalizeIdentity(item.title), normalizeIdentity(item.author)].filter(Boolean).join('|');
+        const storedTitleAuthor = item.titleAuthorKey
+          || [item.format || 'epub', normalizeIdentity(item.title), normalizeIdentity(item.author)].filter(Boolean).join('|');
         const storedFile = item.fileKey || '';
         return Boolean(duplicateKeys.titleAuthorKey && storedTitleAuthor === duplicateKeys.titleAuthorKey)
           || Boolean(duplicateKeys.fileKey && storedFile === duplicateKeys.fileKey);
       });
-      if (duplicate) return { ...duplicate, skippedDuplicate: true };
+      const duplicateStrategy = options.duplicateStrategy || 'ask';
+      if (duplicate && duplicateStrategy === 'ask') {
+        return { ...duplicate, skippedDuplicate: true, duplicateOf: duplicate.id, analysis };
+      }
 
       const isPendingMetadata = options.fastMetadata || bookMetadata.metadataStatus === 'pending';
       const book = {
-      id: uuidv4(),
-      title: bookMetadata.title || file.name.replace(/\.epub$/i, ''),
+      id: duplicate && duplicateStrategy === 'replace' ? duplicate.id : uuidv4(),
+      title: bookMetadata.title || file.name.replace(/\.[^.]+$/i, ''),
       author: bookMetadata.author || 'Unknown Author',
+      format,
+      locatorVersion: 1,
+      fileName: file.name,
       isDemo: false,
       coverColor: bookMetadata.coverColor || '#2D4A6E',
       coverAccent: bookMetadata.coverAccent || '#C4A35A',
       coverUrl: bookMetadata.coverUrl || null,
       fileBlob: file,
-      status: 'unread',
-      isFavorite: false,
-      addedAt: Date.now(),
-      lastOpenedAt: null,
+      status: duplicate && duplicateStrategy === 'replace' ? duplicate.status : 'unread',
+      isFavorite: duplicate && duplicateStrategy === 'replace' ? duplicate.isFavorite : false,
+      addedAt: duplicate && duplicateStrategy === 'replace' ? duplicate.addedAt : Date.now(),
+      lastOpenedAt: duplicate && duplicateStrategy === 'replace' ? duplicate.lastOpenedAt : null,
       totalLocations: 0,
       genre: bookMetadata.genre || 'Fiction',
       description: bookMetadata.description || '',
@@ -307,10 +315,14 @@ export function useLibrary() {
       metadataExtractedAt: isPendingMetadata ? null : (bookMetadata.metadataExtractedAt || Date.now()),
       titleAuthorKey: duplicateKeys.titleAuthorKey,
       fileKey: duplicateKeys.fileKey,
+      contentHash: analysis.hash,
+      hashStrategy: analysis.strategy,
       sourcePath: file.archivePath || file.webkitRelativePath || file.name || '',
       };
       await StorageManager.saveBook(book);
-      booksRef.current = [book, ...booksRef.current];
+      booksRef.current = duplicate && duplicateStrategy === 'replace'
+        ? booksRef.current.map(item => item.id === duplicate.id ? book : item)
+        : [book, ...booksRef.current];
       setBooks([...booksRef.current]);
       queueAutoBackup('book-imported');
       return book;
@@ -363,7 +375,7 @@ export function useLibrary() {
       metadataError: null,
     });
     try {
-      const metadata = await extractEpubMetadata(book.fileBlob, {
+      const metadata = await extractDocumentMetadata(book.fileBlob, book.format || 'epub', {
         title: book.title,
         author: book.author,
         genre: book.genre,

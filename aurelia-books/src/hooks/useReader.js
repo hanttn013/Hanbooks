@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { App as CapacitorApp } from '@capacitor/app';
 import { StorageManager } from '../utils/StorageManager';
 import { migrateLegacyLocalStorage, progressStorageKey, STORAGE_KEYS } from '../utils/storageKeys';
+import { createLocator, parseLocator } from '../readers/locator';
 
 const EMPTY_STATS = {
   totalReadingMs: 0,
@@ -65,9 +66,16 @@ export function useReader(bookId) {
     };
   }, [bookId]);
 
-  const saveProgress = useCallback(async (cfi, percentage, chapterTitle) => {
+  const saveProgress = useCallback(async (position, percentage, chapterTitle) => {
     if (!bookId) return;
-    const record = { bookId, cfi, percentage, chapterTitle, lastReadAt: Date.now() };
+    const parsed = parseLocator(position);
+    const cfi = parsed?.format === 'epub'
+      ? parsed.cfi
+      : (typeof position === 'string' && position.startsWith('epubcfi(') ? position : null);
+    const locator = parsed
+      ? createLocator(parsed.format, Object.fromEntries(Object.entries(parsed).filter(([key]) => key !== 'format')))
+      : (cfi ? createLocator('epub', { cfi }) : String(position || ''));
+    const record = { bookId, locator, cfi, percentage, chapterTitle, lastReadAt: Date.now() };
     await StorageManager.saveProgress(record);
     if (mountedRef.current) setProgress(record);
     try {
@@ -90,14 +98,24 @@ export function useReader(bookId) {
     });
   }, [bookId, commitStats]);
 
-  const addBookmark = useCallback(async (cfi, chapterTitle, excerpt) => {
+  const addBookmark = useCallback(async (position, chapterTitle, excerpt, note = '') => {
     if (!bookId) return null;
+    const parsed = parseLocator(position);
+    const cfi = parsed?.format === 'epub'
+      ? parsed.cfi
+      : (typeof position === 'string' && position.startsWith('epubcfi(') ? position : null);
+    const locator = parsed
+      ? createLocator(parsed.format, Object.fromEntries(Object.entries(parsed).filter(([key]) => key !== 'format')))
+      : (cfi ? createLocator('epub', { cfi }) : String(position || ''));
     const bookmark = {
       id: uuidv4(),
       bookId,
+      locator,
       cfi,
       chapterTitle,
       excerpt: excerpt ? excerpt.slice(0, 120) : '',
+      note: String(note || '').slice(0, 1000),
+      type: excerpt ? 'highlight' : 'bookmark',
       createdAt: Date.now(),
     };
     const saved = await StorageManager.addBookmark(bookmark);
@@ -110,9 +128,13 @@ export function useReader(bookId) {
     setBookmarks(prev => prev.filter(b => b.id !== id));
   }, []);
 
-  const isBookmarked = useCallback((cfi) => {
-    if (!cfi) return false;
-    return bookmarks.some(b => b.cfi === cfi);
+  const isBookmarked = useCallback((position) => {
+    if (!position) return false;
+    const parsed = parseLocator(position);
+    const normalized = parsed
+      ? createLocator(parsed.format, Object.fromEntries(Object.entries(parsed).filter(([key]) => key !== 'format')))
+      : String(position);
+    return bookmarks.some(bookmark => bookmark.locator === normalized || bookmark.cfi === position);
   }, [bookmarks]);
 
   const startReading = useCallback(() => {

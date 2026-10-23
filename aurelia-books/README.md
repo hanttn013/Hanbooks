@@ -1,4 +1,4 @@
-# Aurelia Books
+# ShanBooks
 
 Main Hanbooks application: a React + Vite EPUB reader packaged for Android with Capacitor.
 

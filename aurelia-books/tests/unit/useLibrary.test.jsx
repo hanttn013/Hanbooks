@@ -4,6 +4,10 @@ import { useLibrary } from '../../src/hooks/useLibrary';
 import { extractEpubMetadata } from '../../src/utils/epubMetadata';
 import { StorageManager } from '../../src/utils/StorageManager';
 
+vi.mock('../../src/utils/importWorkerClient', () => ({
+  analyzeImportFile: vi.fn(async file => ({ detection: { format: 'epub', supported: true }, hash: await file.text() })),
+}));
+
 vi.mock('../../src/utils/epubMetadata', () => ({
   extractEpubMetadata: vi.fn(async (_file, fallback = {}) => ({
     ...fallback,
@@ -63,6 +67,33 @@ describe('useLibrary imports', () => {
 
     expect(imported.filter(book => book.skippedDuplicate)).toHaveLength(1);
     expect(imported.filter(book => !book.skippedDuplicate)).toHaveLength(1);
+  });
+
+  it('keeps distinct non-Latin titles as separate documents', async () => {
+    const { result } = renderHook(() => useLibrary());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    let imported;
+    await act(async () => {
+      imported = await Promise.all([
+        result.current.addBook(new File(['one'], '第一本.epub'), null, { fastMetadata: true }),
+        result.current.addBook(new File(['two'], '第二本.epub'), null, { fastMetadata: true }),
+      ]);
+    });
+    expect(imported.every(book => !book.skippedDuplicate)).toBe(true);
+  });
+
+  it('does not let missing files starve valid pending metadata work', async () => {
+    for (const id of ['missing-a', 'missing-b']) {
+      await StorageManager.saveBook({ id, title: id, metadataStatus: 'pending', fileBlob: null });
+    }
+    const { result } = renderHook(() => useLibrary());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.failedMetadataTotal).toBe(2));
+    let imported;
+    await act(async () => {
+      imported = await result.current.addBook(new File(['valid'], 'Queue survivor.epub'), null, { fastMetadata: true });
+    });
+    await waitFor(() => expect(result.current.allBooksRaw.find(book => book.id === imported.id)?.metadataStatus).toBe('ready'));
   });
 
   it('rejects an empty file without changing the library', async () => {

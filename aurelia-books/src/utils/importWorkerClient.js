@@ -5,6 +5,14 @@ let worker;
 let sequence = 0;
 const pending = new Map();
 
+function rejectPending(error) {
+  pending.forEach(task => {
+    window.clearTimeout(task.timeout);
+    task.reject(error);
+  });
+  pending.clear();
+}
+
 function getWorker() {
   if (typeof Worker === 'undefined') return null;
   if (!worker) {
@@ -18,8 +26,12 @@ function getWorker() {
       else task.reject(Object.assign(new Error(event.data.error?.message), { code: event.data.error?.code }));
     };
     worker.onerror = event => {
-      pending.forEach(task => task.reject(new Error(event.message || 'Import worker failed.')));
-      pending.clear();
+      rejectPending(new Error(event.message || 'Import worker failed.'));
+      worker?.terminate();
+      worker = null;
+    };
+    worker.onmessageerror = () => {
+      rejectPending(new Error('Import worker returned an unreadable response.'));
       worker?.terminate();
       worker = null;
     };
@@ -40,16 +52,18 @@ export async function analyzeImportFile(file) {
       reject(new Error('File analysis timed out.'));
     }, 120_000);
     pending.set(id, { resolve, reject, timeout });
-    activeWorker.postMessage({ id, file });
+    try {
+      activeWorker.postMessage({ id, file });
+    } catch (error) {
+      window.clearTimeout(timeout);
+      pending.delete(id);
+      reject(error);
+    }
   });
 }
 
 export function destroyImportWorker() {
   worker?.terminate();
   worker = null;
-  pending.forEach(task => {
-    window.clearTimeout(task.timeout);
-    task.reject(new Error('Import worker was stopped.'));
-  });
-  pending.clear();
+  rejectPending(new Error('Import worker was stopped.'));
 }

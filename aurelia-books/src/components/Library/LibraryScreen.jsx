@@ -31,6 +31,11 @@ function progressFor(book) {
   return readProgressPercent(book);
 }
 
+function MetadataStatus({ book }) {
+  const status = { processing: 'running', ready: 'done' }[book.metadataStatus] || book.metadataStatus || 'done';
+  return <span data-metadata-status={status} role="status" title={book.metadataError || ''}>{status}{status === 'failed' && book.metadataError ? `: ${book.metadataError}` : ''}</span>;
+}
+
 function SelectionBadge({ checked }) {
   return (
     <span className={`${styles.selectionBadge} ${checked ? styles.selectionChecked : ''}`}>
@@ -93,6 +98,7 @@ const BookGridItem = memo(function BookGridItem({
       </span>
       <span className={styles.bookTitle}>{book.title}</span>
       <span className={styles.bookAuthor}>{book.author}</span>
+      <MetadataStatus book={book} />
       <span className={styles.bookMeta}>{String(book.format || 'epub').toUpperCase()} · {pct}% complete</span>
     </button>
   );
@@ -111,6 +117,7 @@ const BookListItem = memo(function BookListItem({ book, selected, selecting, pct
         <span className={styles.listInfo}>
           <strong>{book.title}</strong>
           <small>{book.author}</small>
+          <MetadataStatus book={book} />
           <small>{String(book.format || 'epub').toUpperCase()} · {book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {pct}%</small>
         </span>
         {selecting && <SelectionBadge checked={selected} />}
@@ -265,7 +272,14 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
         if (isArchiveFile(file)) {
           setImportStatus(`Extracting ${file.name}...`);
           updateItem(selectedId, { status: 'processing', message: 'Inspecting archive...' });
-          const archive = await extractDocumentsFromArchive(file);
+          let archive;
+          try {
+            archive = await extractDocumentsFromArchive(file);
+          } catch (error) {
+            errorCount += 1;
+            updateItem(selectedId, { status: 'error', message: error.message || 'Invalid archive' });
+            continue;
+          }
           if (archive.files.length === 0) {
             errorCount++;
             updateItem(selectedId, { status: 'error', message: 'No supported documents in archive' });
@@ -371,6 +385,9 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
               <button className="btn-icon" onClick={() => setImportSummary(null)}>x</button>
             </div>
             <div className="modal-scroll" style={{ padding: '0 20px 24px' }}>
+              <ul aria-label="Import results">
+                {importItems.map(item => <li key={item.id} data-import-status={item.status}><strong>{item.name}</strong> — {item.message}</li>)}
+              </ul>
               <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
                 Đã xử lý {importSummary.totalFiles} tài liệu
               </p>

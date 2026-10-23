@@ -87,9 +87,15 @@ export class TextReaderAdapter extends BaseReaderAdapter {
   async goTo(locator) {
     const parsed = parseLocator(locator) || { format: this.format, anchor: 'top' };
     const anchor = parsed.anchor || 'top';
+    const offset = Number.isFinite(parsed.offset)
+      ? Math.min(1, Math.max(0, parsed.offset))
+      : null;
     const index = Math.max(0, (this.toc || []).findIndex(item => item.id === anchor));
-    const percentage = this.toc?.length > 1 ? index / (this.toc.length - 1) : 0;
-    this.location = { locator: createLocator(this.format, { anchor }), percentage };
+    const percentage = offset ?? (this.toc?.length > 1 ? index / (this.toc.length - 1) : 0);
+    this.location = {
+      locator: createLocator(this.format, offset === null ? { anchor } : { anchor, offset }),
+      percentage,
+    };
     this.emitRelocate(this.location);
     return this.location;
   }

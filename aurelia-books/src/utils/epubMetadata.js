@@ -1,4 +1,5 @@
 import ePub from 'epubjs';
+import { destroyEpubBook } from './destroyEpubBook';
 
 const PREVIEW_SECTION_LIMIT = 6;
 const PREVIEW_CHAR_LIMIT = 1200;
@@ -235,7 +236,7 @@ async function extractPreviewAndStats(book) {
   };
 }
 
-export async function extractEpubMetadata(fileOrBlob, fallback = {}) {
+export async function extractEpubMetadata(fileOrBlob, fallback = {}, { strict = false } = {}) {
   let book = null;
   try {
     const arrayBuffer = await fileOrBlob.arrayBuffer();
@@ -277,6 +278,11 @@ export async function extractEpubMetadata(fileOrBlob, fallback = {}) {
       metadataExtractedAt: Date.now(),
     };
   } catch (err) {
+    if (strict) {
+      const error = new Error('Could not read EPUB metadata. The file may be damaged or invalid.', { cause: err });
+      error.code = 'INVALID_EPUB';
+      throw error;
+    }
     console.warn('EPUB metadata extraction failed:', err);
     return {
       title: fallback.title || fallback.fileName?.replace(/\.epub$/i, '') || 'Untitled Book',
@@ -293,7 +299,7 @@ export async function extractEpubMetadata(fileOrBlob, fallback = {}) {
       metadataExtractedAt: Date.now(),
     };
   } finally {
-    try { book?.destroy(); } catch { /* ignore destroy failure */ }
+    try { destroyEpubBook(book); } catch { /* ignore destroy failure */ }
   }
 }
 

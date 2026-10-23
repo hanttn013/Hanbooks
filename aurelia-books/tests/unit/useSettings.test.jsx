@@ -20,4 +20,21 @@ describe('useSettings storage migration', () => {
     expect(JSON.parse(localStorage.getItem('shanbooks_settings')).fontSize).toBe(21);
     expect(localStorage.getItem('aurelia_settings')).toBeNull();
   });
+
+  it('keeps existing ShanBooks settings and removes obsolete reader options', () => {
+    localStorage.setItem('aurelia_settings', JSON.stringify({ fontSize: 21 }));
+    localStorage.setItem('shanbooks_settings', JSON.stringify({
+      fontSize: 19,
+      pageTurnEffect: 'realistic',
+      chapterFlow: 'manual',
+    }));
+
+    const { result } = renderHook(() => useSettings());
+
+    expect(result.current.settings.fontSize).toBe(19);
+    expect(result.current.settings).not.toHaveProperty('pageTurnEffect');
+    expect(result.current.settings).not.toHaveProperty('chapterFlow');
+    expect(localStorage.getItem('aurelia_settings')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('shanbooks_settings'))).not.toHaveProperty('pageTurnEffect');
+  });
 });

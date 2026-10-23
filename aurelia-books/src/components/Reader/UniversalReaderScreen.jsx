@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import { createReaderAdapter } from '../../readers/readerRegistry';
 import { createLocator, locatorFromProgress, parseLocator } from '../../readers/locator';
 import { useReader } from '../../hooks/useReader';
@@ -108,20 +109,91 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
   const locationRef = useRef(null);
   const onBookUpdateRef = useRef(onBookUpdate);
   const scrollSaveTimerRef = useRef(null);
+  const pendingScrollLocationRef = useRef(null);
+  const flushProgressRef = useRef(() => {});
   const { progress, bookmarks, saveProgress, addBookmark, isBookmarked, startReading, stopReading } = useReader(book.id);
 
   useEffect(() => {
     onBookUpdateRef.current = onBookUpdate;
   }, [onBookUpdate]);
 
+  const saveLocation = useCallback((next) => {
+    if (!next?.locator) return;
+    const percentage = Math.min(100, Math.max(0, (Number(next.percentage) || 0) * 100));
+    return saveProgress(next.locator, percentage, next.chapterTitle || '').catch(error => {
+      console.warn('Could not save document position:', error);
+    });
+  }, [saveProgress]);
+
   const persistLocation = useCallback((next) => {
     if (!next?.locator) return;
     locationRef.current = next;
     setLocation(next);
-    saveProgress(next.locator, next.percentage || 0, next.chapterTitle || '').catch(error => {
-      console.warn('Could not save document position:', error);
+    return saveLocation(next);
+  }, [saveLocation]);
+
+  const captureReflowableLocation = useCallback(() => {
+    if (!['txt', 'md', 'html', 'docx'].includes(format)) return null;
+    const content = contentRef.current;
+    if (!content) return null;
+    const paged = settings.readingMode === 'classic';
+    const position = paged ? content.scrollLeft : content.scrollTop;
+    const maximum = paged
+      ? Math.max(1, content.scrollWidth - content.clientWidth)
+      : Math.max(1, content.scrollHeight - content.clientHeight);
+    const percentage = Math.min(1, Math.max(0, position / maximum));
+    const parsedLocation = parseLocator(locationRef.current?.locator) || { format };
+    const payload = Object.fromEntries(Object.entries(parsedLocation).filter(([key]) => key !== 'format' && key !== 'offset'));
+    return { locator: createLocator(format, { ...payload, offset: percentage }), percentage };
+  }, [format, settings.readingMode]);
+
+  const flushLatestProgress = useCallback(() => {
+    window.clearTimeout(scrollSaveTimerRef.current);
+    scrollSaveTimerRef.current = null;
+    const latest = pendingScrollLocationRef.current || captureReflowableLocation() || locationRef.current;
+    pendingScrollLocationRef.current = null;
+    if (!latest?.locator) return;
+    locationRef.current = latest;
+    return saveLocation(latest);
+  }, [captureReflowableLocation, saveLocation]);
+
+  useEffect(() => {
+    flushProgressRef.current = flushLatestProgress;
+  }, [flushLatestProgress]);
+
+  useEffect(() => {
+    let nativeListener = null;
+    let disposed = false;
+    const flushProgress = () => flushLatestProgress();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushProgress();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', flushProgress);
+    window.addEventListener('beforeunload', flushProgress);
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) flushProgress();
+    }).then(listener => {
+      if (disposed) listener.remove();
+      else nativeListener = listener;
+    }).catch(() => {
+      nativeListener = null;
     });
-  }, [saveProgress]);
+
+    return () => {
+      disposed = true;
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', flushProgress);
+      window.removeEventListener('beforeunload', flushProgress);
+      nativeListener?.remove?.();
+    };
+  }, [flushLatestProgress]);
+
+  const closeReader = useCallback(() => {
+    flushLatestProgress();
+    onClose();
+  }, [flushLatestProgress, onClose]);
 
   useEffect(() => {
     let active = true;
@@ -156,14 +228,12 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
     return () => {
       active = false;
       unsubscribe();
-      const latest = locationRef.current;
-      if (latest?.locator) saveProgress(latest.locator, latest.percentage || 0, latest.chapterTitle || '');
+      flushProgressRef.current();
       stopReading();
       adapterRef.current?.destroy();
       adapterRef.current = null;
-      window.clearTimeout(scrollSaveTimerRef.current);
     };
-  }, [book, format, persistLocation, saveProgress, startReading, stopReading]);
+  }, [book, format, persistLocation, startReading, stopReading]);
 
   useEffect(() => {
     if (!adapter || restoredRef.current || !progress) return;
@@ -221,19 +291,15 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
 
   const trackReflowableScroll = () => {
     if (!['txt', 'md', 'html', 'docx'].includes(format) || !contentRef.current) return;
+    const next = captureReflowableLocation();
+    if (!next) return;
+    pendingScrollLocationRef.current = next;
     window.clearTimeout(scrollSaveTimerRef.current);
     scrollSaveTimerRef.current = window.setTimeout(() => {
-      const content = contentRef.current;
-      if (!content) return;
-      const paged = settings.readingMode === 'classic';
-      const position = paged ? content.scrollLeft : content.scrollTop;
-      const maximum = paged
-        ? Math.max(1, content.scrollWidth - content.clientWidth)
-        : Math.max(1, content.scrollHeight - content.clientHeight);
-      const percentage = Math.min(1, Math.max(0, position / maximum));
-      const parsedLocation = parseLocator(locationRef.current?.locator) || { format };
-      const payload = Object.fromEntries(Object.entries(parsedLocation).filter(([key]) => key !== 'format' && key !== 'offset'));
-      persistLocation({ locator: createLocator(format, { ...payload, offset: percentage }), percentage });
+      scrollSaveTimerRef.current = null;
+      const pending = pendingScrollLocationRef.current;
+      pendingScrollLocationRef.current = null;
+      if (pending) persistLocation(pending);
     }, 300);
   };
 
@@ -268,7 +334,7 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
     <main className={styles.state}>
       <h1>Could not open this document</h1>
       <p>{error.message}</p>
-      <button className="btn-primary" onClick={onClose}>Return to library</button>
+      <button className="btn-primary" onClick={closeReader}>Return to library</button>
     </main>
   );
 
@@ -278,7 +344,7 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
   return (
     <main className={styles.reader} style={readerStyle} data-format={format}>
       <header className={`${styles.toolbar} safe-top`}>
-        <button onClick={onClose} aria-label="Close reader">←</button>
+        <button onClick={closeReader} aria-label="Close reader">←</button>
         <div className={styles.title}>
           <strong>{book.title}</strong>
           <small>{String(format).toUpperCase()} · {Math.round((location?.percentage || 0) * 100)}%</small>

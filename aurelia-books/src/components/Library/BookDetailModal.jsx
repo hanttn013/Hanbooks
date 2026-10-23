@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
 import { StorageManager } from '../../utils/StorageManager';
-import { extractEpubMetadata, looksLikeTocText } from '../../utils/epubMetadata';
+import { looksLikeTocText } from '../../utils/epubMetadata';
+import { extractDocumentMetadata } from '../../utils/documentMetadata';
 import { readProgressPercent } from '../../utils/storageKeys';
 
 function progressFor(book) {
@@ -83,8 +84,12 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     if (!book.fileBlob || isRefreshingMeta) return;
     setIsManualRefreshingMeta(true);
     try {
+      if (repairMetadata) {
+        await repairMetadata(book.id, { force: true });
+        return;
+      }
       await new Promise(resolve => window.setTimeout(resolve, 50));
-      const metadata = await extractEpubMetadata(book.fileBlob, {
+      const metadata = await extractDocumentMetadata(book.fileBlob, book.format || 'epub', {
         title: book.title,
         author: book.author,
         genre: book.genre,

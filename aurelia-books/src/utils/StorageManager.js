@@ -99,6 +99,24 @@ export class StorageManager {
     });
   }
 
+  static async updateExistingBook(id, updates) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('books', 'readwrite');
+      const store = tx.objectStore('books');
+      let updated = null;
+      const request = store.get(id);
+      request.onsuccess = () => {
+        if (!request.result) return;
+        updated = { ...request.result, ...updates };
+        store.put(updated);
+      };
+      tx.oncomplete = () => resolve(updated);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error('Book update aborted.'));
+    });
+  }
+
   static async deleteBook(id) {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {

@@ -8,11 +8,18 @@ function inferBookFormat(book = {}) {
 
 export function migrateBookRecord(book) {
   if (!book) return book;
-  return {
+  const migrated = {
     ...book,
     format: book.format || inferBookFormat(book),
     locatorVersion: book.locatorVersion || 1,
   };
+  if (book.metadataPending === true && !book.metadataStatus) {
+    migrated.metadataStatus = 'pending';
+    migrated.metadataAttempts = book.metadataAttempts || 0;
+    migrated.metadataNextRetryAt = book.metadataNextRetryAt || null;
+    migrated.metadataError = book.metadataError || null;
+  }
+  return migrated;
 }
 
 export function migrateProgressRecord(progress) {

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createReaderAdapter } from '../../src/readers/readerRegistry';
+import { createLocator, parseLocator } from '../../src/readers/locator';
 
 async function fixture(name, type = '') {
   const bytes = await readFile(path.resolve('tests', 'fixtures', name));
@@ -16,6 +17,9 @@ describe('reflowable reader adapters', () => {
     expect(adapter.getContent()).toContain('Nội dung UTF-16');
     expect(adapter.getLocation()).toMatchObject({ percentage: 0 });
     expect(await adapter.getMetadata()).toMatchObject({ format: 'txt', encoding: 'utf-16le' });
+    const restored = await adapter.goTo(createLocator('txt', { anchor: 'top', offset: 0.42 }));
+    expect(parseLocator(restored.locator)).toMatchObject({ anchor: 'top', offset: 0.42 });
+    expect(restored.percentage).toBe(0.42);
     adapter.destroy();
   });
 

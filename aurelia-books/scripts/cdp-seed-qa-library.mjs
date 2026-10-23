@@ -111,9 +111,9 @@ const expression = String.raw`
     tx.oncomplete = resolve;
     tx.onerror = () => reject(tx.error);
   });
-  localStorage.setItem('aurelia_seeded_demo', '1');
-  localStorage.setItem('aurelia_seeded_default_lists', '1');
-  localStorage.setItem('aurelia_sort', 'addedAt');
+  localStorage.setItem('shanbooks_seeded_demo', '1');
+  localStorage.setItem('shanbooks_seeded_default_lists', '1');
+  localStorage.setItem('shanbooks_sort', 'addedAt');
   location.reload();
   return { books: books.length, lists: lists.length, realBooks: realBooks.length };
 })()

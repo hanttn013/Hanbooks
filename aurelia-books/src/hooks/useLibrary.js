@@ -52,7 +52,7 @@ function normalizeIdentity(value) {
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }
 
@@ -189,7 +189,7 @@ export function useLibrary() {
           estimatedPages: book.estimatedPages || demoFallback?.estimatedPages || 0,
           format: book.format || 'epub',
         };
-        if (normalizedBook.metadataStatus === 'processing') {
+        if (['processing', 'running'].includes(normalizedBook.metadataStatus)) {
           normalizedBook.metadataStatus = 'pending';
           normalizedBook.metadataPending = true;
           normalizedBook.metadataError = 'Metadata extraction was interrupted and will resume.';
@@ -350,8 +350,8 @@ export function useLibrary() {
   const updateBook = useCallback(async (id, updates) => {
     const current = booksRef.current.find(book => book.id === id);
     if (!current) return null;
-    const updated = { ...current, ...updates };
-    await StorageManager.saveBook(updated);
+    const updated = await StorageManager.updateExistingBook(id, updates);
+    if (!updated) return null;
     booksRef.current = booksRef.current.map(book => book.id === id ? updated : book);
     setBooks([...booksRef.current]);
     const keys = Object.keys(updates);
@@ -362,19 +362,25 @@ export function useLibrary() {
 
   const repairMetadata = useCallback(async (id, { force = false } = {}) => {
     const book = booksRef.current.find(b => b.id === id);
-    if (!book || !book.fileBlob || book.metadataStatus === 'ready') return null;
+    if (!book || (!force && book.metadataStatus === 'ready')) return null;
+    if (!book.fileBlob) {
+      await updateBook(id, { metadataStatus: 'failed', metadataPending: false, metadataNextRetryAt: null, metadataError: 'Original file is missing. Import the document again.' });
+      return 'failed';
+    }
     if (metadataActiveIdsRef.current.has(id)) return null;
+    if (metadataActiveIdsRef.current.size >= METADATA_CONCURRENCY) return null;
+    if (!force && book.metadataNextRetryAt > Date.now()) return null;
     const attempts = force ? 0 : (book.metadataAttempts || 0);
     if (!force && attempts >= METADATA_MAX_ATTEMPTS) return null;
     metadataActiveIdsRef.current.add(id);
     setMetadataProcessingCount(metadataActiveIdsRef.current.size);
-    await updateBook(id, {
-      metadataStatus: 'processing',
-      metadataPending: true,
-      metadataAttempts: attempts,
-      metadataError: null,
-    });
     try {
+      await updateBook(id, {
+        metadataStatus: 'processing',
+        metadataPending: true,
+        metadataAttempts: attempts,
+        metadataError: null,
+      });
       const metadata = await extractDocumentMetadata(book.fileBlob, book.format || 'epub', {
         title: book.title,
         author: book.author,
@@ -434,7 +440,7 @@ export function useLibrary() {
       .sort((a, b) => a - b)[0];
     const delay = ready.length > 0 ? 250 : Math.max(250, Math.min(15000, (nextRetryAt || now + 15000) - now));
     const timer = window.setTimeout(() => {
-      if (ready.length > 0) ready.forEach(book => repairMetadata(book.id));
+      if (ready.length > 0) ready.forEach(book => repairMetadata(book.id).catch(error => console.warn('Could not persist metadata job:', error)));
       else if (pendingBooks.length > 0) setMetadataQueueTick(value => value + 1);
     }, delay);
     return () => clearTimeout(timer);

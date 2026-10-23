@@ -42,6 +42,7 @@ export function useReader(bookId) {
   const lastPercentageRef = useRef(null);
   const hasStartedRef = useRef(false);
   const mountedRef = useRef(true);
+  const nativeActiveRef = useRef(true);
 
   const commitStats = useCallback((update) => {
     const next = typeof update === 'function' ? update(statsRef.current) : update;
@@ -139,6 +140,7 @@ export function useReader(bookId) {
 
   const startReading = useCallback(() => {
     hasStartedRef.current = true;
+    if (document.visibilityState === 'hidden' || !nativeActiveRef.current) return;
     if (startTimeRef.current !== null) return;
     startTimeRef.current = Date.now();
     const today = new Date().toDateString();
@@ -174,6 +176,7 @@ export function useReader(bookId) {
     window.addEventListener('pagehide', handlePageExit);
     window.addEventListener('beforeunload', handlePageExit);
     CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      nativeActiveRef.current = isActive;
       if (isActive && hasStartedRef.current) startReading();
       else if (!isActive) stopReading();
     }).then(listener => {

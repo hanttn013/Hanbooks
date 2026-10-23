@@ -79,7 +79,7 @@ async function listZipEntryNames(blob) {
       break;
     }
   }
-  if (eocd < 0) return [];
+  if (eocd < 0) throw new UnsupportedFormatError('Invalid or truncated ZIP document: central directory is missing.', { code: 'INVALID_FILE' });
   const entryCount = readUint16(tailView, eocd + 10);
   const directorySize = readUint32(tailView, eocd + 12);
   const directoryOffset = readUint32(tailView, eocd + 16);
@@ -112,8 +112,9 @@ function classifyZipEntries(names, extension, mimeFormat) {
   if (normalized.some(name => name === 'ppt/presentation.xml')) return 'pptx';
   const files = normalized.filter(name => name && !name.endsWith('/'));
   if (files.length > 0 && files.every(name => /\.(avif|gif|jpe?g|png|webp)$/i.test(name))) return 'cbz';
-  if (['epub', 'docx', 'pptx', 'cbz'].includes(extension)) return extension;
-  if (['epub', 'docx', 'pptx', 'cbz'].includes(mimeFormat)) return mimeFormat;
+  if (['epub', 'docx', 'pptx', 'cbz'].includes(extension) || ['epub', 'docx', 'pptx', 'cbz'].includes(mimeFormat)) {
+    throw new UnsupportedFormatError('Document container does not match its format.', { code: 'INVALID_FILE' });
+  }
   return 'zip';
 }
 
@@ -149,6 +150,9 @@ export async function detectDocumentFormat(file) {
     return resultFor(classifyZipEntries(names, extension, mimeFormat), 'container', { entriesInspected: names.length });
   }
 
+  if (['epub', 'docx', 'pptx', 'cbz', 'zip', 'rar', 'pdf'].includes(extension)) {
+    throw new UnsupportedFormatError('File contents do not match the document extension.', { code: 'INVALID_FILE' });
+  }
   if (extension) return resultFor(extension, 'extension');
   if (mimeFormat) return resultFor(mimeFormat, 'mime');
 

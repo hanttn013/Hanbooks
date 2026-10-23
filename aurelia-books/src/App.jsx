@@ -62,12 +62,15 @@ export default function App() {
     initializeNativeShareTarget(async files => {
       let imported = 0;
       let skipped = 0;
+      let failed = 0;
       for (const file of files) {
-        const result = await addBook(file, null, { fastMetadata: true });
-        if (result.skippedDuplicate) skipped += 1;
-        else imported += 1;
+        try {
+          const result = await addBook(file, null, { fastMetadata: true });
+          if (result.skippedDuplicate) skipped += 1;
+          else imported += 1;
+        } catch { failed += 1; }
       }
-      window.alert(`Shared documents: ${imported} imported, ${skipped} duplicates skipped.`);
+      window.alert(`Shared documents: ${imported} imported, ${skipped} duplicates skipped, ${failed} failed.`);
     }).then(remove => {
       if (active) cleanup = remove;
       else remove();
@@ -95,13 +98,17 @@ export default function App() {
 
   const captureScroll = useCallback(() => {
     const container = document.querySelector('#phone-frame .screen-scroll');
-    if (container) scrollPositionsRef.current.set(activeTabRef.current, container.scrollTop);
+    if (container) {
+      const key = `${activeTabRef.current}:${activeListIdRef.current || ''}`;
+      scrollPositionsRef.current.set(key, container.scrollTop);
+      if (window.history.state?.shanbooks) window.history.replaceState({ ...window.history.state, scrollTop: container.scrollTop }, '');
+    }
   }, []);
 
-  const restoreScroll = useCallback((tab) => {
+  const restoreScroll = useCallback((tab, listId = null, savedScroll) => {
     window.requestAnimationFrame(() => {
       const container = document.querySelector('#phone-frame .screen-scroll');
-      if (container) container.scrollTop = scrollPositionsRef.current.get(tab) || 0;
+      if (container) container.scrollTop = savedScroll ?? scrollPositionsRef.current.get(`${tab}:${listId || ''}`) ?? 0;
     });
   }, []);
 
@@ -140,7 +147,6 @@ export default function App() {
       return;
     }
     if (window.history.state?.key !== key) {
-      captureScroll();
       window.history.pushState(historySnapshot(key), '');
     }
   }, [activeListId, activeTab, captureScroll, detailBook, historySnapshot, openBook]);
@@ -159,7 +165,7 @@ export default function App() {
       setOpenBook(state.openBookId
         ? libraryBooksRef.current.find(book => book.id === state.openBookId) || null
         : null);
-      restoreScroll(nextTab);
+      restoreScroll(nextTab, state.activeListId, state.scrollTop);
     };
 
     const handleTouchStart = (event) => {
@@ -207,6 +213,7 @@ export default function App() {
   }, [restoreScroll]);
 
   const handleOpenBook = (book) => {
+    captureScroll();
     library.updateBook(book.id, {
       lastOpenedAt: Date.now(),
       status: book.status === 'unread' ? 'reading' : book.status,
@@ -220,10 +227,12 @@ export default function App() {
   };
 
   const handleOpenBookInfo = (book) => {
+    captureScroll();
     setDetailBook(book);
   };
 
   const handleOpenList = (id) => {
+    captureScroll();
     setActiveListId(id);
     setActiveTab('lists');
   };
@@ -316,7 +325,11 @@ export default function App() {
                       <ListsScreen
                         library={library}
                         activeListId={activeListId}
-                        setActiveListId={setActiveListId}
+                        setActiveListId={(id) => {
+                          captureScroll();
+                          if (!id && activeListId && window.history.state?.shanbooks) window.history.back();
+                          else setActiveListId(id);
+                        }}
                         onOpenBook={handleOpenBook}
                         onOpenBookInfo={handleOpenBookInfo}
                       />

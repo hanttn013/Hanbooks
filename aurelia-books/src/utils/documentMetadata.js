@@ -11,7 +11,7 @@ function blobToDataUrl(blob) {
 }
 
 export async function extractDocumentMetadata(file, format, fallback = {}) {
-  if (format === 'epub') return extractEpubMetadata(file, fallback);
+  if (format === 'epub') return extractEpubMetadata(file, fallback, { strict: true });
   if (!hasReaderAdapter(format)) throw new Error(`Metadata extraction is not available for ${format}.`);
   const adapter = await createReaderAdapter(format, {
     book: { ...fallback, title: fallback.title, fileName: file.name, format },

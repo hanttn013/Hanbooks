@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
+import { destroyEpubBook } from '../../utils/destroyEpubBook';
+import ManagedEpubView from '../../readers/ManagedEpubView';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useReader } from '../../hooks/useReader';
 import BookmarksModal from './BookmarksModal';
@@ -606,6 +608,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         setEpubBook(epubBookInstance);
 
         rendition = epubBookInstance.renderTo(viewerRef.current, {
+          manager: ManagedEpubView,
           width: '100%',
           height: '100%',
           flow: settings.readingMode === 'scroll' ? 'scrolled-doc' : 'paginated',
@@ -728,7 +731,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
           pullFrameRef.current = null;
         }
         currentContentsRef.current = null;
-        epubBookInstance?.destroy();
+        destroyEpubBook(epubBookInstance);
       } catch (err) {
         console.warn("Error destroying EPUB instance:", err);
       }

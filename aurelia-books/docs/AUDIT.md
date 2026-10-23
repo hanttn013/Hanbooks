@@ -30,8 +30,9 @@ start. That defect belongs to Phase 1 and was intentionally not redesigned here.
 - Scanned WCAG 2 A/AA and 2.1 A/AA rules with `@axe-core/playwright` 4.14.0.
   The EPUB iframe is excluded from axe because it is a separate sandboxed
   document; its host reader UI remains in scope.
-- Added Vitest 4.1.12 instead of Vitest 5 because the active Node.js 25 runtime is
-  outside Vitest 5's documented engine range.
+- Verified the installed toolchain against current official documentation:
+  Vitest 4.1.12 supports Vite 8 and Node.js 25, while
+  `@axe-core/playwright` 4.14.0 sets the combined Node.js floor at 22.12.
 
 ## Confirmed findings
 
@@ -51,7 +52,6 @@ files, or large imports; those require the later phase scenarios.
 | P1-04 | Zoom disabled | Every captured screen reports `meta-viewport`; `user-scalable=no` prevents user zoom. | Phase 3 |
 | P1-05 | Mobile contrast failures | axe reports `color-contrast` on Home, Library, Lists, Settings, and Book Detail at 360x800; the Want to Read card is also visibly unreadable. | Phase 3 |
 | P1-06 | Bundled Montserrat assets are invalid | Every viewport logs decode/OTS warnings for Regular, SemiBold, and Bold font files. Rendering falls back and produces 6 warnings per run. | Phase 3 |
-| P1-07 | Settings header is clipped | Visible in all three Settings screenshots; title/brand content is cut above the phone frame. | Phase 3 |
 | P1-08 | Dependency advisories | `npm audit --omit=dev` reports 11 vulnerabilities: 2 critical, 6 high, 3 moderate. Critical advisories include `@capacitor/android` and `tar`; `epubjs` pulls a vulnerable `@xmldom/xmldom`. Several have no upstream fix. | Phase 1/2 dependency review |
 
 ### P2 — medium/low impact or maintainability
@@ -83,7 +83,9 @@ Each viewport recorded 11 browser-console entries: six invalid-font warnings and
 five blocked sandbox-script errors. No uncaught page exception was written to the
 captured page-console JSON. Separately, Vite's error channel received one
 ResizeObserver delivery warning per viewport during the final test run. Raw page
-entries are kept beside each viewport's screenshots.
+entries are kept beside each viewport's screenshots. The 2026-10-22 JSON files
+predate the screen-attribution fix described below, so their message text and
+counts are valid but their `screen` labels are not reliable during navigation.
 
 ## Phase 0 fixes
 
@@ -93,6 +95,33 @@ entries are kept beside each viewport's screenshots.
 - Removed two unused catch bindings in Library.
 - Added a regression test proving Book Detail reads bookmarks once and triggers
   metadata repair once.
+- Corrected the baseline harness so console messages emitted during navigation
+  are assigned to the destination screen. A regression assertion rejects any
+  non-screen label, and `BASELINE_OUTPUT_DIR` allows verification without
+  overwriting the immutable historical captures.
+- Configured Vitest to use thread workers. Its default fork-worker atomic rename
+  is blocked by the Windows app sandbox before test collection.
+
+## Phase 0 verification refresh — 2026-10-23
+
+The historical `qa/baseline/` evidence remains unchanged. The corrected harness
+was rerun into a temporary directory and produced the expected 18 PNGs plus six
+JSON files with valid screen labels.
+
+| Check | Result |
+| --- | --- |
+| `npm install` | Completed; lockfile unchanged. Full dependency tree reports 36 advisories. |
+| `npm run lint` | Pass; 0 errors and 0 warnings. |
+| `npm run test:unit` | Pass; 12 files, 43 tests. |
+| `npm run build` | Pass; Vite 8.0.16, 598 modules transformed. |
+| `npm run test:e2e:baseline` | Pass; 3/3 viewport projects, output redirected to temporary storage. |
+| `npm run test:e2e` | Pass; 18/18 tests across all three viewport projects. |
+| `npm audit --omit=dev` | 11 production advisories: 3 moderate, 6 high, 2 critical. |
+
+Manual review of all three tracked Settings screenshots shows the complete brand
+and `Settings` heading. The previous P1-07 clipping claim was invalid and has
+been removed. The ResizeObserver warning was reproduced in the Playwright Vite
+channel; its frequency varies by flow and remains open as P2-08.
 
 ## Not yet certified
 

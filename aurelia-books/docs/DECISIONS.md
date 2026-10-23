@@ -20,6 +20,14 @@ Test documents are generated locally by `scripts/generate-test-fixtures.mjs`.
 They contain only synthetic text and minimal package structures, avoiding
 copyrighted fixtures while keeping binary import tests reproducible.
 
+## 2026-10-23 — Use Vitest thread workers in the Windows app sandbox
+
+Vitest's default fork pool copies transformed modules through an atomic rename in
+the system temp directory. The Windows app sandbox rejects that rename with
+`EPERM` before any test is collected. The documented thread pool exercises the
+same suite without that filesystem operation; both an unrestricted default-pool
+run and the configured thread-pool run pass all 43 tests.
+
 ## 2026-10-22 — Do not auto-fix dependency advisories
 
 The production audit includes vulnerable transitive packages and advisories with

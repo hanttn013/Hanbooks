@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 const SCREENS = ['home', 'library', 'lists', 'settings', 'book-detail', 'reader'];
+const BASELINE_ROOT = path.resolve(process.env.BASELINE_OUTPUT_DIR || path.join('qa', 'baseline'));
 
 async function settle(page) {
   await page.evaluate(() => document.fonts?.ready);
@@ -12,10 +13,10 @@ async function settle(page) {
 
 test('capture Phase 0 visual, console, and accessibility baseline', async ({ page }, testInfo) => {
   test.setTimeout(180_000);
-  const root = path.resolve('qa', 'baseline', testInfo.project.name);
+  const root = path.join(BASELINE_ROOT, testInfo.project.name);
   const consoleEntries = [];
   const accessibility = {};
-  let activeScreen = 'startup';
+  let activeScreen = 'home';
 
   await fs.mkdir(root, { recursive: true });
   page.on('console', message => {
@@ -38,28 +39,34 @@ test('capture Phase 0 visual, console, and accessibility baseline', async ({ pag
     accessibility[name] = result.violations;
   };
 
+  activeScreen = 'home';
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Read now', exact: true })).toBeVisible({ timeout: 30_000 });
   await capture('home');
 
+  activeScreen = 'library';
   await page.getByRole('button', { name: 'Library', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
   await capture('library');
 
+  activeScreen = 'lists';
   await page.getByRole('button', { name: 'Lists', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Lists' })).toBeVisible();
   await capture('lists');
 
+  activeScreen = 'settings';
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await capture('settings');
 
+  activeScreen = 'book-detail';
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   await page.getByRole('button', { name: 'Info', exact: true }).click();
   await expect(page.locator('.modal-sheet')).toBeVisible();
   await capture('book-detail');
 
+  activeScreen = 'reader';
   await page.locator('.modal-overlay .btn-icon').first().click();
   await page.getByRole('button', { name: 'Read now', exact: true }).click();
   await expect(page.getByText(/^Opening /)).toBeHidden({ timeout: 30_000 });
@@ -69,4 +76,5 @@ test('capture Phase 0 visual, console, and accessibility baseline', async ({ pag
   await fs.writeFile(path.join(root, 'console.json'), `${JSON.stringify(consoleEntries, null, 2)}\n`);
   await fs.writeFile(path.join(root, 'accessibility.json'), `${JSON.stringify(accessibility, null, 2)}\n`);
   expect(Object.keys(accessibility)).toEqual(SCREENS);
+  expect(consoleEntries.every(entry => SCREENS.includes(entry.screen))).toBe(true);
 });

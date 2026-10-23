@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    // Fork workers atomically rename transformed temp modules, which is blocked by
+    // the Windows app sandbox. Threads keep the suite portable in this environment.
+    pool: 'threads',
     setupFiles: ['./tests/setup.js'],
     include: ['tests/unit/**/*.{test,spec}.{js,jsx}'],
     clearMocks: true,

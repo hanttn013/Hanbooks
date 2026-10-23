@@ -1,5 +1,18 @@
 # Engineering Decisions
 
+## 2026-10-23 — Phase 1 queue and EPUB cleanup acceptance
+
+Persisted queue values `processing`/`ready` remain compatible with existing data;
+the Library exposes them as `running`/`done`, and interrupted `running` or
+`processing` jobs normalize to `pending` on startup. Capacity is checked at the
+task entry point as well as the scheduler. Book updates use an existing-record
+transaction so delayed extraction cannot recreate a deleted book.
+
+The installed epub.js has archive URL revocation and global-listener cleanup
+defects. The reader supplies a small managed default view and revokes the book's
+owned archive/replacement URLs before destruction. Browser resource probes count
+live EPUB instances, URLs, frames, and global listener registrations for 30 cycles.
+
 ## 2026-10-22 — Keep Phase 0 behavior changes narrow
 
 Phase 0 fixes only the three requested lint failures and the duplicate bookmark

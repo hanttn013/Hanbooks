@@ -1,5 +1,16 @@
 # QA Bug Log
 
+## Phase 1 acceptance closure — 2026-10-23
+
+| ID | Reproduction / root cause | Resolution and evidence |
+| --- | --- | --- |
+| QA-024 | Enqueue 50 books and invoke Repair Info while two extractions are active. Manual calls previously bypassed the queue's capacity check. | Capacity is enforced inside `repairMetadata`; fake-timer regression measures a maximum of two active extractions. |
+| QA-025 | Import broken ZIP/RAR followed by a valid document. Archive rejection previously escaped the per-file loop. | Archive errors are recorded for that file and the loop continues; mixed-invalid browser regression checks IndexedDB has only the valid new book. |
+| QA-026 | Import truncated EPUB or plain text renamed `.epub`. Extension fallback previously accepted a false container. | Required binary/container signatures are checked before persistence; no junk book record. |
+| QA-027 | Close EPUB Reader repeatedly and count live object URLs. `epub.js` revokes archive cache keys, and does not revoke replacement CSS URLs. | Owned archive/replacement Blob URL values are explicitly revoked before book destruction; resource regression retains per-cycle counts. |
+| QA-028 | Count global listeners after repeated EPUB close. Default epub manager registers an anonymous unload handler and stage removes `orientationChange` instead of `orientationchange`. | Managed view uses component-owned destruction and removes the correctly cased orientation listener. |
+| QA-029 | Delete a queued/running book while its completion update is awaiting IndexedDB. A put can recreate a removed record. | Updates now use a read-and-update transaction that writes only an existing book; queue regression resolves late extraction after deletion. |
+
 | ID | Severity | Reproduction | Expected | Actual / root cause | Status |
 | --- | --- | --- | --- | --- | --- |
 | QA-001 | P1 | Run `npm run lint` on the Phase 0 starting revision. | No hook lint error. | Book Detail synchronously called a state setter from its metadata effect. | Fixed; unit regression added. |

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Phase 1 acceptance closure
+
+- Added bounded-queue/retry/reload/deletion and import-race regressions.
+- Reject damaged binary/container files before persistence; archive failures no
+  longer stop later files in a batch, and per-file reasons remain in the summary.
+- Show per-book queue states and fix EPUB Blob URL/global-listener cleanup.
+- Added 30-cycle browser resource probes and physical Android acceptance steps.
+
 ### Phase 2 — Universal document readers
 
 - Added offline import and lazy reader adapters for PDF, DOCX, TXT, Markdown,

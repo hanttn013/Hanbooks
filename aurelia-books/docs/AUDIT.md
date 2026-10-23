@@ -1,5 +1,11 @@
 # Phase 0 Audit
 
+Phase 1 acceptance refresh (2026-10-23): dedicated queue, corrupted-input,
+race/deletion, and 30-cycle EPUB resource checks are documented in
+`qa/phase1/ACCEPTANCE.md`. Physical Android sign-off is explicitly separate in
+`qa/phase1/MANUAL-DEVICE-CHECKLIST.md`. Existing visual/accessibility and
+ResizeObserver findings below retain their original scope.
+
 Date: 2026-10-22  
 Scope: `aurelia-books` only; `soft-pages` and `next-app` were not assessed.
 

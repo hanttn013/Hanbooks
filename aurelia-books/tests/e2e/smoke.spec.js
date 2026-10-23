@@ -59,6 +59,17 @@ test('history restores the previous tab and its scroll position', async ({ page 
     .toBe(expectedScroll);
 });
 
+test('closing a list detail consumes history instead of reopening it on Back', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Lists', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Lists', exact: true })).toBeVisible();
+  await page.getByText('Want to Read', { exact: true }).first().click();
+  await page.getByRole('button', { name: '‹ Lists' }).click();
+  await expect(page.getByRole('heading', { name: 'Lists', exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+});
+
 test('reader flushes reading time when the app goes to background', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Read now', exact: true }).click();

@@ -1,32 +1,40 @@
 import { TextReaderAdapter } from './TextReaderAdapter';
 import { createLocator } from './locator';
 import { prepareHeadings, sanitizeDocumentHtml } from './sanitizeHtml';
+import { assertZipSafety } from '../utils/archiveImport';
 
 export class DocxReaderAdapter extends TextReaderAdapter {
   async open(blob) {
     this.assertActive();
     this.blob = blob;
     const buffer = await blob.arrayBuffer();
+    assertZipSafety(new Uint8Array(buffer), blob.size);
     let result;
     if (typeof Worker !== 'undefined') {
       result = await new Promise((resolve, reject) => {
         const worker = new Worker(new URL('../workers/docx.worker.js', import.meta.url), { type: 'module' });
         this.worker = worker;
-        const timer = window.setTimeout(() => {
-          worker.terminate();
-          reject(new Error('DOCX conversion timed out.'));
-        }, 120_000);
-        worker.onmessage = event => {
+        const finish = () => {
           window.clearTimeout(timer);
           worker.terminate();
           this.worker = null;
+          this.cancelConversion = null;
+        };
+        const timer = window.setTimeout(() => {
+          finish();
+          reject(new Error('DOCX conversion timed out.'));
+        }, 120_000);
+        this.cancelConversion = () => {
+          finish();
+          reject(new Error('DOCX conversion cancelled.'));
+        };
+        worker.onmessage = event => {
+          finish();
           if (event.data.ok) resolve(event.data);
           else reject(new Error(event.data.message));
         };
         worker.onerror = event => {
-          window.clearTimeout(timer);
-          worker.terminate();
-          this.worker = null;
+          finish();
           reject(new Error(event.message || 'DOCX worker failed.'));
         };
         worker.postMessage({ buffer }, [buffer]);
@@ -47,10 +55,11 @@ export class DocxReaderAdapter extends TextReaderAdapter {
 
   async getMetadata() {
     const base = await super.getMetadata();
-    return { ...base, format: 'docx', conversionWarnings: this.messages?.map(item => item.message) || [] };
+    return { ...base, format: 'docx', fidelityNotice: 'DOCX is converted to reflowable text; complex layouts, headers and page breaks may differ from Word.', conversionWarnings: this.messages?.map(item => item.message) || [] };
   }
 
   destroy() {
+    this.cancelConversion?.();
     this.worker?.terminate();
     this.worker = null;
     super.destroy();

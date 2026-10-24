@@ -2,8 +2,8 @@
   position: absolute;
   inset: 0;
   z-index: 80;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   background: var(--document-bg);
   color: var(--document-text);
 }
@@ -120,6 +120,7 @@
 }
 
 .content {
+  flex: 1;
   min-height: 0;
   overflow: auto;
   display: grid;
@@ -174,7 +175,6 @@
 
 .pdfPage canvas {
   display: block;
-  max-width: 100%;
   height: auto;
 }
 

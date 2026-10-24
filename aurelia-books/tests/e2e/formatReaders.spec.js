@@ -33,6 +33,20 @@ test('imports and opens every Phase 2 reader format', async ({ page }, testInfo)
     await card.click();
     await expect(page.getByText(/^Opening /)).toBeHidden({ timeout: 30_000 });
     await expect(page.locator(`[data-format="${format}"]`)).toBeVisible({ timeout: 30_000 });
+    if (format === 'md') {
+      await page.getByRole('button', { name: 'Reader settings' }).click();
+      await expect(page.getByLabel('Reader font size', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Close settings' }).click();
+      await page.getByRole('button', { name: 'Show bookmarks' }).click();
+      await expect(page.getByText(/No bookmarks/)).toBeVisible();
+      await page.getByRole('button', { name: 'Close bookmarks' }).click();
+    }
+    if (format === 'pdf') {
+      const canvas = page.locator('canvas').first();
+      await expect(canvas).toBeVisible();
+      await expect.poll(() => canvas.evaluate(element => element.width)).toBeGreaterThan(0);
+      await page.getByRole('button', { name: 'Fit width' }).click();
+    }
     await page.screenshot({ path: path.join(evidenceDir, `${format}.png`), fullPage: true });
     await page.getByRole('button', { name: 'Close reader' }).click();
     await expect(page.locator(`[data-format="${format}"]`)).toHaveCount(0);

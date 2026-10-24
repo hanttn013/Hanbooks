@@ -1,11 +1,13 @@
 import { BaseReaderAdapter } from './BaseReaderAdapter';
 import { createLocator, parseLocator } from './locator';
 import PptxParseWorker from '@web-ppt/core/worker?worker';
+import { assertZipSafety } from '../utils/archiveImport';
 
 export class PptxReaderAdapter extends BaseReaderAdapter {
   async open(blob) {
     this.assertActive();
     const bytes = new Uint8Array(await blob.arrayBuffer());
+    assertZipSafety(bytes, blob.size);
     const [core, { unzipSync }] = await Promise.all([import('@web-ppt/core'), import('fflate')]);
     this.core = core;
     const archive = unzipSync(bytes);

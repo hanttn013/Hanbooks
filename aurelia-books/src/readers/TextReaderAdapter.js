@@ -29,7 +29,7 @@ export function decodeDocumentText(buffer) {
   try {
     return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), encoding: 'utf-8' };
   } catch {
-    return { text: new TextDecoder('windows-1258').decode(bytes), encoding: 'windows-1258' };
+    return { text: new TextDecoder('windows-1258').decode(bytes).normalize('NFC'), encoding: 'windows-1258' };
   }
 }
 
@@ -38,7 +38,7 @@ function textToHtml(text) {
   return blocks.map((block, index) => {
     const value = block.trim();
     if (!value) return '';
-    const heading = value.match(/^(?:(ch(?:ươ|u)ơng|chapter|phần|part)\s+[\divxlcdm]+\b|#{1,3}\s+)(.*)$/iu);
+    const heading = value.match(/^(?:(chương|chuong|chapter|phần|phan|part)\s+[\divxlcdm]+\b|#{1,3}\s+)(.*)$/iu);
     if (heading) return `<h2 id="section-${index + 1}">${escapeHtml(value.replace(/^#{1,3}\s+/, ''))}</h2>`;
     return `<p id="paragraph-${index + 1}">${escapeHtml(value).replace(/\n/g, '<br>')}</p>`;
   }).join('\n');
@@ -93,7 +93,7 @@ export class TextReaderAdapter extends BaseReaderAdapter {
     const index = Math.max(0, (this.toc || []).findIndex(item => item.id === anchor));
     const percentage = offset ?? (this.toc?.length > 1 ? index / (this.toc.length - 1) : 0);
     this.location = {
-      locator: createLocator(this.format, offset === null ? { anchor } : { anchor, offset }),
+      locator: createLocator(this.format, { anchor, ...(offset === null ? {} : { offset }), ...(parsed.quote ? { quote: parsed.quote } : {}) }),
       percentage,
     };
     this.emitRelocate(this.location);
@@ -118,13 +118,12 @@ export class TextReaderAdapter extends BaseReaderAdapter {
     const clean = String(query || '').trim().toLocaleLowerCase();
     if (!clean) return [];
     const results = [];
-    let from = 0;
-    const haystack = this.rawText.toLocaleLowerCase();
-    while (results.length < 100) {
-      const index = haystack.indexOf(clean, from);
-      if (index < 0) break;
-      results.push({ index, excerpt: this.rawText.slice(Math.max(0, index - 40), index + clean.length + 80) });
-      from = index + clean.length;
+    const document = new DOMParser().parseFromString(this.html, 'text/html');
+    for (const element of document.querySelectorAll('h1, h2, h3, p, li, td, th, blockquote')) {
+      const text = element.textContent || '';
+      const index = text.toLocaleLowerCase().indexOf(clean);
+      if (index < 0 || results.length >= 100) continue;
+      results.push({ locator: createLocator(this.format, { anchor: element.id, quote: text.slice(index, index + clean.length) }), excerpt: text.slice(Math.max(0, index - 40), index + clean.length + 80) });
     }
     return results;
   }

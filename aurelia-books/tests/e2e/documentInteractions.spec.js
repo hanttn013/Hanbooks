@@ -1,0 +1,35 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { expect, test } from '@playwright/test';
+
+test('Markdown search, bookmarks, settings and persisted resume are functional', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  const text = `# Interaction document\n\n${Array.from({ length: 100 }, (_, index) => `Paragraph ${index}: reading content for scrolling and resume.`).join('\n\n')}\n\n# Target chapter\n\nUniqueSearchNeedle at the end of the document.\n\nTrailing paragraph.`;
+  await page.locator('input[type="file"]').first().setInputFiles({ name: 'interactions.md', mimeType: 'text/markdown', buffer: Buffer.from(text) });
+  await expect(page.getByText(/Đã xử lý 1 tài liệu/)).toBeVisible();
+  await page.locator('.modal-sheet .btn-icon').first().click();
+  await page.locator('[data-book-format="md"]').first().click();
+  await expect(page.locator('[data-format="md"]')).toBeVisible();
+  await page.getByLabel('Search document', { exact: true }).fill('UniqueSearchNeedle');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('complementary', { name: 'Search results' }).getByRole('button').first().click();
+  const target = page.locator('article p').filter({ hasText: 'UniqueSearchNeedle' });
+  await expect(target).toBeInViewport();
+  await page.getByRole('button', { name: 'Add bookmark', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Bookmarked', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Show bookmarks' }).click();
+  await expect(page.getByRole('complementary', { name: 'Saved bookmarks' }).getByRole('button')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Close bookmarks' }).click();
+  await page.getByRole('button', { name: 'Reader settings' }).click();
+  await page.getByLabel('Reader theme', { exact: true }).selectOption('night');
+  await page.getByLabel('Reader font', { exact: true }).selectOption('System Sans');
+  await page.getByRole('button', { name: 'Close settings' }).click();
+  await page.getByRole('button', { name: 'Close reader' }).click();
+  await page.locator('[data-book-format="md"]').first().click();
+  await expect(page.locator('[data-format="md"]')).toBeVisible();
+  await expect(page.locator('article p').filter({ hasText: 'UniqueSearchNeedle' })).toBeInViewport();
+  const directory = path.resolve('qa/phase2', testInfo.project.name);
+  await fs.mkdir(directory, { recursive: true });
+  await page.screenshot({ path: path.join(directory, 'search-bookmark-resume.png'), fullPage: true });
+});

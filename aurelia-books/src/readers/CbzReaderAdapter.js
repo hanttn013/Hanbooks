@@ -1,13 +1,16 @@
 import { unzipSync } from 'fflate';
 import { BaseReaderAdapter } from './BaseReaderAdapter';
 import { createLocator, parseLocator } from './locator';
+import { assertZipSafety } from '../utils/archiveImport';
 
 const IMAGE_PATTERN = /\.(?:avif|gif|jpe?g|png|webp)$/i;
 
 export class CbzReaderAdapter extends BaseReaderAdapter {
   async open(blob) {
     this.assertActive();
-    const archive = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    assertZipSafety(bytes, blob.size);
+    const archive = unzipSync(bytes);
     this.pages = Object.entries(archive)
       .filter(([name]) => IMAGE_PATTERN.test(name))
       .sort(([left], [right]) => left.localeCompare(right, undefined, { numeric: true }))

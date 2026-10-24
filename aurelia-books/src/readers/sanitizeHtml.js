@@ -5,7 +5,7 @@ export async function sanitizeDocumentHtml(source) {
   const clean = DOMPurify.sanitize(String(source || ''), {
     USE_PROFILES: { html: true },
     FORBID_TAGS: BLOCKED_TAGS,
-    FORBID_ATTR: ['srcset', 'formaction'],
+    FORBID_ATTR: ['srcset', 'formaction', 'style'],
     SANITIZE_NAMED_PROPS: true,
   });
   const document = new DOMParser().parseFromString(clean, 'text/html');
@@ -30,6 +30,9 @@ export function prepareHeadings(html) {
     const id = heading.id || `heading-${index + 1}`;
     heading.id = id;
     return { id, label: heading.textContent?.trim() || `Section ${index + 1}`, level: Number(heading.tagName[1]) };
+  });
+  document.querySelectorAll('p, li, td, th, blockquote').forEach((element, index) => {
+    if (!element.id) element.id = `reading-block-${index + 1}`;
   });
   return { html: document.body.innerHTML, toc };
 }

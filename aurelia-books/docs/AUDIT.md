@@ -178,3 +178,13 @@ limits, locator migration, full backup/restore, sanitized HTML, worker
 fallbacks, and missing-file restore behavior. Phase 2 does not claim exact
 PowerPoint visual fidelity, support for FB2/MOBI/legacy binary Office, or native
 Android `ACTION_VIEW` handling. Those remain explicit follow-ups.
+
+## Phase 2 hardening verification
+
+The updated automated set is 74 unit tests, three-viewport document interaction
+coverage, the complete existing E2E suite, and an isolated production offline
+test (cold reload, seven format readers, full backup, cleared records, restore,
+and all readers reopened). Exact command results are in `qa/phase2/VERIFICATION.md`.
+Browser checks do not certify native handoff or peak RAM for 100–500 MB inputs.
+Existing EPUB ResizeObserver/iframe console noise and font decode/a11y findings
+remain open; a passing assertion suite is not a claim of a clean console.

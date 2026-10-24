@@ -105,3 +105,18 @@ JSON backups remain the portable metadata format. Full backups add a manifest
 and the original blobs under `books/`, allowing offline restoration without a
 server. The implementation caps the archive at 500 MB and surfaces missing-file
 state instead of silently inventing a readable book.
+
+## 2026-10-23 — Verify offline with a production shell, not a dev server
+
+Precache emitted build assets with a small Vite plugin; avoid a new runtime
+dependency. Native Capacitor continues using bundled assets. The acceptance test
+turns network off before first lazy reader load, then exports a ZIP, clears the
+test library records, restores and opens every format again. Precache requests
+and crossorigin modules have different Origin headers; ignore Vary only for our
+same-origin asset-cache lookup. Do not rebuild while this test is running.
+
+Mammoth is a semantic converter, not a Word page-layout engine, and explicitly
+does not sanitize output; DOCX conversion therefore retains DOMPurify and a
+visible fidelity notice. See [Mammoth documentation](https://github.com/mwilliamson/mammoth.js).
+PPTX remains best-effort SVG with an explicit warning and a text fallback on
+slide-render failure; images/advanced effects are not guaranteed in fallback.

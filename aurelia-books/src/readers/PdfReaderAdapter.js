@@ -12,6 +12,7 @@ export class PdfReaderAdapter extends BaseReaderAdapter {
       pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
     }
     this.pdfjs = pdfjs;
+    this.blob = blob;
     this.loadingTask = pdfjs.getDocument({
       data: new Uint8Array(await blob.arrayBuffer()),
       useSystemFonts: true,
@@ -60,7 +61,7 @@ export class PdfReaderAdapter extends BaseReaderAdapter {
     this.renderTasks ||= new WeakMap();
     this.renderTasks.get(canvas)?.cancel?.();
     const base = page.getViewport({ scale: 1 });
-    const effectiveScale = Math.min(scale, maxWidth / base.width);
+    const effectiveScale = (maxWidth / base.width) * scale;
     const viewport = page.getViewport({ scale: effectiveScale });
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.ceil(viewport.width * ratio);

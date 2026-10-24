@@ -1,5 +1,6 @@
 // src/utils/StorageManager.js
-import { STORAGE_KEYS } from './storageKeys';
+import { progressStorageKey, STORAGE_KEYS } from './storageKeys';
+import { assertZipSafety } from './archiveImport';
 import { migrateBookRecord, migrateBookmarkRecord, migrateProgressRecord } from './bookModelMigration';
 
 const DB_NAME = 'aurelia_db';
@@ -332,6 +333,14 @@ export class StorageManager {
     if (!snapshot || snapshot.type !== 'library-backup') {
       throw new Error('Invalid ShanBooks backup file.');
     }
+    for (const name of ['books', 'bookmarks', 'progress', 'lists']) {
+      const records = snapshot[name] || [];
+      const key = name === 'progress' ? 'bookId' : 'id';
+      if (!Array.isArray(records) || records.some(record => !record || typeof record[key] !== 'string' || !record[key].trim())) {
+        throw new Error(`Invalid backup records: ${name}.`);
+      }
+      if (new Set(records.map(record => record[key])).size !== records.length) throw new Error(`Duplicate backup keys: ${name}.`);
+    }
 
     const db = await this.openDB();
     await new Promise((resolve, reject) => {
@@ -351,15 +360,21 @@ export class StorageManager {
       }
 
       (snapshot.books || []).forEach(book => {
-        const restoredFile = filesByBookId.get(book.id) || null;
-        stores.books.put({
-          ...migrateBookRecord(book),
-          fileBlob: restoredFile,
-          missingFile: Boolean(book.hasFileBlob && !restoredFile),
-          coverUrl: book.coverUrl || null,
-          restoredFromBackup: true,
-          restoredAt: Date.now(),
-        });
+        const write = existing => {
+          const restoredFile = filesByBookId.get(book.id) || (merge ? existing?.fileBlob : null) || null;
+          stores.books.put({
+            ...migrateBookRecord(book),
+            fileBlob: restoredFile,
+            missingFile: !restoredFile,
+            coverUrl: book.coverUrl || (merge ? existing?.coverUrl : null) || null,
+            restoredFromBackup: true,
+            restoredAt: Date.now(),
+          });
+        };
+        if (merge) {
+          const request = stores.books.get(book.id);
+          request.onsuccess = () => write(request.result);
+        } else write(null);
       });
       (snapshot.bookmarks || []).forEach(bookmark => stores.bookmarks.put(bookmark));
       (snapshot.progress || []).forEach(item => stores.progress.put(item));
@@ -371,6 +386,9 @@ export class StorageManager {
 
     if (snapshot.settings && typeof snapshot.settings === 'object') {
       localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(snapshot.settings));
+    }
+    for (const progress of snapshot.progress || []) {
+      if (progress.bookId && Number.isFinite(progress.percentage)) localStorage.setItem(progressStorageKey(progress.bookId), String(progress.percentage));
     }
   }
 
@@ -447,7 +465,9 @@ export class StorageManager {
   static async importFullBackup(blob, { merge = true } = {}) {
     const { unzipSync, strFromU8 } = await import('fflate');
     if (!blob?.size || blob.size > FULL_BACKUP_LIMIT) throw new Error('Full backup is empty or exceeds the 500 MB limit.');
-    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    const bytes = new Uint8Array(await readBlobArrayBuffer(blob));
+    assertZipSafety(bytes, blob.size, FULL_BACKUP_LIMIT);
+    const entries = unzipSync(bytes);
     if (!entries['manifest.json']) throw new Error('Full backup manifest is missing.');
     const manifest = JSON.parse(strFromU8(entries['manifest.json']));
     if (manifest.type !== 'library-backup-full') throw new Error('This is not a ShanBooks full backup.');

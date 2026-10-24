@@ -20,14 +20,11 @@ export async function hashDocumentFile(file) {
   if (file.size <= SMALL_FILE_LIMIT) {
     return { hash: await digest([await file.arrayBuffer()]), strategy: 'sha256-full' };
   }
-  const offsets = [
-    0,
-    Math.max(0, Math.floor(file.size * 0.25) - BLOCK_SIZE / 2),
-    Math.max(0, Math.floor(file.size * 0.5) - BLOCK_SIZE / 2),
-    Math.max(0, Math.floor(file.size * 0.75) - BLOCK_SIZE / 2),
-    Math.max(0, file.size - BLOCK_SIZE),
-  ];
-  const parts = await Promise.all(offsets.map(offset => file.slice(offset, offset + BLOCK_SIZE).arrayBuffer()));
+  const parts = [];
+  for (let offset = 0; offset < file.size; offset += BLOCK_SIZE) {
+    const block = await file.slice(offset, offset + BLOCK_SIZE).arrayBuffer();
+    parts.push(new Uint8Array(await crypto.subtle.digest('SHA-256', block)).buffer);
+  }
   parts.push(new TextEncoder().encode(String(file.size)).buffer);
-  return { hash: await digest(parts), strategy: 'sha256-blocks' };
+  return { hash: await digest(parts), strategy: 'sha256-all-blocks-v1' };
 }

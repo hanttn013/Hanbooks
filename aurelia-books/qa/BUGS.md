@@ -1,5 +1,21 @@
 # QA Bug Log
 
+## Phase 2 hardening — 2026-10-23
+
+| ID | Severity | Reproduce / expected / actual | Status |
+| --- | --- | --- | --- |
+| QA-030 | P1 | Search Markdown text near the end, click result; expected jump, raw text indices previously had no DOM target. | Fixed: stable block/quote locator; three-viewport interaction regression. |
+| QA-031 | P1 | Merge data-only backup over a readable book; expected retain file, restore previously replaced blob with null. | Fixed: preserve local blob; real IndexedDB regression. |
+| QA-032 | P1 | Put a compressed bomb in DOCX/PPTX/CBZ/full backup; expected bound before decompression, guards previously covered only outer ZIP import. | Fixed: shared central-directory check before these parsers. |
+| QA-033 | P2 | PDF zoom/fit on mobile; expected fit actual pane, previous maxWidth=1200 and scale cap did not reflect fit-width. | Fixed: measured pane and matching text-layer viewport. |
+| QA-034 | P1 | Reload production after context.setOffline(true); expected shell/reader, previously no SW; first new SW attempt also missed modules due Vary: Origin. | Fixed: precache emitted chunks/workers and same-origin ignoreVary lookup; production offline restore regression passes. |
+| QA-035 | P2 | Change an unsampled block of a >64 MB file; expected distinct duplicate identity, five sampled positions could miss it. | Fixed: every 1 MB block participates; regression changes block 7. |
+| QA-036 | P2 | Close DOCX while conversion runs; expected terminate and settle, timer/promise previously survived worker termination. | Fixed cancellation path clears timer and rejects pending conversion. |
+
+Known open gates remain QA-003/004/005/006/008 (UI/a11y/fonts), QA-009/012
+(EPUB console/observer), QA-011 (dependency advisories), QA-021 (native handoff).
+Large 100–500 MB parsing/backup peak RAM is not certified by small fixtures.
+
 ## Phase 1 acceptance closure — 2026-10-23
 
 | ID | Reproduction / root cause | Resolution and evidence |

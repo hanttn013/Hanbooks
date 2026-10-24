@@ -45,4 +45,24 @@ describe('backup and restore', () => {
     expect(backups).toHaveLength(3);
     expect(backups.map(item => item.reason)).toContain('test-3');
   });
+
+  it('preserves original files when merging a data-only backup', async () => {
+    await StorageManager.saveBook({ id: 'local', title: 'Local', fileBlob: new NodeBlob(['original']) });
+    await StorageManager.importLibrarySnapshot({ type: 'library-backup', books: [{ id: 'local', title: 'Restored' }], bookmarks: [], progress: [], lists: [] });
+    const [book] = await StorageManager.getAllBooks();
+    expect(book).toMatchObject({ title: 'Restored', missingFile: false });
+    expect(book.fileBlob.size).toBe(8);
+  });
+
+  it('rejects an invalid ZIP without altering the current library', async () => {
+    await StorageManager.saveBook({ id: 'safe', title: 'Keep me' });
+    await expect(StorageManager.importFullBackup(new NodeBlob(['not a ZIP']))).rejects.toThrow();
+    expect(await StorageManager.getAllBooks()).toEqual([expect.objectContaining({ id: 'safe' })]);
+  });
+
+  it('validates all backup records before clearing existing data', async () => {
+    await StorageManager.saveBook({ id: 'safe', title: 'Keep me' });
+    await expect(StorageManager.importLibrarySnapshot({ type: 'library-backup', books: [{ title: 'No ID' }] }, { merge: false })).rejects.toThrow('Invalid backup records');
+    expect(await StorageManager.getAllBooks()).toEqual([expect.objectContaining({ id: 'safe' })]);
+  });
 });

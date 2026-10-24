@@ -3,12 +3,26 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { createReaderAdapter } from '../../readers/readerRegistry';
 import { createLocator, locatorFromProgress, parseLocator } from '../../readers/locator';
 import { useReader } from '../../hooks/useReader';
-import { getFontStack, getThemeById } from '../../styles/designTokens';
+import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
 import styles from './UniversalReaderScreen.module.css';
 
 function PdfPage({ adapter, page, zoom }) {
   const canvasRef = useRef(null);
   const textLayerRef = useRef(null);
+  const [width, setWidth] = useState(0);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const host = canvasRef.current?.closest('section');
+    if (!host) return;
+    const measure = () => {
+      const style = getComputedStyle(host);
+      setWidth(Math.max(100, host.clientWidth - parseFloat(style.paddingLeft || 0) - parseFloat(style.paddingRight || 0)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -18,10 +32,13 @@ function PdfPage({ adapter, page, zoom }) {
       const textContainer = textLayerRef.current;
       if (!canvas || !textContainer) return;
       textContainer.replaceChildren();
-      const result = await adapter.renderPage(canvas, page, { maxWidth: 1200, scale: zoom });
+      if (!width) return;
+      const result = await adapter.renderPage(canvas, page, { maxWidth: width, scale: zoom });
       if (cancelled) return;
       textContainer.style.width = result.viewport.width + 'px';
       textContainer.style.height = result.viewport.height + 'px';
+      textContainer.style.setProperty('--total-scale-factor', result.viewport.scale);
+      textContainer.style.setProperty('--scale-factor', result.viewport.scale);
       textLayer = new adapter.pdfjs.TextLayer({
         textContentSource: result.text,
         container: textContainer,
@@ -31,17 +48,18 @@ function PdfPage({ adapter, page, zoom }) {
     };
     render().catch(error => {
       if (error?.name !== 'RenderingCancelledException') {
-        console.error('PDF page render failed:', error);
+        if (!cancelled) setError(error.message || 'Could not render this PDF page.');
       }
     });
     return () => {
       cancelled = true;
       textLayer?.cancel();
     };
-  }, [adapter, page, zoom]);
+  }, [adapter, page, zoom, width]);
 
   return (
     <div className={styles.pdfPage}>
+      {error && <p role="alert">{error}</p>}
       <canvas ref={canvasRef} />
       <div ref={textLayerRef} className={styles.textLayer} />
     </div>
@@ -50,6 +68,7 @@ function PdfPage({ adapter, page, zoom }) {
 
 function PresentationSlide({ adapter, index }) {
   const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
   useEffect(() => {
     let active = true;
     let nextUrl = '';
@@ -57,12 +76,13 @@ function PresentationSlide({ adapter, index }) {
       if (!active) return;
       nextUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
       setUrl(nextUrl);
-    });
+    }).catch(error => { if (active) setError(error.message || 'Slide rendering failed.'); });
     return () => {
       active = false;
       if (nextUrl) URL.revokeObjectURL(nextUrl);
     };
   }, [adapter, index]);
+  if (error) return <article><p role="alert">Slide layout unavailable: {error}</p><p>{adapter.fallbackSlideTexts?.[index] || 'No extractable text on this slide.'}</p></article>;
   return url ? <img className={styles.slide} src={url} alt={`Slide ${index + 1}`} /> : <p>Rendering slide…</p>;
 }
 
@@ -91,7 +111,7 @@ function applySavedHighlights(root, bookmarks) {
   }
 }
 
-export default function UniversalReaderScreen({ book, format, settings, onClose, onBookUpdate }) {
+export default function UniversalReaderScreen({ book, format, settings, updateSetting, onClose, onBookUpdate }) {
   const [adapter, setAdapter] = useState(null);
   const [metadata, setMetadata] = useState(null);
   const [toc, setToc] = useState([]);
@@ -103,6 +123,10 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
   const [zoom, setZoom] = useState(1);
   const [renderVersion, setRenderVersion] = useState(0);
   const [selection, setSelection] = useState(null);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const contentRef = useRef(null);
   const restoredRef = useRef(false);
   const adapterRef = useRef(null);
@@ -110,8 +134,9 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
   const onBookUpdateRef = useRef(onBookUpdate);
   const scrollSaveTimerRef = useRef(null);
   const pendingScrollLocationRef = useRef(null);
+  const finishedRef = useRef(book.status === 'finished');
   const flushProgressRef = useRef(() => {});
-  const { progress, bookmarks, saveProgress, addBookmark, isBookmarked, startReading, stopReading } = useReader(book.id);
+  const { progress, bookmarks, saveProgress, addBookmark, isBookmarked, startReading, stopReading, markFinished } = useReader(book.id);
 
   useEffect(() => {
     onBookUpdateRef.current = onBookUpdate;
@@ -120,10 +145,15 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
   const saveLocation = useCallback((next) => {
     if (!next?.locator) return;
     const percentage = Math.min(100, Math.max(0, (Number(next.percentage) || 0) * 100));
+    if (percentage >= 98 && !finishedRef.current) {
+      finishedRef.current = true;
+      markFinished?.();
+      onBookUpdateRef.current?.({ status: 'finished' });
+    }
     return saveProgress(next.locator, percentage, next.chapterTitle || '').catch(error => {
       console.warn('Could not save document position:', error);
     });
-  }, [saveProgress]);
+  }, [saveProgress, markFinished]);
 
   const persistLocation = useCallback((next) => {
     if (!next?.locator) return;
@@ -305,16 +335,21 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
 
   const runSearch = async event => {
     event.preventDefault();
-    setResults(await adapter.search(query));
+    setSearchAttempted(true);
+    setSearchError('');
+    try { setResults(await adapter.search(query)); }
+    catch (error) { setResults([]); setSearchError(error.message || 'Search failed.'); }
   };
 
   const goToResult = async result => {
-    let locator;
+    let locator = result.locator;
     if (format === 'pdf') locator = createLocator('pdf', { page: result.page, offset: 0 });
     if (format === 'pptx') locator = createLocator('pptx', { slide: result.slide });
     if (locator) {
       await adapter.goTo(locator);
       setRenderVersion(value => value + 1);
+      setResults([]);
+      setSearchAttempted(false);
     }
   };
 
@@ -356,6 +391,8 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
         >
           {bookmarked ? '★' : '☆'}
         </button>
+        <button onClick={() => setShowBookmarks(value => !value)} aria-label="Show bookmarks">Bookmarks</button>
+        {['txt', 'md', 'html', 'docx'].includes(format) && updateSetting && <button onClick={() => setShowSettings(value => !value)} aria-label="Reader settings">Aa</button>}
       </header>
 
       {metadata?.fidelityNotice && <aside className={styles.notice}>{metadata.fidelityNotice}</aside>}
@@ -371,7 +408,7 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
               ? createLocator('pdf', { page: item.page || 1, offset: 0 })
               : format === 'pptx'
                 ? createLocator('pptx', { slide: item.slide })
-                : createLocator(format, { anchor: item.id });
+                : format === 'cbz' ? createLocator('cbz', { page: item.page }) : createLocator(format, { anchor: item.id });
             await adapter.goTo(target);
             setRenderVersion(value => value + 1);
           }}
@@ -384,9 +421,24 @@ export default function UniversalReaderScreen({ book, format, settings, onClose,
           <button type="submit">Search</button>
         </form>
         {format === 'pdf' && (
-          <label className={styles.zoom}>Zoom <input type="range" min="0.6" max="2" step="0.1" value={zoom} onChange={event => setZoom(Number(event.target.value))} /></label>
+          <label className={styles.zoom}>Zoom <input aria-label="PDF zoom" type="range" min="0.6" max="2" step="0.1" value={zoom} onChange={event => setZoom(Number(event.target.value))} /><button onClick={() => setZoom(1)}>Fit width</button></label>
         )}
       </section>
+
+      {showSettings && <aside className={styles.results} aria-label="Reading settings">
+        <label>Font<select aria-label="Reader font" value={settings.font} onChange={event => updateSetting('font', event.target.value)}>{READER_FONTS.map(font => <option key={font.id}>{font.id}</option>)}</select></label>
+        <label>Size<input aria-label="Reader font size" type="range" min="14" max="32" value={settings.fontSize} onChange={event => updateSetting('fontSize', Number(event.target.value))} /></label>
+        <label>Line height<input aria-label="Reader line height" type="range" min="1.2" max="2.4" step="0.1" value={settings.lineHeight} onChange={event => updateSetting('lineHeight', Number(event.target.value))} /></label>
+        <label>Margins<input aria-label="Reader margins" type="range" min="8" max="48" value={settings.marginWidth} onChange={event => updateSetting('marginWidth', Number(event.target.value))} /></label>
+        <label>Theme<select aria-label="Reader theme" value={settings.theme} onChange={event => updateSetting('theme', event.target.value)}>{APP_THEMES.map(theme => <option key={theme.id} value={theme.id}>{theme.label}</option>)}</select></label>
+        <label>Mode<select aria-label="Reader mode" value={settings.readingMode} onChange={event => updateSetting('readingMode', event.target.value)}><option value="scroll">Scroll</option><option value="classic">Pages</option></select></label>
+        <button onClick={() => setShowSettings(false)}>Close settings</button>
+      </aside>}
+      {showBookmarks && <aside className={styles.results} aria-label="Saved bookmarks">
+        {bookmarks.length ? bookmarks.map(bookmark => <button key={bookmark.id} onClick={async () => { await adapter.goTo(bookmark.locator || bookmark.cfi); setRenderVersion(value => value + 1); setShowBookmarks(false); }}>{bookmark.chapterTitle || 'Bookmark'} {bookmark.excerpt || bookmark.note || ''}</button>) : <p>No bookmarks yet. Use ☆ to save this position.</p>}
+        <button onClick={() => setShowBookmarks(false)}>Close bookmarks</button>
+      </aside>}
+      {searchAttempted && results.length === 0 && <p role="status">{searchError || 'No matches found.'}</p>}
 
       {results.length > 0 && (
         <aside className={styles.results} aria-label="Search results">

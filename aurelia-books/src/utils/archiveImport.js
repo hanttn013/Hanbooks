@@ -71,7 +71,7 @@ async function getUnrarWasmBinary() {
   return unrarWasmPromise;
 }
 
-function assertZipSafety(bytes, compressedBytes) {
+export function assertZipSafety(bytes, compressedBytes, maxTotalBytes = MAX_EXTRACTED_BYTES) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let eocd = -1;
   for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 128 * 1024); offset -= 1) {
@@ -100,7 +100,7 @@ function assertZipSafety(bytes, compressedBytes) {
     if (depth > MAX_DEPTH) throw new Error(`Archive path depth exceeds the limit: ${name}`);
     if (originalSize > MAX_ENTRY_BYTES) throw new Error(`Archive entry is larger than 500 MB: ${name}`);
     totalOriginal += originalSize;
-    if (totalOriginal > MAX_EXTRACTED_BYTES || totalOriginal > Math.max(compressedBytes, 1) * MAX_COMPRESSION_RATIO) {
+    if (totalOriginal > maxTotalBytes || totalOriginal > Math.max(compressedBytes, 1) * MAX_COMPRESSION_RATIO) {
       throw new Error('Archive exceeds the decompression safety limit.');
     }
     offset += 46 + nameLength + extraLength + commentLength;
@@ -149,15 +149,21 @@ async function extractRar(file) {
       entryCount += 1;
       const entrySize = Number(header.unpSize || header.unpackedSize || 0);
       declaredTotal += entrySize;
-      if (entryCount > MAX_ENTRIES || entrySize > MAX_ENTRY_BYTES || declaredTotal > MAX_EXTRACTED_BYTES) {
+      const depth = String(header.name || '').replace(/\\/g, '/').split('/').filter(Boolean).length;
+      if (entryCount > MAX_ENTRIES || entrySize > MAX_ENTRY_BYTES || declaredTotal > MAX_EXTRACTED_BYTES || depth > MAX_DEPTH || declaredTotal / Math.max(1, file.size) > MAX_COMPRESSION_RATIO) {
         throw new Error('RAR archive exceeds the extraction safety limit.');
       }
       return DOCUMENT_EXT.test(header.name) && !header.flags?.directory && !isHiddenOrSystemPath(header.name);
     },
   });
+  let actualTotal = 0;
   return [...extracted.files]
     .filter(item => item.extraction && DOCUMENT_EXT.test(item.fileHeader.name))
-    .map(item => bytesToFile(item.extraction, item.fileHeader.name));
+    .map(item => {
+      actualTotal += item.extraction.byteLength;
+      if (item.extraction.byteLength > MAX_ENTRY_BYTES || actualTotal > MAX_EXTRACTED_BYTES) throw new Error('RAR output exceeds the extraction safety limit.');
+      return bytesToFile(item.extraction, item.fileHeader.name);
+    });
 }
 
 export function isArchiveFile(file) {

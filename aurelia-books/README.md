@@ -1,6 +1,6 @@
 # ShanBooks
 
-Main Hanbooks application: a React + Vite EPUB reader packaged for Android with Capacitor.
+Main Hanbooks application: a React + Vite offline document reader packaged for Android with Capacitor.
 
 For the repository overview, see `../README.md`.
 
@@ -29,6 +29,7 @@ npm run lint
 npm run build
 npm run test:unit
 npm run test:e2e
+npx playwright test --config playwright.offline.config.js
 ```
 
 Generate the deterministic, license-safe document fixtures before tests that
@@ -48,6 +49,13 @@ Playwright runs Chromium at 360x800, 768x1024, and 1440x900. The Phase 0
 visual, console, and axe accessibility baselines live in `qa/baseline/`.
 Phase 1 navigation and lifecycle evidence lives in `qa/phase1/`.
 Transient Playwright reports and traces are ignored by Git.
+
+The offline test uses the production build: run `npm run build` first. It checks
+cold reload, seven lazy readers, and full ZIP backup/restore with network off.
+Web installation requires one successful online visit; originals are kept in
+IndexedDB, not in the application-shell cache. Android uses bundled assets and
+does not register the browser service worker. Phase 2 evidence and limitations
+are recorded in `qa/phase2/VERIFICATION.md`.
 
 ## Android
 

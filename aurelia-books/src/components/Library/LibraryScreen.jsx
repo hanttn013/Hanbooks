@@ -2,7 +2,8 @@ import { memo, useMemo, useRef, useState } from 'react';
 import BookCover from './BookCover';
 import styles from './LibraryScreen.module.css';
 import { readProgressPercent } from '../../utils/storageKeys';
-import { extractDocumentsFromArchive, isArchiveFile } from '../../utils/archiveImport';
+import { isArchiveFile } from '../../utils/archiveImport';
+import { extractArchiveInWorker as extractDocumentsFromArchive } from '../../utils/archiveWorkerClient';
 
 const GRID_COLUMNS = 3;
 const GRID_ROW_HEIGHT = 250;

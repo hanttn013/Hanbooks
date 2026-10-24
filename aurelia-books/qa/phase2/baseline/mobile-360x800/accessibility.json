@@ -1,0 +1,2469 @@
+{
+  "home": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#e98243",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 2.41,
+                "fontSize": "9.8pt (13px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_o1cc4_1\">",
+                  "target": [
+                    "._screen_o1cc4_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.41 (foreground color: #e98243, background color: #f7f1e7, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button>See all</button>",
+          "target": [
+            "section:nth-child(2) > ._sectionHeading_o1cc4_49 > button"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.41 (foreground color: #e98243, background color: #f7f1e7, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#fff9ef",
+                "bgColor": "#e98243",
+                "contrastRatio": 2.59,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_tab_pfj6r_1 _active_pfj6r_77\" aria-label=\"Home\">",
+                  "target": [
+                    "._active_pfj6r_77"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Home</span>",
+          "target": [
+            "._active_pfj6r_77 > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Library</span>",
+          "target": [
+            "button[aria-label=\"Library\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Lists</span>",
+          "target": [
+            "button[aria-label=\"Lists\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Settings</span>",
+          "target": [
+            "button[aria-label=\"Settings\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "meta-viewport",
+      "impact": "moderate",
+      "tags": [
+        "cat.sensory-and-visual-cues",
+        "wcag2aa",
+        "wcag144",
+        "EN-301-549",
+        "EN-9.1.4.4",
+        "ACT",
+        "RGAAv4",
+        "RGAA-10.4.2"
+      ],
+      "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
+      "help": "Zooming and scaling must not be disabled",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/meta-viewport?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "meta-viewport",
+              "data": "user-scalable=no",
+              "relatedNodes": [],
+              "impact": "moderate",
+              "message": "user-scalable=no on <meta> tag disables zooming on mobile devices"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "moderate",
+          "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover\">",
+          "target": [
+            "meta[name=\"viewport\"]"
+          ],
+          "failureSummary": "Fix any of the following:\n  user-scalable=no on <meta> tag disables zooming on mobile devices"
+        }
+      ]
+    },
+    {
+      "id": "nested-interactive",
+      "impact": "serious",
+      "tags": [
+        "cat.keyboard",
+        "wcag2a",
+        "wcag412",
+        "TTv5",
+        "TT6.a",
+        "EN-301-549",
+        "EN-9.4.1.2",
+        "RGAAv4",
+        "RGAA-7.1.1"
+      ],
+      "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
+      "help": "Interactive controls must not be nested",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/nested-interactive?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "no-focusable-content",
+              "data": null,
+              "relatedNodes": [
+                {
+                  "html": "<button type=\"button\">Read now</button>",
+                  "target": [
+                    "button[type=\"button\"]:nth-child(1)"
+                  ]
+                },
+                {
+                  "html": "<button type=\"button\">Info</button>",
+                  "target": [
+                    "button[type=\"button\"]:nth-child(2)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has focusable descendants. Move them outside of the element, or remove them."
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<div class=\"_heroCard_o1cc4_99\" role=\"button\" tabindex=\"0\">",
+          "target": [
+            "._heroCard_o1cc4_99"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them."
+        }
+      ]
+    }
+  ],
+  "library": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#e98243",
+                "bgColor": "#f5e0ce",
+                "contrastRatio": 2.12,
+                "fontSize": "9.8pt (13px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_activeChip_1pafv_229\">All</button>",
+                  "target": [
+                    "._activeChip_1pafv_229"
+                  ]
+                },
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.12 (foreground color: #e98243, background color: #f5e0ce, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"_activeChip_1pafv_229\">All</button>",
+          "target": [
+            "._activeChip_1pafv_229"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.12 (foreground color: #e98243, background color: #f5e0ce, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "9.8pt (13px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"\">Reading</button>",
+                  "target": [
+                    "._filterRail_1pafv_181 > button:nth-child(2)"
+                  ]
+                },
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"\">Reading</button>",
+          "target": [
+            "._filterRail_1pafv_181 > button:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "9.8pt (13px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"\">Unread</button>",
+                  "target": [
+                    "._filterRail_1pafv_181 > button:nth-child(3)"
+                  ]
+                },
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"\">Unread</button>",
+          "target": [
+            "._filterRail_1pafv_181 > button:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "9.8pt (13px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"\">Finished</button>",
+                  "target": [
+                    "._filterRail_1pafv_181 > button:nth-child(4)"
+                  ]
+                },
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"\">Finished</button>",
+          "target": [
+            "._filterRail_1pafv_181 > button:nth-child(4)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 9.8pt (13px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span>3 books</span>",
+          "target": [
+            "._libraryTools_1pafv_241 > span"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_bookAuthor_1pafv_469\">Jane Austen</span>",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(1) > ._bookAuthor_1pafv_469"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_bookMeta_1pafv_471\">EPUB · 0% complete</span>",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(1) > ._bookMeta_1pafv_471"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_bookAuthor_1pafv_469\">Charlotte Brontë</span>",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(2) > ._bookAuthor_1pafv_469"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_bookMeta_1pafv_471\">EPUB · 100% complete</span>",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(2) > ._bookMeta_1pafv_471"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_bookAuthor_1pafv_469\">Oscar Wilde</span>",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(3) > ._bookAuthor_1pafv_469"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_1pafv_1\">",
+                  "target": [
+                    "._screen_1pafv_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_bookMeta_1pafv_471\">EPUB · 0% complete</span>",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(3) > ._bookMeta_1pafv_471"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Home</span>",
+          "target": [
+            "button[aria-label=\"Home\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#fff9ef",
+                "bgColor": "#e98243",
+                "contrastRatio": 2.59,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_tab_pfj6r_1 _active_pfj6r_77\" aria-label=\"Library\">",
+                  "target": [
+                    "._active_pfj6r_77"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Library</span>",
+          "target": [
+            "._active_pfj6r_77 > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Lists</span>",
+          "target": [
+            "button[aria-label=\"Lists\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Settings</span>",
+          "target": [
+            "button[aria-label=\"Settings\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "meta-viewport",
+      "impact": "moderate",
+      "tags": [
+        "cat.sensory-and-visual-cues",
+        "wcag2aa",
+        "wcag144",
+        "EN-301-549",
+        "EN-9.1.4.4",
+        "ACT",
+        "RGAAv4",
+        "RGAA-10.4.2"
+      ],
+      "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
+      "help": "Zooming and scaling must not be disabled",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/meta-viewport?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "meta-viewport",
+              "data": "user-scalable=no",
+              "relatedNodes": [],
+              "impact": "moderate",
+              "message": "user-scalable=no on <meta> tag disables zooming on mobile devices"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "moderate",
+          "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover\">",
+          "target": [
+            "meta[name=\"viewport\"]"
+          ],
+          "failureSummary": "Fix any of the following:\n  user-scalable=no on <meta> tag disables zooming on mobile devices"
+        }
+      ]
+    },
+    {
+      "id": "nested-interactive",
+      "impact": "serious",
+      "tags": [
+        "cat.keyboard",
+        "wcag2a",
+        "wcag412",
+        "TTv5",
+        "TT6.a",
+        "EN-301-549",
+        "EN-9.4.1.2",
+        "RGAAv4",
+        "RGAA-7.1.1"
+      ],
+      "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
+      "help": "Interactive controls must not be nested",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/nested-interactive?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "no-focusable-content",
+              "data": null,
+              "relatedNodes": [
+                {
+                  "html": "<span role=\"button\" tabindex=\"0\" class=\"_cardMenuBtn_1pafv_401\" title=\"Book info\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"></path></svg></span>",
+                  "target": [
+                    "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(1) > ._coverWrap_1pafv_327 > ._cardMenuBtn_1pafv_401[role=\"button\"][title=\"Book info\"]"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has focusable descendants. Move them outside of the element, or remove them."
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"_gridItem_1pafv_309\" data-book-format=\"epub\">",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(1)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them."
+        },
+        {
+          "any": [
+            {
+              "id": "no-focusable-content",
+              "data": null,
+              "relatedNodes": [
+                {
+                  "html": "<span role=\"button\" tabindex=\"0\" class=\"_cardMenuBtn_1pafv_401\" title=\"Book info\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"></path></svg></span>",
+                  "target": [
+                    "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(2) > ._coverWrap_1pafv_327 > ._cardMenuBtn_1pafv_401[role=\"button\"][title=\"Book info\"]"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has focusable descendants. Move them outside of the element, or remove them."
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"_gridItem_1pafv_309\" data-book-format=\"epub\">",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them."
+        },
+        {
+          "any": [
+            {
+              "id": "no-focusable-content",
+              "data": null,
+              "relatedNodes": [
+                {
+                  "html": "<span role=\"button\" tabindex=\"0\" class=\"_cardMenuBtn_1pafv_401\" title=\"Book info\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M5 12h.01M12 12h.01M19 12h.01\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"></path></svg></span>",
+                  "target": [
+                    "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(3) > ._coverWrap_1pafv_327 > ._cardMenuBtn_1pafv_401[role=\"button\"][title=\"Book info\"]"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has focusable descendants. Move them outside of the element, or remove them."
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"_gridItem_1pafv_309\" data-book-format=\"epub\">",
+          "target": [
+            "._gridItem_1pafv_309[data-book-format=\"epub\"]:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them."
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "tags": [
+        "cat.forms",
+        "wcag2a",
+        "wcag412",
+        "section508",
+        "section508.22.n",
+        "TTv5",
+        "TT5.c",
+        "EN-301-549",
+        "EN-9.4.1.2",
+        "ACT",
+        "RGAAv4",
+        "RGAA-11.1.1"
+      ],
+      "description": "Ensure select element has an accessible name",
+      "help": "Select element must have an accessible name",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/select-name?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "implicit-label",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element does not have an implicit (wrapped) <label>"
+            },
+            {
+              "id": "explicit-label",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element does not have an explicit <label>"
+            },
+            {
+              "id": "aria-label",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "aria-label attribute does not exist or is empty"
+            },
+            {
+              "id": "aria-labelledby",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
+            },
+            {
+              "id": "non-empty-title",
+              "data": {
+                "messageKey": "noAttr"
+              },
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element has no title attribute"
+            },
+            {
+              "id": "presentational-role",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "critical",
+          "html": "<select><option value=\"lastOpenedAt\">Recently Opened</option><option value=\"addedAt\">Recently Added</option><option value=\"title\">Title A-Z</option><option value=\"author\">Author A-Z</option><option value=\"progress\">Progress</option></select>",
+          "target": [
+            "select"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+        }
+      ]
+    }
+  ],
+  "lists": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#ec9864",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 2.02,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_yrm51_1\">",
+                  "target": [
+                    "._screen_yrm51_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.02 (foreground color: #ec9864, background color: #f7f1e7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p class=\"aurelia-wordmark\">ShanBooks</p>",
+          "target": [
+            ".aurelia-wordmark"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.02 (foreground color: #ec9864, background color: #f7f1e7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "9.8pt (13px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_yrm51_1\">",
+                  "target": [
+                    "._screen_yrm51_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p class=\"_subhead_yrm51_35\">Shelves for series, genres, moods, and plans.</p>",
+          "target": [
+            "._subhead_yrm51_35"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fffdf8",
+                "contrastRatio": 4.1,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_listCard_yrm51_83 _goldCard_yrm51_155 \">",
+                  "target": [
+                    "._goldCard_yrm51_155"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<small>Stories in progress.</small>",
+          "target": [
+            "._goldCard_yrm51_155 > ._listInfo_yrm51_215 > small:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fffdf8",
+                "contrastRatio": 4.1,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_listCard_yrm51_83 _goldCard_yrm51_155 \">",
+                  "target": [
+                    "._goldCard_yrm51_155"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<small style=\"margin-bottom: 4px;\">1 book - Updated 10/21/2026</small>",
+          "target": [
+            "._goldCard_yrm51_155 > ._listInfo_yrm51_215 > small:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fffdf8",
+                "contrastRatio": 4.1,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_listCard_yrm51_83 _burgundyCard_yrm51_179 \">",
+                  "target": [
+                    "._burgundyCard_yrm51_179"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<small>Longing, restraint, and slow unfolding.</small>",
+          "target": [
+            "._burgundyCard_yrm51_179 > ._listInfo_yrm51_215 > small:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fffdf8",
+                "contrastRatio": 4.1,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_listCard_yrm51_83 _burgundyCard_yrm51_179 \">",
+                  "target": [
+                    "._burgundyCard_yrm51_179"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<small style=\"margin-bottom: 4px;\">2 books - Updated 10/17/2026</small>",
+          "target": [
+            "._burgundyCard_yrm51_179 > ._listInfo_yrm51_215 > small:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Home</span>",
+          "target": [
+            "button[aria-label=\"Home\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Library</span>",
+          "target": [
+            "button[aria-label=\"Library\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#fff9ef",
+                "bgColor": "#e98243",
+                "contrastRatio": 2.59,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_tab_pfj6r_1 _active_pfj6r_77\" aria-label=\"Lists\">",
+                  "target": [
+                    "._active_pfj6r_77"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Lists</span>",
+          "target": [
+            "._active_pfj6r_77 > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Settings</span>",
+          "target": [
+            "button[aria-label=\"Settings\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "meta-viewport",
+      "impact": "moderate",
+      "tags": [
+        "cat.sensory-and-visual-cues",
+        "wcag2aa",
+        "wcag144",
+        "EN-301-549",
+        "EN-9.1.4.4",
+        "ACT",
+        "RGAAv4",
+        "RGAA-10.4.2"
+      ],
+      "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
+      "help": "Zooming and scaling must not be disabled",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/meta-viewport?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "meta-viewport",
+              "data": "user-scalable=no",
+              "relatedNodes": [],
+              "impact": "moderate",
+              "message": "user-scalable=no on <meta> tag disables zooming on mobile devices"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "moderate",
+          "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover\">",
+          "target": [
+            "meta[name=\"viewport\"]"
+          ],
+          "failureSummary": "Fix any of the following:\n  user-scalable=no on <meta> tag disables zooming on mobile devices"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#ec9864",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 2.02,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_fjdwp_1\">",
+                  "target": [
+                    "._screen_fjdwp_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.02 (foreground color: #ec9864, background color: #f7f1e7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p class=\"aurelia-wordmark\">ShanBooks</p>",
+          "target": [
+            ".aurelia-wordmark"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.02 (foreground color: #ec9864, background color: #f7f1e7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_fjdwp_1\">",
+                  "target": [
+                    "._screen_fjdwp_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<h2>Statistics</h2>",
+          "target": [
+            "._group_fjdwp_133:nth-child(1) > h2"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#efe4d6",
+                "contrastRatio": 3.32,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_statBox_fjdwp_81\"><strong>3</strong><span>Books</span></div>",
+                  "target": [
+                    "._statBox_fjdwp_81:nth-child(1)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span>Books</span>",
+          "target": [
+            "._statBox_fjdwp_81:nth-child(1) > span"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#efe4d6",
+                "contrastRatio": 3.32,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_statBox_fjdwp_81\"><strong>3</strong><span>Lists</span></div>",
+                  "target": [
+                    "._statBox_fjdwp_81:nth-child(2)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span>Lists</span>",
+          "target": [
+            "._statBox_fjdwp_81:nth-child(2) > span"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#efe4d6",
+                "contrastRatio": 3.32,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_statBox_fjdwp_81\"><strong>1</strong><span>Reading</span></div>",
+                  "target": [
+                    "._statBox_fjdwp_81:nth-child(3)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span>Reading</span>",
+          "target": [
+            "._statBox_fjdwp_81:nth-child(3) > span"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#efe4d6",
+                "contrastRatio": 3.32,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_statBox_fjdwp_81\"><strong>27.1 MB</strong><span>Storage</span></div>",
+                  "target": [
+                    "._statBox_fjdwp_81:nth-child(4)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span>Storage</span>",
+          "target": [
+            "._statBox_fjdwp_81:nth-child(4) > span"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_fjdwp_1\">",
+                  "target": [
+                    "._screen_fjdwp_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<h2>Theme</h2>",
+          "target": [
+            "._group_fjdwp_133:nth-child(3) > h2"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_screen_fjdwp_1\">",
+                  "target": [
+                    "._screen_fjdwp_1"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<h2>Typeface</h2>",
+          "target": [
+            "._group_fjdwp_133:nth-child(4) > h2"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#efe4d6",
+                "contrastRatio": 3.32,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_rowActive_fjdwp_333\"><span style=\"font-family: Georgia, &quot;Times New Roman&quot;, serif;\">Georgia</span><em>Selected</em></button>",
+                  "target": [
+                    "._rowActive_fjdwp_333"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<em>Selected</em>",
+          "target": [
+            "._rowActive_fjdwp_333 > em"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #6f8078, background color: #efe4d6, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fffdf8",
+                "contrastRatio": 4.1,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"_card_fjdwp_225\">",
+                  "target": [
+                    "._group_fjdwp_133:nth-child(4) > ._card_fjdwp_225"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<em>Aa</em>",
+          "target": [
+            "._group_fjdwp_133:nth-child(4) > ._card_fjdwp_225 > button:nth-child(2) > em"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.1 (foreground color: #6f8078, background color: #fffdf8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Home</span>",
+          "target": [
+            "button[aria-label=\"Home\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Library</span>",
+          "target": [
+            "button[aria-label=\"Library\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#fefcf7",
+                "contrastRatio": 4.06,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<nav class=\"_tabBar_pfj6r_1\">",
+                  "target": [
+                    "nav"
+                  ]
+                },
+                {
+                  "html": "<div id=\"phone-frame\" data-theme=\"warm-cream\">",
+                  "target": [
+                    "#phone-frame"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Lists</span>",
+          "target": [
+            "button[aria-label=\"Lists\"] > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.06 (foreground color: #6f8078, background color: #fefcf7, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#fff9ef",
+                "bgColor": "#e98243",
+                "contrastRatio": 2.59,
+                "fontSize": "7.5pt (10px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"_tab_pfj6r_1 _active_pfj6r_77\" aria-label=\"Settings\">",
+                  "target": [
+                    "._active_pfj6r_77"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<span class=\"_label_pfj6r_107\">Settings</span>",
+          "target": [
+            "._active_pfj6r_77 > ._label_pfj6r_107"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "meta-viewport",
+      "impact": "moderate",
+      "tags": [
+        "cat.sensory-and-visual-cues",
+        "wcag2aa",
+        "wcag144",
+        "EN-301-549",
+        "EN-9.1.4.4",
+        "ACT",
+        "RGAAv4",
+        "RGAA-10.4.2"
+      ],
+      "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
+      "help": "Zooming and scaling must not be disabled",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/meta-viewport?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "meta-viewport",
+              "data": "user-scalable=no",
+              "relatedNodes": [],
+              "impact": "moderate",
+              "message": "user-scalable=no on <meta> tag disables zooming on mobile devices"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "moderate",
+          "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover\">",
+          "target": [
+            "meta[name=\"viewport\"]"
+          ],
+          "failureSummary": "Fix any of the following:\n  user-scalable=no on <meta> tag disables zooming on mobile devices"
+        }
+      ]
+    }
+  ],
+  "book-detail": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "10.5pt (14px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"modal-sheet\" style=\"max-height: 88%;\">",
+                  "target": [
+                    ".modal-sheet"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p style=\"margin-top: 5px; color: var(--text-secondary); font-size: 14px;\">Jane Austen</p>",
+          "target": [
+            "div:nth-child(2) > p:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#e98243",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 2.41,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"modal-sheet\" style=\"max-height: 88%;\">",
+                  "target": [
+                    ".modal-sheet"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.41 (foreground color: #e98243, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p style=\"margin-top: 12px; color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;\">Romance · 432 pages</p>",
+          "target": [
+            "p:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.41 (foreground color: #e98243, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"modal-sheet\" style=\"max-height: 88%;\">",
+                  "target": [
+                    ".modal-sheet"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p style=\"margin-top: 4px; color: var(--text-secondary); font-size: 12px;\">0% · reading</p>",
+          "target": [
+            "p:nth-child(4)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#fff9ef",
+                "bgColor": "#e98243",
+                "contrastRatio": 2.59,
+                "fontSize": "10.5pt (14px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button class=\"btn-primary\" style=\"padding: 12px; font-size: 14px;\">Read</button>",
+                  "target": [
+                    "div:nth-child(2) > .btn-primary:nth-child(1)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button class=\"btn-primary\" style=\"padding: 12px; font-size: 14px;\">Read</button>",
+          "target": [
+            "div:nth-child(2) > .btn-primary:nth-child(1)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.59 (foreground color: #fff9ef, background color: #e98243, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#6f8078",
+                "bgColor": "#f7f1e7",
+                "contrastRatio": 3.71,
+                "fontSize": "8.3pt (11px)",
+                "fontWeight": "bold",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<div class=\"modal-sheet\" style=\"max-height: 88%;\">",
+                  "target": [
+                    ".modal-sheet"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<p style=\"color: var(--text-secondary); font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;\">Synopsis</p>",
+          "target": [
+            "div:nth-child(3) > p:nth-child(1)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.71 (foreground color: #6f8078, background color: #f7f1e7, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "meta-viewport",
+      "impact": "moderate",
+      "tags": [
+        "cat.sensory-and-visual-cues",
+        "wcag2aa",
+        "wcag144",
+        "EN-301-549",
+        "EN-9.1.4.4",
+        "ACT",
+        "RGAAv4",
+        "RGAA-10.4.2"
+      ],
+      "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
+      "help": "Zooming and scaling must not be disabled",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/meta-viewport?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "meta-viewport",
+              "data": "user-scalable=no",
+              "relatedNodes": [],
+              "impact": "moderate",
+              "message": "user-scalable=no on <meta> tag disables zooming on mobile devices"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "moderate",
+          "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover\">",
+          "target": [
+            "meta[name=\"viewport\"]"
+          ],
+          "failureSummary": "Fix any of the following:\n  user-scalable=no on <meta> tag disables zooming on mobile devices"
+        }
+      ]
+    },
+    {
+      "id": "nested-interactive",
+      "impact": "serious",
+      "tags": [
+        "cat.keyboard",
+        "wcag2a",
+        "wcag412",
+        "TTv5",
+        "TT6.a",
+        "EN-301-549",
+        "EN-9.4.1.2",
+        "RGAAv4",
+        "RGAA-7.1.1"
+      ],
+      "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
+      "help": "Interactive controls must not be nested",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/nested-interactive?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "no-focusable-content",
+              "data": null,
+              "relatedNodes": [
+                {
+                  "html": "<button type=\"button\">Read now</button>",
+                  "target": [
+                    "button[type=\"button\"]:nth-child(1)"
+                  ]
+                },
+                {
+                  "html": "<button type=\"button\">Info</button>",
+                  "target": [
+                    "button[type=\"button\"]:nth-child(2)"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has focusable descendants. Move them outside of the element, or remove them."
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<div class=\"_heroCard_o1cc4_99\" role=\"button\" tabindex=\"0\">",
+          "target": [
+            "._heroCard_o1cc4_99"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has focusable descendants. Move them outside of the element, or remove them."
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "tags": [
+        "cat.forms",
+        "wcag2a",
+        "wcag412",
+        "section508",
+        "section508.22.n",
+        "TTv5",
+        "TT5.c",
+        "EN-301-549",
+        "EN-9.4.1.2",
+        "ACT",
+        "RGAAv4",
+        "RGAA-11.1.1"
+      ],
+      "description": "Ensure select element has an accessible name",
+      "help": "Select element must have an accessible name",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/select-name?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "implicit-label",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element does not have an implicit (wrapped) <label>"
+            },
+            {
+              "id": "explicit-label",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element does not have an explicit <label>"
+            },
+            {
+              "id": "aria-label",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "aria-label attribute does not exist or is empty"
+            },
+            {
+              "id": "aria-labelledby",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
+            },
+            {
+              "id": "non-empty-title",
+              "data": {
+                "messageKey": "noAttr"
+              },
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element has no title attribute"
+            },
+            {
+              "id": "presentational-role",
+              "data": null,
+              "relatedNodes": [],
+              "impact": "critical",
+              "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "critical",
+          "html": "<select style=\"width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); padding: 0px 10px; font: inherit; flex: 1 1 0%;\">",
+          "target": [
+            "select"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+        }
+      ]
+    }
+  ],
+  "reader": [
+    {
+      "id": "meta-viewport",
+      "impact": "moderate",
+      "tags": [
+        "cat.sensory-and-visual-cues",
+        "wcag2aa",
+        "wcag144",
+        "EN-301-549",
+        "EN-9.1.4.4",
+        "ACT",
+        "RGAAv4",
+        "RGAA-10.4.2"
+      ],
+      "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
+      "help": "Zooming and scaling must not be disabled",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/meta-viewport?application=playwright",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "meta-viewport",
+              "data": "user-scalable=no",
+              "relatedNodes": [],
+              "impact": "moderate",
+              "message": "user-scalable=no on <meta> tag disables zooming on mobile devices"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "moderate",
+          "html": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover\">",
+          "target": [
+            "meta[name=\"viewport\"]"
+          ],
+          "failureSummary": "Fix any of the following:\n  user-scalable=no on <meta> tag disables zooming on mobile devices"
+        }
+      ]
+    }
+  ]
+}

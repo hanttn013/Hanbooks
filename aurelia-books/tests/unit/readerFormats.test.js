@@ -10,6 +10,23 @@ async function fixture(name, type = '') {
 }
 
 describe('reflowable reader adapters', () => {
+  it('search results navigate to stable paragraph locators', async () => {
+    const adapter = await createReaderAdapter('md');
+    await adapter.open(new File(['# First\n\nOpening text.\n\n# Second\n\nDistinct needle here.'], 'search.md'));
+    const [result] = await adapter.search('needle');
+    const target = parseLocator(result.locator);
+    expect(target).toMatchObject({ quote: 'needle' });
+    expect(adapter.getContent()).toContain(`id="${target.anchor}"`);
+    expect(parseLocator((await adapter.goTo(result.locator)).locator)).toMatchObject(target);
+    adapter.destroy();
+  });
+
+  it('removes inline CSS and external resource requests from HTML', async () => {
+    const adapter = await createReaderAdapter('html');
+    await adapter.open(new File(['<p style="background:url(https://example.com/track)">Safe</p><iframe src="https://example.com"></iframe>'], 'unsafe.html'));
+    expect(adapter.getContent()).not.toMatch(/style=|iframe|example\.com/);
+    adapter.destroy();
+  });
   it('decodes UTF-16 text and exposes a format-neutral location', async () => {
     const file = await fixture('sample-utf16le.txt', 'text/plain');
     const adapter = await createReaderAdapter('txt', { book: { fileName: file.name } });

@@ -12,6 +12,13 @@
 
 ### Phase 2 — Universal document readers
 
+- Closed reflowable search navigation, bookmark list, reader controls, PDF
+  fit-width/zoom, DOCX worker cancellation, and data-only merge blob-loss gaps.
+- Added shared pre-extraction ZIP checks, RAR bounds, CSS sanitization, archive
+  worker extraction, and full-block large-file identities.
+- Added production offline shell caching and offline full-backup round-trip
+  acceptance; removed Google Fonts network dependency from the HTML shell.
+
 - Added offline import and lazy reader adapters for PDF, DOCX, TXT, Markdown,
   HTML, PPTX, CBZ, and existing EPUB files.
 - Added content-based format detection, SHA-256 duplicate identity, locator

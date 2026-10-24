@@ -1,27 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import styles from './SettingsScreen.module.css';
+import { Action, Choice, Range } from '../UI/Controls';
+import { ToastQueue } from '@react-spectrum/s2/Toast';
+import { useI18n } from '../../i18n/context';
+import { useConfirm } from '../UI/feedbackContext';
 import { StorageManager } from '../../utils/StorageManager';
 import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
 import { removeShanBooksLocalStorage, STORAGE_KEYS } from '../../utils/storageKeys';
-
-function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
-  return (
-    <label className={styles.sliderRow}>
-      <span>
-        <strong>{label}</strong>
-        <em>{value}{unit}</em>
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-      />
-    </label>
-  );
-}
 
 function formatBytes(bytes = 0) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -30,12 +14,14 @@ function formatBytes(bytes = 0) {
 }
 
 export default function SettingsScreen({ settings, updateSetting, library }) {
+  const { t, locale } = useI18n();
+  const confirm = useConfirm();
   const activeTheme = getThemeById(settings.theme);
   const stats = library?.stats || {};
   const importRef = useRef(null);
   const [backupStatus, setBackupStatus] = useState(() => {
     const timestamp = Number(localStorage.getItem(STORAGE_KEYS.lastBackupAt) || 0);
-    return timestamp ? `Last backup ${new Date(timestamp).toLocaleString()}` : 'No backup yet';
+    return timestamp ? { key: 'Last backup', at: timestamp } : { key: 'No backup yet' };
   });
   const [storageState, setStorageState] = useState({ usage: 0, quota: 0, persisted: false, supported: true });
 
@@ -59,9 +45,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
   }, [refreshStorageState]);
 
   const handleClearData = async () => {
-    const confirmed = window.confirm(
-      'Xoa toan bo du lieu ShanBooks? Viec nay se xoa sach da import, bookmarks, lists, tien do doc va cai dat.'
-    );
+    const confirmed = await confirm(t('deleteDataConfirm'));
     if (!confirmed) return;
 
     try {
@@ -71,7 +55,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
       localStorage.setItem(STORAGE_KEYS.seededDefaultLists, '1');
       window.location.reload();
     } catch (err) {
-      alert(err.message || 'Khong the xoa du lieu. Hay dong va mo lai app roi thu lai.');
+      ToastQueue.negative(t(err.message || 'Khong the xoa du lieu. Hay dong va mo lai app roi thu lai.'));
     }
   };
 
@@ -94,7 +78,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
       const stamp = new Date(snapshot.exportedAt).toISOString().replace(/[:.]/g, '-');
       downloadJson(snapshot, `hanbooks-library-${stamp}.json`);
     } catch (err) {
-      alert(err.message || 'Could not export library.');
+      ToastQueue.negative(t(err.message || 'Could not export library.'));
     }
   };
 
@@ -102,7 +86,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const confirmed = window.confirm('Import this ShanBooks backup? Existing library items with the same IDs will be updated.');
+      const confirmed = await confirm(t('importBackupConfirm'));
       if (!confirmed) return;
       if (/\.zip$/i.test(file.name) || file.type === 'application/zip') {
         await StorageManager.importFullBackup(file, { merge: true });
@@ -113,7 +97,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
       await StorageManager.createAutoBackup('after-import');
       window.location.reload();
     } catch (err) {
-      alert(err.message || 'Could not import this backup file.');
+      ToastQueue.negative(t(err.message || 'Could not import this backup file.'));
     } finally {
       event.target.value = '';
     }
@@ -121,14 +105,14 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
 
   const handleExportFullBackup = async () => {
     try {
-      setBackupStatus('Building full backup...');
+      setBackupStatus({ key: 'Building full backup...' });
       const blob = await StorageManager.exportFullBackup();
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
       downloadBlob(blob, `shanbooks-full-${stamp}.zip`);
-      setBackupStatus(`Full backup ${formatBytes(blob.size)}`);
+      setBackupStatus({ key: 'Full backup size', size: formatBytes(blob.size) });
     } catch (err) {
-      setBackupStatus('Full backup failed');
-      alert(err.message || 'Could not create a full backup.');
+      setBackupStatus({ key: 'Full backup failed' });
+      ToastQueue.negative(t(err.message || 'Could not create a full backup.'));
     }
   };
 
@@ -144,228 +128,57 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
   const handleCreateBackup = async () => {
     try {
       const backup = await StorageManager.createAutoBackup('manual');
-      setBackupStatus(`Last backup ${new Date(backup.createdAt).toLocaleString()}`);
+      setBackupStatus({ key: 'Last backup', at: backup.createdAt });
     } catch (err) {
-      alert(err.message || 'Could not create backup.');
+      ToastQueue.negative(t(err.message || 'Could not create backup.'));
     }
   };
 
-  return (
-    <div className={styles.screen}>
-      <header className={`${styles.header} safe-top`}>
-        <div className="brand-lockup">
-          <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
-          <p className="aurelia-wordmark">ShanBooks</p>
+  return <div className="screen-container">
+    <header className="page-layout safe-top" style={{ paddingBottom: 0, gap: 12 }}><p className="aurelia-wordmark">ShanBooks</p><h1 className="screen-title">{t('Settings')}</h1></header>
+    <div className="screen-scroll"><main className="page-layout">
+      <section className="settings-section"><h2>{t('Application')}</h2><div className="field-grid">
+        <Choice label="App appearance" value={settings.appTheme} onChange={value => updateSetting('appTheme', value)} options={[{ id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }, { id: 'system', label: 'System' }]} />
+        <Choice label="Language" value={settings.language} onChange={value => updateSetting('language', value)} options={[{ id: 'vi', label: 'Tiếng Việt' }, { id: 'en', label: 'English' }]} />
+      </div></section>
+      <section className="settings-section"><h2>{t('Statistics')}</h2><div className="stats-grid">
+        {[[t('Books'), stats.totalBooks || 0], [t('Lists'), stats.totalLists || 0], [t('Reading'), stats.readingBooks || 0], [t('Storage'), stats.totalStorageLabel || '0 MB']].map(([label, value]) => <div className="stat" key={label}><strong>{value}</strong><span>{label}</span></div>)}
+      </div></section>
+      <section className="settings-section"><h2>{t('Reader settings')}</h2>
+        <div aria-label={t('Reading preference preview')} style={{ padding: 24, borderRadius: 8, background: activeTheme.bg, color: activeTheme.text, fontFamily: getFontStack(settings.font), fontSize: settings.fontSize, lineHeight: settings.lineHeight }}>{t('previewText')}</div>
+        <div className="field-grid">
+          <Choice label="Reader theme" value={settings.theme} onChange={value => updateSetting('theme', value)} options={APP_THEMES} />
+          <Choice label="Typeface" value={settings.font} onChange={value => updateSetting('font', value)} options={READER_FONTS} />
+          <Choice label="Reading mode" value={settings.readingMode} onChange={value => updateSetting('readingMode', value)} options={[{ id: 'scroll', label: 'Scroll' }, { id: 'classic', label: 'Pages' }]} />
+          <Choice label="Status line" value={settings.readingStatusLine} onChange={value => updateSetting('readingStatusLine', value)} options={[{ id: 'off', label: 'Off' }, { id: 'minimal', label: 'Minimal' }, { id: 'detailed', label: 'Detailed' }]} />
+          <Range label="Font size" value={settings.fontSize} min={14} max={28} onChange={value => updateSetting('fontSize', value)} />
+          <Range label="Line height" value={settings.lineHeight} min={1.2} max={2.4} step={0.05} onChange={value => updateSetting('lineHeight', value)} />
+          <Range label="Margins" value={settings.marginWidth} min={8} max={48} step={2} onChange={value => updateSetting('marginWidth', value)} />
+          <Range label="Letter spacing" value={settings.letterSpacing} min={0} max={3} step={0.25} onChange={value => updateSetting('letterSpacing', value)} />
         </div>
-        <h1 className="screen-title">Settings</h1>
-      </header>
-
-      <div className="screen-scroll">
-        <main className={styles.content}>
-          <section className={styles.group}>
-            <h2>Statistics</h2>
-            <div className={styles.statsPanel}>
-              <div className={styles.statsGrid}>
-                <Stat label="Books" value={stats.totalBooks || 0} />
-                <Stat label="Lists" value={stats.totalLists || 0} />
-                <Stat label="Reading" value={stats.readingBooks || 0} />
-                <Stat label="Storage" value={stats.totalStorageLabel || '0 MB'} />
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.preview} style={{ background: activeTheme.bg, color: activeTheme.text, fontFamily: getFontStack(settings.font), fontSize: settings.fontSize, lineHeight: settings.lineHeight }}>
-            She turned the page without thinking, and the story carried her further from the quiet street below.
-          </section>
-
-          <section className={styles.group}>
-            <h2>Theme</h2>
-            <div className={styles.themeGrid}>
-              {APP_THEMES.map(theme => (
-                <button
-                  key={theme.id}
-                  className={settings.theme === theme.id ? styles.themeActive : ''}
-                  style={{ background: theme.bg, color: theme.text }}
-                  onClick={() => updateSetting('theme', theme.id)}
-                >
-                  <strong>Aa</strong>
-                  <span>{theme.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Typeface</h2>
-            <div className={styles.card}>
-              {READER_FONTS.map(font => (
-                <button
-                  key={font.id}
-                  className={settings.font === font.id ? styles.rowActive : ''}
-                  onClick={() => updateSetting('font', font.id)}
-                >
-                  <span style={{ fontFamily: font.stack }}>{font.label}</span>
-                  <em>{settings.font === font.id ? 'Selected' : 'Aa'}</em>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Text</h2>
-            <div className={styles.card}>
-              <Slider label="Font size" value={settings.fontSize} min={14} max={28} unit="px" onChange={v => updateSetting('fontSize', v)} />
-              <Slider label="Line height" value={settings.lineHeight} min={1.2} max={2.4} step={0.05} onChange={v => updateSetting('lineHeight', parseFloat(v.toFixed(2)))} />
-              <Slider label="Margins" value={settings.marginWidth} min={8} max={48} step={2} unit="px" onChange={v => updateSetting('marginWidth', v)} />
-              <Slider label="Letter spacing" value={settings.letterSpacing} min={0} max={3} step={0.25} unit="px" onChange={v => updateSetting('letterSpacing', v)} />
-            </div>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Reading mode</h2>
-            <div className={styles.segment}>
-              {[
-                { id: 'scroll', label: 'Scroll' },
-                { id: 'classic', label: 'Pages' },
-              ].map(mode => (
-                <button
-                  key={mode.id}
-                  className={settings.readingMode === mode.id ? styles.segmentActive : ''}
-                  onClick={() => updateSetting('readingMode', mode.id)}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Reader controls</h2>
-            <div className={styles.card}>
-              <SettingSelect
-                label="Status line"
-                value={settings.readingStatusLine || 'off'}
-                options={[
-                  { id: 'off', label: 'Off' },
-                  { id: 'minimal', label: 'Minimal' },
-                  { id: 'detailed', label: 'Detailed' },
-                ]}
-                onChange={value => updateSetting('readingStatusLine', value)}
-              />
-            </div>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Library</h2>
-            <div className={styles.card}>
-              <div className={styles.infoRow}><span>Storage</span><em>IndexedDB</em></div>
-              <div className={styles.infoRow}><span>Import formats</span><em>EPUB, PDF, DOCX, TXT/MD/HTML, PPTX, CBZ</em></div>
-              <div className={styles.infoRow}><span>Metadata</span><em>Automatic extraction</em></div>
-              <div className={styles.infoRow}>
-                <span>Browser quota</span>
-                <em>{storageState.supported ? `${formatBytes(storageState.usage)} / ${formatBytes(storageState.quota)}` : 'Unavailable'}</em>
-              </div>
-              <div className={styles.infoRow}><span>Offline protection</span><em>{storageState.persisted ? 'Persistent' : 'Best effort'}</em></div>
-              {!storageState.persisted && storageState.supported && (
-                <button onClick={handlePersistStorage}><span>Protect offline library</span><em>Request</em></button>
-              )}
-            </div>
-            {storageState.quota > 0 && storageState.usage / storageState.quota >= 0.8 && (
-              <p className={styles.note}>Storage is over 80% full. Export a full backup before importing more large documents.</p>
-            )}
-          </section>
-
-          <section className={styles.group}>
-            <h2>Metadata Queue</h2>
-            <div className={styles.card}>
-              <div className={styles.infoRow}>
-                <span>Pending books</span>
-                <em>{library?.pendingMetadataTotal || 0}</em>
-              </div>
-              <div className={styles.infoRow}>
-                <span>Queue status</span>
-                <em>
-                  {library?.metadataProcessingCount > 0
-                    ? `Processing ${library.metadataProcessingCount}...`
-                    : library?.isMetadataQueuePaused ? 'Paused' : 'Idle'}
-                </em>
-              </div>
-              <div className={styles.infoRow}>
-                <span>Failed books</span>
-                <em>{library?.failedMetadataTotal || 0}</em>
-              </div>
-              {library?.pendingMetadataTotal > 0 && (
-                <button onClick={() => library.setIsMetadataQueuePaused(prev => !prev)}>
-                  <span>{library?.isMetadataQueuePaused ? 'Resume queue' : 'Pause queue'}</span>
-                  <em>{library?.isMetadataQueuePaused ? 'Play' : 'Pause'}</em>
-                </button>
-              )}
-            </div>
-            <p className={styles.note}>
-              ShanBooks extracts cover and info in the background to keep imports fast. You can pause this if your device slows down.
-            </p>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Backup</h2>
-            <div className={styles.card}>
-              <button onClick={handleExportLibrary}>
-                <span>Export data only</span>
-                <em>JSON · no files</em>
-              </button>
-              <button onClick={handleExportFullBackup}>
-                <span>Export full library</span>
-                <em>ZIP · includes files</em>
-              </button>
-              <button onClick={() => importRef.current?.click()}>
-                <span>Import library</span>
-                <em>Merge</em>
-              </button>
-              <button onClick={handleCreateBackup}>
-                <span>Create auto backup</span>
-                <em>Now</em>
-              </button>
-              <div className={styles.infoRow}><span>Auto backup</span><em>{backupStatus}</em></div>
-            </div>
-            <input ref={importRef} type="file" accept="application/json,application/zip,.json,.zip" hidden onChange={handleImportLibrary} />
-            <p className={styles.note}>
-              Data-only backups are small but need files to be re-imported. Full backups include original documents and restore them ready to read. ShanBooks retains the latest three automatic snapshots.
-            </p>
-          </section>
-
-          <section className={styles.group}>
-            <h2>Danger zone</h2>
-            <div className={styles.card}>
-              <button className={styles.dangerRow} onClick={handleClearData}>
-                <span>Delete all app data</span>
-                <em>Reset</em>
-              </button>
-            </div>
-          </section>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }) {
-  return (
-    <div className={styles.statBox}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function SettingSelect({ label, value, options, onChange }) {
-  return (
-    <label className={styles.infoRow}>
-      <span>{label}</span>
-      <select value={value} onChange={event => onChange(event.target.value)}>
-        {options.map(option => (
-          <option key={option.id} value={option.id}>{option.label}</option>
-        ))}
-      </select>
-    </label>
-  );
+      </section>
+      <section className="settings-section"><h2>{t('Offline storage')}</h2>
+        <p>{t('Browser quota')}: {formatBytes(storageState.usage)} / {formatBytes(storageState.quota)} · {t(storageState.persisted ? 'Protected' : storageState.supported ? 'Best effort' : 'Not available')}</p>
+        <div><Action onPress={handlePersistStorage}>{t('Protect offline library')}</Action></div>
+        {storageState.quota > 0 && storageState.usage / storageState.quota >= 0.8 && <p role="alert">{t('quotaWarning')}</p>}
+      </section>
+      <section className="settings-section"><h2>{t('Metadata Queue')}</h2>
+        <p>{t('Pending books')}: {library?.pendingMetadataTotal || 0} · {t('Failed books')}: {library?.failedMetadataTotal || 0} · {t('Queue status')}: {library?.metadataProcessingCount || 0} / {t(library?.isMetadataQueuePaused ? 'Paused' : 'Idle')}</p>
+        <p>{t('queueNote')}</p>
+        {library?.pendingMetadataTotal > 0 && <div><Action onPress={() => library.setIsMetadataQueuePaused(previous => !previous)}>{t(library.isMetadataQueuePaused ? 'Resume queue' : 'Pause queue')}</Action></div>}
+      </section>
+      <section className="settings-section"><h2>{t('Backup')}</h2><p>{t('backupNote')}</p>
+        <div className="action-row">
+          <Action onPress={handleExportLibrary}>{t('Export data only')}</Action>
+          <Action primary onPress={handleExportFullBackup} isPending={backupStatus.key === 'Building full backup...'}>{t('Export full library')}</Action>
+          <Action onPress={() => importRef.current?.click()}>{t('Import library')}</Action>
+          <Action onPress={handleCreateBackup}>{t('Create auto backup')}</Action>
+        </div>
+        <p role="status">{t('Auto backup')}: {t(backupStatus.key, { size: backupStatus.size, date: backupStatus.at ? new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { dateStyle: 'short', timeStyle: 'short' }).format(backupStatus.at) : '' })}</p>
+        <input aria-label={t('Import library')} ref={importRef} type="file" accept="application/json,application/zip,.json,.zip" hidden onChange={handleImportLibrary} />
+        <small>{new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(new Date())}</small>
+      </section>
+      <section className="settings-section"><h2>{t('Danger zone')}</h2><div><Action negative onPress={handleClearData}>{t('Delete all app data')}</Action></div></section>
+    </main></div>
+  </div>;
 }

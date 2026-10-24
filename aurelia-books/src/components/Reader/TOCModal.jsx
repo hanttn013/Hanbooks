@@ -1,4 +1,7 @@
 import { memo, useMemo, useState } from 'react';
+import Sheet from '../UI/Sheet';
+import { SearchBox } from '../UI/Controls';
+import { useI18n } from '../../i18n/context';
 import { includesSearchText } from '../../utils/searchText';
 
 const ROW_HEIGHT = 46;
@@ -70,6 +73,7 @@ const TocRow = memo(function TocRow({ row, currentChapter, onJumpTo }) {
 });
 
 export default function TOCModal({ toc, currentChapter, onJumpTo, onClose }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const rows = useMemo(() => flattenToc(toc), [toc]);
@@ -93,102 +97,12 @@ export default function TOCModal({ toc, currentChapter, onJumpTo, onClose }) {
     ? Math.max(0, (filteredRows.length - startIndex - visibleRows.length) * ROW_HEIGHT)
     : 0;
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" style={{ maxHeight: '86%' }} onClick={e => e.stopPropagation()}>
-        <div className="modal-handle" />
-        <div className="modal-header">
-          <span className="modal-title">Table of Contents</span>
-          <button className="btn-icon" onClick={onClose} aria-label="Close table of contents">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-
-        {rows.length > 12 && (
-          <div style={{ padding: '0 16px 12px' }}>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                minHeight: 40,
-                borderRadius: 12,
-                background: 'var(--bg-secondary)',
-                padding: '0 12px',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
-                <path d="M21 21l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              <input
-                value={query}
-                onChange={event => { setQuery(event.target.value); setScrollTop(0); }}
-                placeholder="Search chapters"
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  color: 'var(--text-primary)',
-                  font: 'inherit',
-                  fontSize: 14,
-                }}
-              />
-              {query && (
-                <button
-                  onClick={() => { setQuery(''); setScrollTop(0); }}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    font: 'inherit',
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </label>
-          </div>
-        )}
-
-        {rows.length === 0 ? (
-          <div className="modal-scroll">
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <p>No table of contents available</p>
-            </div>
-          </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="modal-scroll">
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <p>No chapters found</p>
-            </div>
-          </div>
-        ) : (
-          <div
-            className="modal-scroll"
-            onScroll={event => setScrollTop(event.currentTarget.scrollTop)}
-            style={{ minHeight: 0 }}
-          >
-            {topSpacer > 0 && <div style={{ height: topSpacer }} />}
-            {visibleRows.map(row => (
-              <TocRow
-                key={row.key}
-                row={row}
-                currentChapter={currentChapter}
-                onJumpTo={onJumpTo}
-              />
-            ))}
-            {bottomSpacer > 0 && <div style={{ height: bottomSpacer }} />}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <Sheet title="Table of contents" onClose={onClose}>
+    {rows.length > 12 && <SearchBox label="Search chapters" value={query} onChange={value => { setQuery(value); setScrollTop(0); }} />}
+    {!rows.length ? <p>{t('No table of contents available')}</p> : <div onScroll={event => setScrollTop(event.currentTarget.scrollTop)} style={{ maxHeight: 520, overflowY: 'auto' }}>
+      {topSpacer > 0 && <div style={{ height: topSpacer }} />}
+      {visibleRows.map(row => <TocRow key={row.key} row={row} currentChapter={currentChapter} onJumpTo={href => { onJumpTo(href); onClose(); }} />)}
+      {bottomSpacer > 0 && <div style={{ height: bottomSpacer }} />}
+    </div>}
+  </Sheet>;
 }

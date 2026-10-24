@@ -12,6 +12,7 @@ export default defineConfig({
     ['html', { outputFolder: 'qa/playwright-report', open: 'never' }],
   ],
   use: {
+    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'shanbooks_settings', value: '{"language":"en"}' }] }] },
     baseURL: 'http://127.0.0.1:4173',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',

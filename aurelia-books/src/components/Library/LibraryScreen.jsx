@@ -1,12 +1,15 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import BookCover from './BookCover';
+import { Action, Choice, SearchBox } from '../UI/Controls';
+import Sheet from '../UI/Sheet';
+import { useI18n } from '../../i18n/context';
+import { ToastQueue } from '@react-spectrum/s2/Toast';
 import styles from './LibraryScreen.module.css';
 import { readProgressPercent } from '../../utils/storageKeys';
 import { isArchiveFile } from '../../utils/archiveImport';
 import { extractArchiveInWorker as extractDocumentsFromArchive } from '../../utils/archiveWorkerClient';
 
-const GRID_COLUMNS = 3;
-const GRID_ROW_HEIGHT = 250;
+const GRID_ROW_HEIGHT = 340;
 const LIST_ROW_HEIGHT = 104;
 const VIEWPORT_HEIGHT = 720;
 const OVERSCAN_ROWS = 3;
@@ -33,101 +36,39 @@ function progressFor(book) {
 }
 
 function MetadataStatus({ book }) {
+  const { t } = useI18n();
   const status = { processing: 'running', ready: 'done' }[book.metadataStatus] || book.metadataStatus || 'done';
-  return <span data-metadata-status={status} role="status" title={book.metadataError || ''}>{status}{status === 'failed' && book.metadataError ? `: ${book.metadataError}` : ''}</span>;
+  return <span data-metadata-status={status} role="status" title={book.metadataError || ''}>{t(status)}{status === 'failed' && book.metadataError ? `: ${book.metadataError}` : ''}</span>;
 }
 
-function SelectionBadge({ checked }) {
-  return (
-    <span className={`${styles.selectionBadge} ${checked ? styles.selectionChecked : ''}`}>
-      {checked && (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-          <path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      )}
-    </span>
-  );
-}
-
-const BookGridItem = memo(function BookGridItem({
-  book,
-  selected,
-  selecting,
-  pct,
-  onTap,
-  onHoldStart,
-  onHoldCancel,
-  onOpenInfo,
-}) {
-  return (
-    <button
-      className={styles.gridItem}
-      data-book-format={book.format || 'epub'}
-      onClick={() => onTap(book)}
-      onPointerDown={() => onHoldStart(book)}
-      onPointerUp={onHoldCancel}
-      onPointerLeave={onHoldCancel}
-      onContextMenu={e => onOpenInfo?.(e, book)}
-    >
-      <span className={styles.coverWrap}>
-        <BookCover book={book} size="large" style={{ width: '100%', height: '100%' }} />
-        {selecting && <SelectionBadge checked={selected} />}
-        {book.isFavorite && (
-          <span className={styles.coverBookmark} aria-label="Favorite">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 17.3l-5.2 3 1.4-5.8-4.5-3.9 6-.5L12 4.6l2.3 5.5 6 .5-4.5 3.9 1.4 5.8-5.2-3z"/>
-            </svg>
-          </span>
-        )}
-        {!selecting && (
-          <span
-            role="button"
-            tabIndex={0}
-            className={styles.cardMenuBtn}
-            onClick={event => onOpenInfo(event, book)}
-            onPointerDown={event => event.stopPropagation()}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') onOpenInfo(event, book);
-            }}
-            title="Book info"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-          </span>
-        )}
-      </span>
-      <span className={styles.bookTitle}>{book.title}</span>
-      <span className={styles.bookAuthor}>{book.author}</span>
-      <MetadataStatus book={book} />
-      <span className={styles.bookMeta}>{String(book.format || 'epub').toUpperCase()} · {pct}% complete</span>
+const BookGridItem = memo(function BookGridItem({ book, selected, selecting, pct, onTap, onHoldStart, onHoldCancel, onOpenInfo }) {
+  const { t } = useI18n();
+  return <article className="book-card library-book-card" data-selected={selected || undefined}>
+    <button className="book-card-cover" data-book-format={book.format || 'epub'} aria-label={`${selecting ? t('Select') : t('Read')}: ${book.title}`} aria-pressed={selecting ? selected : undefined}
+      onClick={() => onTap(book)} onPointerDown={() => onHoldStart(book)} onPointerUp={onHoldCancel} onPointerLeave={onHoldCancel} onContextMenu={event => onOpenInfo?.(event, book)}>
+      <BookCover book={book} size="medium" />
     </button>
-  );
+    <h3>{book.title}</h3><p>{book.author}</p><MetadataStatus book={book} /><p>{String(book.format || 'epub').toUpperCase()} · {t('completePercent', { count: pct })}</p>
+    {!selecting && <div className="book-card-actions"><Action label={`${t('Book info')}: ${book.title}`} onPress={() => onOpenInfo({ preventDefault() {}, stopPropagation() {} }, book)}>{t('Info')}</Action></div>}
+  </article>;
 });
 
 const BookListItem = memo(function BookListItem({ book, selected, selecting, pct, onTap, onToggleSelected, onOpenInfo }) {
-  return (
-    <li>
-      <button
-        className={styles.listItem}
-        data-book-format={book.format || 'epub'}
-        onClick={() => selecting ? onToggleSelected(book.id) : onTap(book)}
-        onContextMenu={e => { e.preventDefault(); onOpenInfo?.(book); }}
-      >
-        <BookCover book={book} size="small" />
-        <span className={styles.listInfo}>
-          <strong>{book.title}</strong>
-          <small>{book.author}</small>
-          <MetadataStatus book={book} />
-          <small>{String(book.format || 'epub').toUpperCase()} · {book.genre || 'Fiction'} - {book.estimatedPages || 0} pages - {pct}%</small>
-        </span>
-        {selecting && <SelectionBadge checked={selected} />}
-      </button>
-    </li>
-  );
+  const { t } = useI18n();
+  return <li className="library-list-row">
+    <button data-book-format={book.format || 'epub'} aria-pressed={selecting ? selected : undefined} onClick={() => selecting ? onToggleSelected(book.id) : onTap(book)}>
+      <BookCover book={book} size="small" /><span><strong>{book.title}</strong><small>{book.author}</small><MetadataStatus book={book} /><small>{t('completePercent', { count: pct })}</small></span>
+    </button>
+    {!selecting && <Action label={`${t('Book info')}: ${book.title}`} onPress={() => onOpenInfo(book)}>{t('Info')}</Action>}
+  </li>;
 });
 
 export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onGoLists }) {
+  const { t } = useI18n();
+  const [duplicate, setDuplicate] = useState(null);
+  const duplicateResolve = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
+  const columns = Math.max(2, Math.min(6, Math.floor((containerWidth - 40) / 180)));
   const [viewMode, setViewMode] = useState('grid');
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -156,6 +97,19 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
     addBooksToList,
   } = library;
 
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    let frame;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setContainerWidth(element.clientWidth));
+    });
+    observer.observe(element);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); duplicateResolve.current?.('skip'); };
+  }, []);
+  const chooseDuplicate = choice => { duplicateResolve.current?.(choice); duplicateResolve.current = null; setDuplicate(null); };
+
   const resetScroll = () => {
     setScrollTop(0);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
@@ -166,20 +120,20 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
     const rowHeight = viewMode === 'grid' ? GRID_ROW_HEIGHT : LIST_ROW_HEIGHT;
     const itemCount = books.length;
     const rowCount = viewMode === 'grid'
-      ? Math.ceil(itemCount / GRID_COLUMNS)
+      ? Math.ceil(itemCount / columns)
       : itemCount;
     const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN_ROWS);
     const visibleRows = Math.ceil(VIEWPORT_HEIGHT / rowHeight) + OVERSCAN_ROWS * 2;
     const endRow = Math.min(rowCount, startRow + visibleRows);
-    const startIndex = viewMode === 'grid' ? startRow * GRID_COLUMNS : startRow;
-    const endIndex = viewMode === 'grid' ? Math.min(itemCount, endRow * GRID_COLUMNS) : endRow;
+    const startIndex = viewMode === 'grid' ? startRow * columns : startRow;
+    const endIndex = viewMode === 'grid' ? Math.min(itemCount, endRow * columns) : endRow;
     return {
       startIndex,
       visibleBooks: books.slice(startIndex, endIndex),
       topSpacer: startRow * rowHeight,
       bottomSpacer: Math.max(0, (rowCount - endRow) * rowHeight),
     };
-  }, [books, scrollTop, viewMode]);
+  }, [books, scrollTop, viewMode, columns]);
 
   const toggleSelected = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
@@ -238,10 +192,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
       try {
         let book = await addBook(file, null, { fastMetadata: true });
         if (book.skippedDuplicate) {
-          const choice = window.prompt(
-            `"${file.name}" is already in your library. Type keep, replace, or skip.`,
-            'skip',
-          )?.trim().toLowerCase();
+          const choice = await new Promise(resolve => { duplicateResolve.current = resolve; setDuplicate(file.name); });
           if (choice === 'keep' || choice === 'replace') {
             book = await addBook(file, null, {
               fastMetadata: true,
@@ -257,7 +208,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
           return null;
         }
         importedCount += 1;
-        updateItem(id, { status: 'success', message: `${String(book.format || 'document').toUpperCase()} imported` });
+        updateItem(id, { status: 'success', message: t('Imported format', { format: String(book.format || 'document').toUpperCase() }) });
         return book;
       } catch (error) {
         errorCount += 1;
@@ -271,7 +222,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
         const file = files[fileIndex];
         const selectedId = `selected-${fileIndex}`;
         if (isArchiveFile(file)) {
-          setImportStatus(`Extracting ${file.name}...`);
+          setImportStatus(t('Extracting file', { name: file.name }));
           updateItem(selectedId, { status: 'processing', message: 'Inspecting archive...' });
           let archive;
           try {
@@ -286,16 +237,16 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
             updateItem(selectedId, { status: 'error', message: 'No supported documents in archive' });
             continue;
           }
-          updateItem(selectedId, { status: 'success', message: `${archive.files.length} documents found` });
+          updateItem(selectedId, { status: 'success', message: t('Documents found', { count: archive.files.length }) });
           let processed = 0;
           for (const group of archive.groups || [{ name: archive.listName, files: archive.files }]) {
             const importedIds = [];
             for (let index = 0; index < group.files.length; index += 1) {
               const documentFile = group.files[index];
               processed += 1;
-              setImportStatus(`Importing ${processed}/${archive.files.length} from ${archive.sourceName}...`);
+              setImportStatus(t('Importing archive item', { current: processed, total: archive.files.length, name: archive.sourceName }));
               const itemId = `archive-${fileIndex}-${processed}`;
-              setImportItems(current => [...current, { id: itemId, name: documentFile.name, status: 'pending', message: `From ${archive.sourceName}` }]);
+              setImportItems(current => [...current, { id: itemId, name: documentFile.name, status: 'pending', message: t('From archive', { name: archive.sourceName }) }]);
               const book = await importOne(documentFile, itemId);
               if (book) importedIds.push(book.id);
               await new Promise(resolve => window.setTimeout(resolve, 0));
@@ -303,7 +254,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
             if (importedIds.length > 0) {
               await createList({
                 name: group.name || archive.listName,
-                description: `${importedIds.length} books imported from ${archive.sourceName}`,
+                description: t('Imported list description', { count: importedIds.length, name: archive.sourceName }),
                 coverStyle: 'forest',
                 bookIds: importedIds,
               });
@@ -312,7 +263,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
             }
           }
         } else {
-          setImportStatus(`Importing ${file.name}...`);
+          setImportStatus(t('Importing file', { name: file.name }));
           await importOne(file, selectedId);
           await new Promise(resolve => window.setTimeout(resolve, 0));
         }
@@ -327,7 +278,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
       });
     } catch (err) {
       console.error('Failed to import documents:', err);
-      alert(err.message || 'Import failed. Check the per-file status for details.');
+      ToastQueue.negative(t(err.message || 'Import failed. Check the per-file status for details.'));
     } finally {
       window.setTimeout(() => {
         setIsImporting(false);
@@ -353,233 +304,29 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
     onOpenBookInfo?.(book);
   };
 
-  return (
-    <div
-      className={styles.screen}
-      onDragOver={event => event.preventDefault()}
-      onDrop={event => {
-        event.preventDefault();
-        handleFileImport({ target: { files: event.dataTransfer.files } });
-      }}
-    >
-      {isImporting && (
-        <div className={styles.importingOverlay}>
-          <div className={styles.spinner} />
-          <p>{importStatus || 'Importing...'}</p>
-          <small>Documents are checked by content and processed offline</small>
-          <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', maxHeight: 180, overflow: 'auto', textAlign: 'left' }}>
-            {importItems.map(item => (
-              <li key={item.id} style={{ marginBottom: 6 }}>
-                <strong>{item.name}</strong> — {item.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {importSummary && (
-        <div className="modal-overlay" onClick={() => setImportSummary(null)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div className="modal-header">
-              <span className="modal-title">Import Summary</span>
-              <button className="btn-icon" onClick={() => setImportSummary(null)}>x</button>
-            </div>
-            <div className="modal-scroll" style={{ padding: '0 20px 24px' }}>
-              <ul aria-label="Import results">
-                {importItems.map(item => <li key={item.id} data-import-status={item.status}><strong>{item.name}</strong> — {item.message}</li>)}
-              </ul>
-              <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
-                Đã xử lý {importSummary.totalFiles} tài liệu
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)' }}>
-                <li style={{ marginBottom: 6 }}>- {importSummary.importedCount} sách mới</li>
-                <li style={{ marginBottom: 6 }}>- {importSummary.skippedCount} sách trùng đã bỏ qua</li>
-                {importSummary.errorCount > 0 && <li style={{ marginBottom: 6, color: '#D33' }}>- {importSummary.errorCount} sách lỗi</li>}
-                {importSummary.listsCreated > 0 && <li style={{ marginBottom: 6 }}>- {importSummary.listsCreated} list được tạo</li>}
-                {importSummary.pendingCount > 0 && <li style={{ marginBottom: 6 }}>- {importSummary.pendingCount} sách đang chờ cập nhật thông tin</li>}
-              </ul>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <button className="btn-primary" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: 'none' }} onClick={() => setImportSummary(null)}>
-                  Xem thư viện
-                </button>
-                <button className="btn-primary" onClick={() => {
-                  setImportSummary(null);
-                  if (onGoLists) onGoLists();
-                }}>
-                  Xem lists
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <header className={`${styles.header} safe-top`}>
-        <div>
-          <div className="brand-lockup">
-            <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
-            <p className="aurelia-wordmark">ShanBooks</p>
-          </div>
-          <h1 className="screen-title">Library</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <button className={styles.importBtn} onClick={() => fileRef.current?.click()} title="Import documents">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-          <input ref={fileRef} type="file" accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt" hidden multiple onChange={handleFileImport} />
-          <button
-            className={styles.iconBtn}
-            onClick={() => {
-              setViewMode(viewMode === 'grid' ? 'list' : 'grid');
-              resetScroll();
-            }}
-            title="Toggle view"
-          >
-            {viewMode === 'grid' ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="4" width="6" height="6" stroke="currentColor" strokeWidth="1.8"/>
-                <rect x="14" y="4" width="6" height="6" stroke="currentColor" strokeWidth="1.8"/>
-                <rect x="4" y="14" width="6" height="6" stroke="currentColor" strokeWidth="1.8"/>
-                <rect x="14" y="14" width="6" height="6" stroke="currentColor" strokeWidth="1.8"/>
-              </svg>
-            )}
-          </button>
-        </div>
-      </header>
-
-      <div className={styles.searchWrap}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
-          <path d="M21 21l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-        <input
-          value={searchQuery}
-          onChange={e => {
-            setSearchQuery(e.target.value);
-            resetScroll();
-          }}
-          placeholder="Search title, author, genre, lists"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              resetScroll();
-            }}
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      <div className={styles.filterRail}>
-        {FILTERS.map(item => (
-          <button
-            key={item.id}
-            className={filterBy === item.id ? styles.activeChip : ''}
-            onClick={() => {
-              setFilterBy(item.id);
-              resetScroll();
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.libraryTools}>
-        <span>{books.length} {books.length === 1 ? 'book' : 'books'}</span>
-        <select
-          value={sortBy}
-          onChange={e => {
-            setSortBy(e.target.value);
-            resetScroll();
-          }}
-        >
-          {SORT_OPTIONS.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-        <button onClick={() => selecting ? clearSelection() : setSelecting(true)}>
-          {selecting ? 'Done' : 'Select'}
-        </button>
-      </div>
-
-      <div
-        ref={scrollRef}
-        className="screen-scroll"
-        onScroll={event => setScrollTop(event.currentTarget.scrollTop)}
-      >
-        {books.length === 0 ? (
-          <div className={styles.empty}>
-            <strong>No books found</strong>
-            <span>Try another search, clear filters, or import a document.</span>
-          </div>
-        ) : viewMode === 'grid' ? (
-          <>
-          {virtual.topSpacer > 0 && <div style={{ height: virtual.topSpacer }} />}
-          <div className={styles.denseGrid}>
-            {virtual.visibleBooks.map(book => {
-              const selected = selectedSet.has(book.id);
-              const pct = Math.round(progressFor(book));
-              return (
-                <BookGridItem
-                  key={book.id}
-                  book={book}
-                  selected={selected}
-                  selecting={selecting}
-                  pct={pct}
-                  onTap={handleBookTap}
-                  onHoldStart={startHold}
-                  onHoldCancel={cancelHold}
-                  onOpenInfo={openInfo}
-                />
-              );
-            })}
-          </div>
-          {virtual.bottomSpacer > 0 && <div style={{ height: virtual.bottomSpacer }} />}
-          </>
-        ) : (
-          <ul className={styles.listView}>
-            {virtual.topSpacer > 0 && <li style={{ height: virtual.topSpacer }} />}
-            {virtual.visibleBooks.map(book => {
-              const selected = selectedSet.has(book.id);
-              const pct = Math.round(progressFor(book));
-              return (
-                <BookListItem
-                  key={book.id}
-                  book={book}
-                  selected={selected}
-                  selecting={selecting}
-                  pct={pct}
-                  onTap={onOpenBook}
-                  onToggleSelected={toggleSelected}
-                  onOpenInfo={onOpenBookInfo}
-                />
-              );
-            })}
-            {virtual.bottomSpacer > 0 && <li style={{ height: virtual.bottomSpacer }} />}
-          </ul>
-        )}
-      </div>
-
-      {selecting && selectedIds.length > 0 && (
-        <div className={styles.selectionBar}>
-          <span>{selectedIds.length} selected</span>
-          <select value={targetListId} onChange={e => setTargetListId(e.target.value)}>
-            <option value="">Choose list</option>
-            {lists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
-          </select>
-          <button disabled={!targetListId} onClick={handleAddSelectedToList}>Add</button>
-        </div>
-      )}
+  return <div className={styles.screen} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); handleFileImport({ target: { files: event.dataTransfer.files } }); }}>
+    {duplicate && <Sheet title="Duplicate document" onClose={() => chooseDuplicate('skip')} footer={<><Action onPress={() => chooseDuplicate('keep')}>{t('Keep both')}</Action><Action negative onPress={() => chooseDuplicate('replace')}>{t('Replace')}</Action></>}><p>{duplicate}</p><p>{t('duplicatePrompt')}</p></Sheet>}
+    {isImporting && !duplicate && <div className={styles.importingOverlay} role="status" aria-live="polite"><p>{t(importStatus || 'Importing...')}</p><small>{t('Documents are checked by content and processed offline')}</small></div>}
+    {importSummary && <Sheet title="Import Summary" onClose={() => setImportSummary(null)} footer={<Action primary onPress={() => { setImportSummary(null); onGoLists?.(); }}>{t('Lists')}</Action>}>
+      <p>{t('processedCount', { count: importSummary.totalFiles })}</p>
+      <ul aria-label={t('Import results')}>{importItems.map(item => <li key={item.id} data-import-status={item.status}><strong>{item.name}</strong> — {t(item.message)}</li>)}</ul>
+      <p>{t('newBooksCount', { count: importSummary.importedCount })} · {t('duplicatesCount', { count: importSummary.skippedCount })} · {t('errorsCount', { count: importSummary.errorCount })}</p>
+    </Sheet>}
+    <header className={`${styles.header} safe-top`}>
+      <div><p className="aurelia-wordmark">ShanBooks</p><h1 className="screen-title">{t('Library')}</h1></div>
+      <div className="action-row"><Action primary onPress={() => fileRef.current?.click()}>{t('Import documents')}</Action><Action onPress={() => { setViewMode(viewMode === 'grid' ? 'list' : 'grid'); resetScroll(); }}>{t('Toggle view')}</Action></div>
+      <input ref={fileRef} type="file" accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt" hidden multiple onChange={handleFileImport} />
+    </header>
+    <div className="library-search"><SearchBox label="Search title, author, genre, lists" value={searchQuery} onChange={value => { setSearchQuery(value); resetScroll(); }} /></div>
+    <div className={styles.filterRail}>{FILTERS.map(item => <Action key={item.id} aria-pressed={filterBy === item.id} onPress={() => { setFilterBy(item.id); resetScroll(); }}>{t(item.label)}</Action>)}</div>
+    <div className={styles.libraryTools}><span>{t('booksCount', { count: books.length })}</span><Choice label="Sort books" value={sortBy} onChange={value => { setSortBy(value); resetScroll(); }} options={SORT_OPTIONS} /><Action onPress={() => selecting ? clearSelection() : setSelecting(true)}>{t(selecting ? 'Done' : 'Select')}</Action></div>
+    <div ref={scrollRef} className="screen-scroll" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
+      {books.length === 0 ? <div className="empty-state"><strong>{t('No books found')}</strong><p>{t('Try another search, clear filters, or import a document.')}</p><Action onPress={() => { setSearchQuery(''); setFilterBy('all'); }}>{t('Clear')}</Action></div> : viewMode === 'grid' ? <>
+        {virtual.topSpacer > 0 && <div style={{ height: virtual.topSpacer }} />}
+        <div className="library-grid" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>{virtual.visibleBooks.map(book => <BookGridItem key={book.id} book={book} selected={selectedSet.has(book.id)} selecting={selecting} pct={Math.round(progressFor(book))} onTap={handleBookTap} onHoldStart={startHold} onHoldCancel={cancelHold} onOpenInfo={openInfo} />)}</div>
+        {virtual.bottomSpacer > 0 && <div style={{ height: virtual.bottomSpacer }} />}
+      </> : <ul className="library-list">{virtual.topSpacer > 0 && <li style={{ height: virtual.topSpacer }} />}{virtual.visibleBooks.map(book => <BookListItem key={book.id} book={book} selected={selectedSet.has(book.id)} selecting={selecting} pct={Math.round(progressFor(book))} onTap={onOpenBook} onToggleSelected={toggleSelected} onOpenInfo={onOpenBookInfo} />)}{virtual.bottomSpacer > 0 && <li style={{ height: virtual.bottomSpacer }} />}</ul>}
     </div>
-  );
+    {selecting && selectedIds.length > 0 && <div className="selection-toolbar"><strong>{t('selectedCount', { count: selectedIds.length })}</strong><Choice label="Choose list" value={targetListId} onChange={setTargetListId} options={[{ id: '', label: 'Choose list' }, ...lists.map(list => ({ id: list.id, label: list.name, raw: true }))]} /><Action primary disabled={!targetListId} onPress={handleAddSelectedToList}>{t('Add')}</Action></div>}
+  </div>;
 }

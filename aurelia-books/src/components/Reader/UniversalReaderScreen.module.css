@@ -8,6 +8,12 @@
   color: var(--document-text);
 }
 
+.reader[data-chrome-hidden] > [data-reader-chrome] { visibility: hidden; pointer-events: none; }
+.toolbar { min-height: 64px; }
+.controls { min-height: 64px; }
+.reader > .toolbar, .reader > .controls, .reader > .navigation { flex-shrink: 0; background: var(--bg-card); color: var(--text-primary); }
+.notice { flex-shrink: 0; }
+
 .state {
   position: absolute;
   inset: 0;
@@ -210,6 +216,14 @@
   background: #fff;
   box-shadow: 0 4px 22px rgb(0 0 0 / 22%);
 }
+
+/* Chrome is an overlay: hiding it never changes the scroll geometry. */
+.reader > .toolbar { position: absolute; inset: 0 0 auto; z-index: 6; height: calc(64px + env(safe-area-inset-top)); padding: calc(10px + env(safe-area-inset-top)) 14px 10px !important; }
+.reader > .controls { position: absolute; top: calc(64px + env(safe-area-inset-top)); left: 0; right: 0; z-index: 6; height: 64px; }
+.reader > .navigation { position: absolute; inset: auto 0 0; z-index: 6; height: calc(64px + env(safe-area-inset-bottom)); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
+.reader > .content { position: absolute; inset: 0; align-content: start; padding-top: calc(144px + env(safe-area-inset-top)); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.content > .notice { width: min(100%, 780px); margin-bottom: 16px; }
+.reflowable :is(h1, h2, h3, p, li, td, th, blockquote) { scroll-margin-top: calc(144px + env(safe-area-inset-top)); }
 
 .navigation {
   justify-content: space-between;

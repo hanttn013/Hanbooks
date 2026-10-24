@@ -4,6 +4,8 @@ import { getFontStack, normalizeFont, normalizeTheme } from '../styles/designTok
 import { migrateLegacyLocalStorage, STORAGE_KEYS } from '../utils/storageKeys';
 
 export const DEFAULT_SETTINGS = {
+  appTheme: 'system',
+  language: 'vi',
   theme: 'warm-cream',
   font: 'Georgia',
   fontSize: 18,
@@ -29,6 +31,8 @@ export function useSettings() {
       delete merged.chapterFlow;
       merged.theme = normalizeTheme(merged.theme);
       merged.font = normalizeFont(merged.font);
+      merged.appTheme = ['light', 'dark', 'system'].includes(merged.appTheme) ? merged.appTheme : 'system';
+      merged.language = ['vi', 'en'].includes(merged.language) ? merged.language : 'vi';
       if (!parsed.settingsVersion && merged.readingMode === 'classic') {
         merged.readingMode = 'scroll';
       }
@@ -44,6 +48,14 @@ export function useSettings() {
       return { ...DEFAULT_SETTINGS };
     }
   });
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches || false);
+  const colorScheme = settings.appTheme === 'system' ? (systemDark ? 'dark' : 'light') : settings.appTheme;
+  useEffect(() => {
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const change = event => setSystemDark(event.matches);
+    media?.addEventListener('change', change);
+    return () => media?.removeEventListener('change', change);
+  }, []);
 
   useEffect(() => {
     const normalized = {
@@ -56,13 +68,14 @@ export function useSettings() {
     } catch (e) {
       console.warn("localStorage quota exceeded or blocked:", e);
     }
-    document.documentElement.setAttribute('data-theme', normalized.theme);
+    document.documentElement.setAttribute('data-app-theme', colorScheme);
+    document.documentElement.lang = normalized.language;
     document.documentElement.style.setProperty('--reader-font-family', getFontStack(normalized.font));
     const frame = document.getElementById('phone-frame');
     if (frame) {
-      frame.setAttribute('data-theme', normalized.theme);
+      frame.setAttribute('data-app-theme', colorScheme);
     }
-  }, [settings]);
+  }, [settings, colorScheme]);
 
   const updateSetting = (key, value) => {
     setSettings(prev => ({
@@ -71,5 +84,5 @@ export function useSettings() {
     }));
   };
 
-  return { settings, updateSetting };
+  return { settings, updateSetting, colorScheme };
 }

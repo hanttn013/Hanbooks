@@ -1,6 +1,5 @@
 // src/App.jsx
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import TabBar from './components/TabBar/TabBar';
@@ -9,9 +8,17 @@ import LibraryScreen from './components/Library/LibraryScreen';
 import { useLibrary } from './hooks/useLibrary';
 import { useSettings } from './hooks/useSettings';
 import { initializeNativeShareTarget } from './utils/nativeShareTarget';
-import './styles/fonts.css';
 import './styles/globals.css';
 import './styles/themes.css';
+import { Provider } from '@react-spectrum/s2/Provider';
+import { Skeleton } from '@react-spectrum/s2/Skeleton';
+import { ToastContainer, ToastQueue } from '@react-spectrum/s2/Toast';
+import { translate } from './i18n/messages';
+import I18nProvider from './i18n/I18nProvider';
+import { useI18n } from './i18n/context';
+import './styles/spectrum.css';
+import FeedbackProvider from './components/UI/FeedbackProvider';
+import { afterOverlaysClosed, consumeOverlayPop, dismissTopOverlay } from './components/UI/overlayNavigation';
 
 const BookDetailModal = lazy(() => import('./components/Library/BookDetailModal'));
 const ListsScreen = lazy(() => import('./components/Lists/ListsScreen'));
@@ -19,6 +26,7 @@ const SettingsScreen = lazy(() => import('./components/Settings/SettingsScreen')
 const ReaderScreen = lazy(() => import('./components/Reader/ReaderScreen'));
 
 function PerfFallback() {
+  const { t } = useI18n();
   return (
     <div style={{
       position: 'absolute',
@@ -30,7 +38,7 @@ function PerfFallback() {
       fontSize: 13,
       fontWeight: 700,
     }}>
-      Loading...
+      <div><Skeleton isLoading><div style={{ width: 200, height: 72, borderRadius: 8, background: 'var(--bg-secondary)' }} /></Skeleton><p role="status" style={{ marginTop: 16 }}>{t('Loading...')}</p></div>
     </div>
   );
 }
@@ -51,7 +59,7 @@ export default function App() {
 
   const library = useLibrary();
   const { addBook } = library;
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, colorScheme } = useSettings();
   const currentDetailBook = detailBook
     ? library.allBooksRaw.find(book => book.id === detailBook.id) || detailBook
     : null;
@@ -70,7 +78,7 @@ export default function App() {
           else imported += 1;
         } catch { failed += 1; }
       }
-      window.alert(`Shared documents: ${imported} imported, ${skipped} duplicates skipped, ${failed} failed.`);
+      ToastQueue.info(translate(settings.language, 'sharedSummary', { imported, skipped, failed }));
     }).then(remove => {
       if (active) cleanup = remove;
       else remove();
@@ -79,10 +87,7 @@ export default function App() {
       active = false;
       cleanup();
     };
-  }, [addBook]);
-  const instantMotion = settings.reducedMotion
-    ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } }
-    : null;
+  }, [addBook, settings.language]);
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { openBookRef.current = openBook; }, [openBook]);
@@ -153,6 +158,7 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = (event) => {
+      if (consumeOverlayPop(event)) return;
       const state = event.state;
       if (!state?.shanbooks) return;
       suppressHistoryPushRef.current = true;
@@ -169,11 +175,13 @@ export default function App() {
     };
 
     const handleTouchStart = (event) => {
+      if (event.touches?.length !== 1) { edgeTouchRef.current = null; return; }
       const touch = event.touches?.[0];
       edgeTouchRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
     };
 
     const handleTouchMove = (event) => {
+      if (event.touches?.length !== 1) { edgeTouchRef.current = null; return; }
       const start = edgeTouchRef.current;
       const touch = event.touches?.[0];
       if (!start || !touch || start.x > 26) return;
@@ -187,6 +195,7 @@ export default function App() {
     let nativeBackListener = null;
     let disposed = false;
     CapacitorApp.addListener('backButton', () => {
+      if (dismissTopOverlay()) return;
       const hasInternalView = Boolean(openBookRef.current)
         || Boolean(detailBookRef.current)
         || Boolean(activeListIdRef.current)
@@ -238,6 +247,9 @@ export default function App() {
   };
 
   return (
+    <I18nProvider locale={settings.language}>
+    <Provider locale={settings.language === 'vi' ? 'vi-VN' : 'en-US'} colorScheme={colorScheme}>
+    <FeedbackProvider>
     <div style={{
       background: 'var(--bg-primary, #EDE8DC)',
       minHeight: '100vh',
@@ -245,8 +257,9 @@ export default function App() {
       alignItems: 'center',
       justifyContent: 'center',
     }}>
-      <div id="phone-frame" data-theme={settings.theme}>
-        <AnimatePresence mode="wait">
+      <div id="phone-frame" data-app-theme={colorScheme}>
+        {!openBook && <a className="skip-link" href="#app-content" onClick={event => { event.preventDefault(); document.getElementById('app-content')?.focus(); }}>{translate(settings.language, 'Skip to content')}</a>}
+        <>
           {openBook ? (
             <Suspense fallback={<PerfFallback />}>
               <ReaderScreen
@@ -259,27 +272,17 @@ export default function App() {
               />
             </Suspense>
           ) : (
-            <motion.div
+            <div
               key="app-shell"
-              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              initial={settings.reducedMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={settings.reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: settings.reducedMotion ? 0 : 0.2 }}
+              className="app-shell"
             >
               {/* Screen area */}
-              <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                <AnimatePresence mode="wait">
+              <div id="app-content" className="app-content" tabIndex={-1}>
+                <>
                   {activeTab === 'home' && (
-                    <motion.div
+                    <div
                       key="home"
                       style={{ position: 'absolute', inset: 0 }}
-                      {...(instantMotion || {
-                        initial: { opacity: 0, x: -16 },
-                        animate: { opacity: 1, x: 0 },
-                        exit: { opacity: 0, x: -16 },
-                        transition: { duration: 0.16 },
-                      })}
                     >
                       <HomeScreen
                         library={library}
@@ -289,18 +292,12 @@ export default function App() {
                         onGoLibrary={() => setActiveTab('library')}
                         onGoLists={() => setActiveTab('lists')}
                       />
-                    </motion.div>
+                    </div>
                   )}
                   {activeTab === 'library' && (
-                    <motion.div
+                    <div
                       key="library"
                       style={{ position: 'absolute', inset: 0 }}
-                      {...(instantMotion || {
-                        initial: { opacity: 0, x: -16 },
-                        animate: { opacity: 1, x: 0 },
-                        exit: { opacity: 0, x: -16 },
-                        transition: { duration: 0.16 },
-                      })}
                     >
                       <LibraryScreen
                         library={library}
@@ -308,44 +305,34 @@ export default function App() {
                         onOpenBookInfo={handleOpenBookInfo}
                         onGoLists={() => setActiveTab('lists')}
                       />
-                    </motion.div>
+                    </div>
                   )}
                   {activeTab === 'lists' && (
-                    <motion.div
+                    <div
                       key="lists"
                       style={{ position: 'absolute', inset: 0 }}
-                      {...(instantMotion || {
-                        initial: { opacity: 0, x: 16 },
-                        animate: { opacity: 1, x: 0 },
-                        exit: { opacity: 0 },
-                        transition: { duration: 0.16 },
-                      })}
                     >
                       <Suspense fallback={<PerfFallback />}>
                       <ListsScreen
                         library={library}
                         activeListId={activeListId}
                         setActiveListId={(id) => {
+                          afterOverlaysClosed(() => {
                           captureScroll();
-                          if (!id && activeListId && window.history.state?.shanbooks) window.history.back();
+                          if (!id && activeListIdRef.current && window.history.state?.shanbooks) window.history.back();
                           else setActiveListId(id);
+                          });
                         }}
                         onOpenBook={handleOpenBook}
                         onOpenBookInfo={handleOpenBookInfo}
                       />
                       </Suspense>
-                    </motion.div>
+                    </div>
                   )}
                   {activeTab === 'settings' && (
-                    <motion.div
+                    <div
                       key="settings"
                       style={{ position: 'absolute', inset: 0 }}
-                      {...(instantMotion || {
-                        initial: { opacity: 0, y: 16 },
-                        animate: { opacity: 1, y: 0 },
-                        exit: { opacity: 0, y: 16 },
-                        transition: { duration: 0.16 },
-                      })}
                     >
                       <Suspense fallback={<PerfFallback />}>
                       <SettingsScreen
@@ -354,9 +341,9 @@ export default function App() {
                         library={library}
                       />
                       </Suspense>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
+                </>
               </div>
 
               {/* Tab bar */}
@@ -370,10 +357,10 @@ export default function App() {
                   restoreScroll(tab);
                 }}
               />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
-        <AnimatePresence>
+        </>
+        <>
           {currentDetailBook && !openBook && (
             <Suspense fallback={null}>
               <BookDetailModal
@@ -388,8 +375,12 @@ export default function App() {
               />
             </Suspense>
           )}
-        </AnimatePresence>
+        </>
       </div>
     </div>
+    <ToastContainer placement="bottom end" />
+    </FeedbackProvider>
+    </Provider>
+    </I18nProvider>
   );
 }

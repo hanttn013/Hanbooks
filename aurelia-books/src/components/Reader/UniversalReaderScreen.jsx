@@ -5,6 +5,9 @@ import { createLocator, locatorFromProgress, parseLocator } from '../../readers/
 import { useReader } from '../../hooks/useReader';
 import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
 import styles from './UniversalReaderScreen.module.css';
+import { Action, Choice, Field, Range, SearchBox } from '../UI/Controls';
+import Sheet from '../UI/Sheet';
+import { useI18n } from '../../i18n/context';
 
 function PdfPage({ adapter, page, zoom }) {
   const canvasRef = useRef(null);
@@ -67,6 +70,7 @@ function PdfPage({ adapter, page, zoom }) {
 }
 
 function PresentationSlide({ adapter, index }) {
+  const { t } = useI18n();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   useEffect(() => {
@@ -82,8 +86,8 @@ function PresentationSlide({ adapter, index }) {
       if (nextUrl) URL.revokeObjectURL(nextUrl);
     };
   }, [adapter, index]);
-  if (error) return <article><p role="alert">Slide layout unavailable: {error}</p><p>{adapter.fallbackSlideTexts?.[index] || 'No extractable text on this slide.'}</p></article>;
-  return url ? <img className={styles.slide} src={url} alt={`Slide ${index + 1}`} /> : <p>Rendering slide…</p>;
+  if (error) return <article><p role="alert">{t('Slide layout unavailable')}: {error}</p><p>{adapter.fallbackSlideTexts?.[index] || t('No extractable text on this slide.')}</p></article>;
+  return url ? <img className={styles.slide} src={url} alt={t('Page number', { count: index + 1 })} /> : <p>{t('Rendering slide…')}</p>;
 }
 
 function applySavedHighlights(root, bookmarks) {
@@ -112,6 +116,12 @@ function applySavedHighlights(root, bookmarks) {
 }
 
 export default function UniversalReaderScreen({ book, format, settings, updateSetting, onClose, onBookUpdate }) {
+  const { t } = useI18n();
+  const [showContents, setShowContents] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [noteEditor, setNoteEditor] = useState(false);
+  const [note, setNote] = useState('');
+  const [chromeVisible, setChromeVisible] = useState(true);
   const [adapter, setAdapter] = useState(null);
   const [metadata, setMetadata] = useState(null);
   const [toc, setToc] = useState([]);
@@ -303,10 +313,11 @@ export default function UniversalReaderScreen({ book, format, settings, updateSe
 
   const saveHighlight = async () => {
     if (!selection) return;
-    const note = window.prompt('Optional note for this highlight:', '') || '';
     await addBookmark(selection.locator, metadata?.title || '', selection.text, note);
     window.getSelection()?.removeAllRanges();
     setSelection(null);
+    setNoteEditor(false);
+    setNote('');
   };
 
   const move = async direction => {
@@ -334,7 +345,7 @@ export default function UniversalReaderScreen({ book, format, settings, updateSe
   };
 
   const runSearch = async event => {
-    event.preventDefault();
+    event?.preventDefault?.();
     setSearchAttempted(true);
     setSearchError('');
     try { setResults(await adapter.search(query)); }
@@ -353,6 +364,17 @@ export default function UniversalReaderScreen({ book, format, settings, updateSe
     }
   };
 
+  useEffect(() => {
+    if (loading || showContents || showSettings || showBookmarks || showSearch || noteEditor || !chromeVisible) return;
+    let timer;
+    const hide = () => {
+      if (document.activeElement?.closest('[data-reader-chrome]')) timer = window.setTimeout(hide, 4000);
+      else setChromeVisible(false);
+    };
+    timer = window.setTimeout(hide, 5000);
+    return () => window.clearTimeout(timer);
+  }, [loading, showContents, showSettings, showBookmarks, showSearch, noteEditor, chromeVisible]);
+
   const theme = getThemeById(settings.theme);
   const readerStyle = useMemo(() => ({
     '--document-bg': theme.bg,
@@ -364,116 +386,55 @@ export default function UniversalReaderScreen({ book, format, settings, updateSe
     '--document-spacing': `${settings.letterSpacing}px`,
   }), [settings, theme.bg, theme.text]);
 
-  if (loading) return <main className={styles.state}><p>Opening {String(format).toUpperCase()}…</p></main>;
-  if (error) return (
-    <main className={styles.state}>
-      <h1>Could not open this document</h1>
-      <p>{error.message}</p>
-      <button className="btn-primary" onClick={closeReader}>Return to library</button>
-    </main>
-  );
-
+  if (loading) return <main className={styles.state}><p>{t('Opening format', { format: String(format).toUpperCase() })}</p></main>;
+  if (error) return <main className={styles.state}><h1>{t('Could not open this document')}</h1><p>{error.message}</p><Action primary onPress={closeReader}>{t('Return to library')}</Action></main>;
   const parsed = parseLocator(location?.locator) || {};
   const bookmarked = isBookmarked(location?.locator);
-
-  return (
-    <main className={styles.reader} style={readerStyle} data-format={format}>
-      <header className={`${styles.toolbar} safe-top`}>
-        <button onClick={closeReader} aria-label="Close reader">←</button>
-        <div className={styles.title}>
-          <strong>{book.title}</strong>
-          <small>{String(format).toUpperCase()} · {Math.round((location?.percentage || 0) * 100)}%</small>
-        </div>
-        <button
-          onClick={() => addBookmark(location.locator, metadata?.title || '', '').catch(console.error)}
-          aria-label={bookmarked ? 'Bookmarked' : 'Add bookmark'}
-          disabled={bookmarked}
-        >
-          {bookmarked ? '★' : '☆'}
-        </button>
-        <button onClick={() => setShowBookmarks(value => !value)} aria-label="Show bookmarks">Bookmarks</button>
-        {['txt', 'md', 'html', 'docx'].includes(format) && updateSetting && <button onClick={() => setShowSettings(value => !value)} aria-label="Reader settings">Aa</button>}
-      </header>
-
-      {metadata?.fidelityNotice && <aside className={styles.notice}>{metadata.fidelityNotice}</aside>}
-
-      <section className={styles.controls}>
-        <select
-          aria-label="Table of contents"
-          value=""
-          onChange={async event => {
-            const item = toc[Number(event.target.value)];
-            if (!item) return;
-            const target = format === 'pdf'
-              ? createLocator('pdf', { page: item.page || 1, offset: 0 })
-              : format === 'pptx'
-                ? createLocator('pptx', { slide: item.slide })
-                : format === 'cbz' ? createLocator('cbz', { page: item.page }) : createLocator(format, { anchor: item.id });
-            await adapter.goTo(target);
-            setRenderVersion(value => value + 1);
-          }}
-        >
-          <option value="">Contents ({toc.length})</option>
-          {toc.map((item, index) => <option key={item.id || index} value={index}>{item.label}</option>)}
-        </select>
-        <form onSubmit={runSearch} className={styles.search}>
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search document" aria-label="Search document" />
-          <button type="submit">Search</button>
-        </form>
-        {format === 'pdf' && (
-          <label className={styles.zoom}>Zoom <input aria-label="PDF zoom" type="range" min="0.6" max="2" step="0.1" value={zoom} onChange={event => setZoom(Number(event.target.value))} /><button onClick={() => setZoom(1)}>Fit width</button></label>
-        )}
-      </section>
-
-      {showSettings && <aside className={styles.results} aria-label="Reading settings">
-        <label>Font<select aria-label="Reader font" value={settings.font} onChange={event => updateSetting('font', event.target.value)}>{READER_FONTS.map(font => <option key={font.id}>{font.id}</option>)}</select></label>
-        <label>Size<input aria-label="Reader font size" type="range" min="14" max="32" value={settings.fontSize} onChange={event => updateSetting('fontSize', Number(event.target.value))} /></label>
-        <label>Line height<input aria-label="Reader line height" type="range" min="1.2" max="2.4" step="0.1" value={settings.lineHeight} onChange={event => updateSetting('lineHeight', Number(event.target.value))} /></label>
-        <label>Margins<input aria-label="Reader margins" type="range" min="8" max="48" value={settings.marginWidth} onChange={event => updateSetting('marginWidth', Number(event.target.value))} /></label>
-        <label>Theme<select aria-label="Reader theme" value={settings.theme} onChange={event => updateSetting('theme', event.target.value)}>{APP_THEMES.map(theme => <option key={theme.id} value={theme.id}>{theme.label}</option>)}</select></label>
-        <label>Mode<select aria-label="Reader mode" value={settings.readingMode} onChange={event => updateSetting('readingMode', event.target.value)}><option value="scroll">Scroll</option><option value="classic">Pages</option></select></label>
-        <button onClick={() => setShowSettings(false)}>Close settings</button>
-      </aside>}
-      {showBookmarks && <aside className={styles.results} aria-label="Saved bookmarks">
-        {bookmarks.length ? bookmarks.map(bookmark => <button key={bookmark.id} onClick={async () => { await adapter.goTo(bookmark.locator || bookmark.cfi); setRenderVersion(value => value + 1); setShowBookmarks(false); }}>{bookmark.chapterTitle || 'Bookmark'} {bookmark.excerpt || bookmark.note || ''}</button>) : <p>No bookmarks yet. Use ☆ to save this position.</p>}
-        <button onClick={() => setShowBookmarks(false)}>Close bookmarks</button>
-      </aside>}
-      {searchAttempted && results.length === 0 && <p role="status">{searchError || 'No matches found.'}</p>}
-
-      {results.length > 0 && (
-        <aside className={styles.results} aria-label="Search results">
-          <strong>{results.length} results</strong>
-          {results.slice(0, 20).map((result, index) => (
-            <button key={index} onClick={() => goToResult(result)}>{result.excerpt}</button>
-          ))}
-        </aside>
-      )}
-
-      {selection && (
-        <button className={styles.highlightAction} onClick={saveHighlight}>
-          Highlight &amp; note
-        </button>
-      )}
-
-      <section
-        ref={contentRef}
-        className={`${styles.content} ${settings.readingMode === 'classic' ? styles.pagedContent : ''}`}
-        onMouseUp={captureSelection}
-        onScroll={trackReflowableScroll}
-      >
-        {['txt', 'md', 'html', 'docx'].includes(format) && (
-          <article className={styles.reflowable} dangerouslySetInnerHTML={{ __html: adapter.getContent() }} />
-        )}
-        {format === 'pdf' && <PdfPage adapter={adapter} page={parsed.page || 1} zoom={zoom} key={`${parsed.page || 1}-${renderVersion}`} />}
-        {format === 'pptx' && <PresentationSlide adapter={adapter} index={parsed.slide || 0} key={`${parsed.slide || 0}-${renderVersion}`} />}
-        {format === 'cbz' && <img className={styles.comicPage} src={adapter.getPageUrl()} alt={`Page ${(parsed.page || 0) + 1}`} />}
-      </section>
-
-      <footer className={`${styles.navigation} safe-bottom`}>
-        <button onClick={() => move('prev')}>Previous</button>
-        <span>{format === 'pdf' ? `Page ${parsed.page || 1} / ${metadata?.estimatedPages || 1}` : format === 'pptx' ? `Slide ${(parsed.slide || 0) + 1} / ${metadata?.estimatedPages || 1}` : format === 'cbz' ? `Page ${(parsed.page || 0) + 1} / ${metadata?.estimatedPages || 1}` : `${Math.round((location?.percentage || 0) * 100)}%`}</span>
-        <button onClick={() => move('next')}>Next</button>
-      </footer>
-    </main>
-  );
+  const jumpToContents = async item => {
+    const target = format === 'pdf' ? createLocator('pdf', { page: item.page || 1, offset: 0 })
+      : format === 'pptx' ? createLocator('pptx', { slide: item.slide })
+      : format === 'cbz' ? createLocator('cbz', { page: item.page })
+      : createLocator(format, { anchor: item.id });
+    await adapter.goTo(target); setRenderVersion(value => value + 1); setShowContents(false);
+  };
+  return <main className={styles.reader} style={readerStyle} data-format={format} data-chrome-hidden={!chromeVisible || undefined} onKeyDownCapture={() => setChromeVisible(true)}>
+    <header data-reader-chrome className={`${styles.toolbar} safe-top`}>
+      <Action label={t('Close reader')} onPress={closeReader}>{t('Close')}</Action><div className={styles.title}><strong>{book.title}</strong><small>{String(format).toUpperCase()} · {Math.round((location?.percentage || 0) * 100)}%</small></div>
+      <Action label={t(bookmarked ? 'Bookmarked' : 'Add bookmark')} disabled={bookmarked} onPress={() => addBookmark(location.locator, metadata?.title || '', '').catch(console.error)}>{bookmarked ? '★' : '☆'}</Action>
+      <Action label={t('Show bookmarks')} onPress={() => setShowBookmarks(true)}>{t('Bookmarks')}</Action>
+    </header>
+    <nav data-reader-chrome className={styles.controls} aria-label={t('Reader controls')}>
+      <Action label={t('Table of contents')} onPress={() => setShowContents(true)}>{t('Contents')}</Action>
+      <Action onPress={() => setShowSearch(true)}>{t('Search')}</Action>
+      {(['txt', 'md', 'html', 'docx'].includes(format) && updateSetting || format === 'pdf') && <Action label={t('Reader settings')} onPress={() => setShowSettings(true)}>Aa</Action>}
+    </nav>
+    {!chromeVisible && <button className="reveal-controls" aria-label={t('Show reader controls')} onClick={() => setChromeVisible(true)}>☰</button>}
+    {showContents && <Sheet title="Table of contents" onClose={() => setShowContents(false)}>{toc.length ? toc.map((item, index) => <div key={item.id || index}><Action onPress={() => jumpToContents(item)}>{item.label}</Action></div>) : <p>{t('No table of contents available')}</p>}</Sheet>}
+    {showSearch && <Sheet title="Search document" onClose={() => setShowSearch(false)}>
+      <form className="action-row" onSubmit={runSearch}><SearchBox label="Search document" value={query} onChange={setQuery} autoFocus onSubmit={runSearch} /><Action primary onPress={runSearch}>{t('Search')}</Action></form>
+      {searchAttempted && !results.length && <p role="status">{searchError || t('No matches found.')}</p>}
+      <section aria-label={t('Search results')}>{results.map((result, index) => <div key={index}><Action onPress={async () => { await goToResult(result); setShowSearch(false); }}>{result.excerpt}</Action></div>)}</section>
+    </Sheet>}
+    {showSettings && <Sheet title="Reading settings" onClose={() => setShowSettings(false)}>
+      {format === 'pdf' ? <><Range label="PDF zoom" min={0.6} max={2} step={0.1} value={zoom} onChange={setZoom} /><Action onPress={() => setZoom(1)}>{t('Fit width')}</Action></> : <div className="field-grid">
+        <Choice label="Reader font" value={settings.font} onChange={value => updateSetting('font', value)} options={READER_FONTS} />
+        <Range label="Reader font size" value={settings.fontSize} min={14} max={32} onChange={value => updateSetting('fontSize', value)} />
+        <Range label="Reader line height" value={settings.lineHeight} min={1.2} max={2.4} step={0.1} onChange={value => updateSetting('lineHeight', value)} />
+        <Range label="Reader margins" value={settings.marginWidth} min={8} max={48} onChange={value => updateSetting('marginWidth', value)} />
+        <Choice label="Reader theme" value={settings.theme} onChange={value => updateSetting('theme', value)} options={APP_THEMES} />
+        <Choice label="Reader mode" value={settings.readingMode} onChange={value => updateSetting('readingMode', value)} options={[{ id: 'scroll', label: 'Scroll' }, { id: 'classic', label: 'Pages' }]} />
+      </div>}
+    </Sheet>}
+    {showBookmarks && <Sheet title="Saved bookmarks" onClose={() => setShowBookmarks(false)}>{bookmarks.length ? bookmarks.map(bookmark => <div key={bookmark.id}><Action onPress={async () => { await adapter.goTo(bookmark.locator || bookmark.cfi); setRenderVersion(value => value + 1); setShowBookmarks(false); }}>{bookmark.chapterTitle || t('Bookmark')} {bookmark.excerpt || bookmark.note || ''}</Action></div>) : <p>{t('No bookmarks yet. Use ☆ to save this position.')}</p>}</Sheet>}
+    {selection && <div className={styles.highlightAction}><Action onPress={() => setNoteEditor(true)}>{t('Highlight & note')}</Action></div>}
+    {noteEditor && <Sheet title="Highlight & note" onClose={() => setNoteEditor(false)} footer={<Action primary onPress={saveHighlight}>{t('Save')}</Action>}><p>{selection?.text}</p><Field label="Optional note" value={note} onChange={setNote} /></Sheet>}
+    <section ref={contentRef} className={`${styles.content} ${['txt', 'md', 'html', 'docx'].includes(format) && settings.readingMode === 'classic' ? styles.pagedContent : ''}`} onMouseUp={captureSelection} onClick={() => { if (!window.getSelection()?.toString()) setChromeVisible(value => !value); }} onScroll={trackReflowableScroll}>
+      {metadata?.fidelityNotice && <aside className={styles.notice}>{t(metadata.fidelityNotice)}</aside>}
+      {['txt', 'md', 'html', 'docx'].includes(format) && <article className={styles.reflowable} dangerouslySetInnerHTML={{ __html: adapter.getContent() }} />}
+      {format === 'pdf' && <PdfPage adapter={adapter} page={parsed.page || 1} zoom={zoom} key={`${parsed.page || 1}-${renderVersion}`} />}
+      {format === 'pptx' && <PresentationSlide adapter={adapter} index={parsed.slide || 0} key={`${parsed.slide || 0}-${renderVersion}`} />}
+      {format === 'cbz' && <img className={styles.comicPage} src={adapter.getPageUrl()} alt={t('Page number', { count: (parsed.page || 0) + 1 })} />}
+    </section>
+    <footer data-reader-chrome className={`${styles.navigation} safe-bottom`}><Action onPress={() => move('prev')}>{t('Previous')}</Action><span>{format === 'pdf' ? `${parsed.page || 1} / ${metadata?.estimatedPages || 1}` : format === 'pptx' ? `${(parsed.slide || 0) + 1} / ${metadata?.estimatedPages || 1}` : format === 'cbz' ? `${(parsed.page || 0) + 1} / ${metadata?.estimatedPages || 1}` : `${Math.round((location?.percentage || 0) * 100)}%`}</span><Action onPress={() => move('next')}>{t('Next')}</Action></footer>
+  </main>;
 }

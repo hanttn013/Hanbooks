@@ -1,6 +1,5 @@
 // src/components/Reader/ReaderScreen.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import ePub from 'epubjs';
 import { destroyEpubBook } from '../../utils/destroyEpubBook';
 import ManagedEpubView from '../../readers/ManagedEpubView';
@@ -13,6 +12,10 @@ import ReaderSettingsPanel from './ReaderSettingsPanel';
 import { StorageManager } from '../../utils/StorageManager';
 import { getFontStack, getThemeById } from '../../styles/designTokens';
 import styles from './ReaderScreen.module.css';
+import { Action } from '../UI/Controls';
+import { ActionMenu, MenuItem } from '@react-spectrum/s2/ActionMenu';
+import { useI18n } from '../../i18n/context';
+import { translate } from '../../i18n/messages';
 
 const PULL_THRESHOLD_RATIO = 0.4;
 const PULL_MAX_RATIO = 0.52;
@@ -26,10 +29,12 @@ function readerThemeRules(settings) {
   const { bgColor, textColor } = getThemePalette(settings.theme);
   return {
     html: {
+      'touch-action': 'pan-y pinch-zoom !important',
       'background': `${bgColor} !important`,
       'color': `${textColor} !important`,
     },
     body: {
+      'touch-action': 'pan-y pinch-zoom !important',
       'font-family': `${getFontStack(settings.font)} !important`,
       'font-size': `${settings.fontSize}px !important`,
       'line-height': `${settings.lineHeight} !important`,
@@ -99,16 +104,14 @@ function appendChapterEndMarker(contents, epubBookInstance, settings) {
     `color:${textColor}`,
     'text-align:center',
     'break-inside:avoid',
-    'opacity:0.52',
+    'opacity:1',
   ].join(';');
 
   const hint = doc.createElement('p');
-  hint.textContent = hasNext
-    ? 'Kéo để sang chương tiếp'
-    : 'Bạn đã đọc hết sách';
+  hint.textContent = translate(settings.language || 'vi', hasNext ? 'Pull for next chapter' : 'Book completed');
   hint.style.cssText = [
     'margin:0 auto',
-    'opacity:0.5',
+    'opacity:1',
     'font:500 13px system-ui,-apple-system,sans-serif',
     'letter-spacing:0',
     'max-width:240px',
@@ -187,6 +190,7 @@ function pullMaxPx() {
 }
 
 export default function ReaderScreen({ book, settings, updateSetting, onClose, onBookUpdate }) {
+  const { t } = useI18n();
   const [showControls, setShowControls] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showTOC, setShowTOC] = useState(false);
@@ -390,6 +394,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   }, [applyPullTransform]);
 
   const beginPull = useCallback((event) => {
+    if (event?.touches?.length > 1) { resetPullHint(); return; }
     if (settings.readingMode !== 'scroll') return;
     pullStartYRef.current = getTouchY(event);
     pullActiveRef.current = false;
@@ -397,9 +402,10 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     pullDirectionRef.current = 'next';
     schedulePullVisual(0, '', 'next');
     applyPullTransform(0, false, 'next');
-  }, [applyPullTransform, schedulePullVisual, settings.readingMode]);
+  }, [applyPullTransform, resetPullHint, schedulePullVisual, settings.readingMode]);
 
   const updatePull = useCallback((event, isEdgeSwipe = false) => {
+    if (event?.touches?.length > 1) { resetPullHint(); return false; }
     if (settings.readingMode !== 'scroll' || isEdgeSwipe) return false;
     const startY = pullStartYRef.current;
     const currentY = getTouchY(event);
@@ -420,21 +426,21 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     pullDirectionRef.current = direction;
     applyPullTransform(distance, false, direction);
     const message = !hasNextChapter()
-      ? 'Bạn đã đọc hết sách'
+      ? 'Book completed'
       : distance >= threshold
-        ? 'Thả để sang chương tiếp'
-        : 'Kéo để sang chương tiếp';
+        ? 'Release for next chapter'
+        : 'Pull for next chapter';
     const effectiveMessage = direction === 'previous'
       ? (!hasPreviousChapter()
-        ? 'Bạn đang ở đầu sách'
+        ? 'Beginning of book'
         : distance >= threshold
-          ? 'Thả để quay lại chương trước'
-          : 'Kéo xuống để quay lại chương trước')
+          ? 'Release for previous chapter'
+          : 'Pull for previous chapter')
       : message;
     schedulePullVisual(distance, effectiveMessage, direction);
     if (event.cancelable) event.preventDefault();
     return true;
-  }, [applyPullTransform, hasNextChapter, hasPreviousChapter, isAtScrollChapterEnd, isAtScrollChapterStart, schedulePullVisual, settings.readingMode]);
+  }, [applyPullTransform, hasNextChapter, hasPreviousChapter, isAtScrollChapterEnd, isAtScrollChapterStart, resetPullHint, schedulePullVisual, settings.readingMode]);
 
   const finishPull = useCallback((event) => {
     if (!pullActiveRef.current) return false;
@@ -621,6 +627,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         // Apply reading theme inside the EPUB iframe.
         rendition.themes.default(readerThemeRules(settings));
         rendition.hooks.content.register((contents) => {
+          contents?.window?.frameElement?.setAttribute('title', String(book.title || book.fileName || 'EPUB'));
           contentCleanupRef.current.forEach(cleanup => cleanup());
           contentCleanupRef.current = [];
           currentContentsRef.current = contents;
@@ -769,13 +776,14 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e) => {
+      if (e.defaultPrevented || showTOC || showSearch || showSettings || showBookmarks || showMore || e.target?.closest?.('input, textarea, select, button, [contenteditable], [role="dialog"], [role="menu"]')) return;
       if (e.key === 'ArrowRight') goNext();
       else if (e.key === 'ArrowLeft') goPrev();
       else if (e.key === 'Escape') closeReader();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [goNext, goPrev, closeReader]);
+  }, [goNext, goPrev, closeReader, showTOC, showSearch, showSettings, showBookmarks, showMore]);
 
   // Bookmark toggle with visual feedback
   const handleBookmark = useCallback(async () => {
@@ -886,12 +894,14 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const touchStartY = useRef(null);
   const edgeSwipeRef = useRef(false);
   const handleTouchStart = (e) => {
+    if (e.touches?.length > 1) { touchStartX.current = null; touchStartY.current = null; edgeSwipeRef.current = false; resetPullHint(); return; }
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     edgeSwipeRef.current = touchStartX.current < 28;
     beginPull(e);
   };
   const handleTouchMove = (e) => {
+    if (e.touches?.length > 1) { touchStartX.current = null; touchStartY.current = null; edgeSwipeRef.current = false; resetPullHint(); return; }
     if (touchStartX.current !== null && touchStartY.current !== null) {
       const dxAny = e.touches[0].clientX - touchStartX.current;
       const dyAny = e.touches[0].clientY - touchStartY.current;
@@ -953,6 +963,17 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
 
   const { bgColor, textColor } = getThemePalette(settings.theme);
 
+  useEffect(() => {
+    if (!showControls || showTOC || showSearch || showSettings || showBookmarks || showMore) return;
+    let timer;
+    const hide = () => {
+      if (document.activeElement?.closest('.reader-chrome')) timer = window.setTimeout(hide, 4000);
+      else setShowControls(false);
+    };
+    timer = window.setTimeout(hide, 5000);
+    return () => window.clearTimeout(timer);
+  }, [showControls, showTOC, showSearch, showSettings, showBookmarks, showMore]);
+
   const isCurrentBookmarked = isBookmarked(currentCfi);
   const visibleProgress = chapterProgressAvailable ? chapterPercentage : percentage;
   const chapterLabel = currentChapter || book.title;
@@ -960,7 +981,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     if ((settings.readingStatusLine || 'off') === 'off') return '';
     const shortChapter = chapterLabel.length > 32 ? `${chapterLabel.slice(0, 29)}...` : chapterLabel;
     if (settings.readingStatusLine === 'detailed') {
-      return `${shortChapter} - ${Math.round(visibleProgress)}% chapter - ${Math.round(percentage)}% book`;
+      return t('Detailed progress', { chapter: shortChapter, current: Math.round(visibleProgress), whole: Math.round(percentage) });
     }
     return `${shortChapter} - ${Math.round(visibleProgress)}%`;
   })();
@@ -968,6 +989,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   return (
     <div
       className={styles.reader}
+      data-format="epub"
       style={{
         backgroundColor: bgColor,
         color: textColor,
@@ -981,7 +1003,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         <div className={styles.loading} style={{ backgroundColor: bgColor }}>
           <div className={styles.loadingSpinner} />
           <p style={{ marginTop: 16, fontSize: 14, opacity: 0.5, color: textColor }}>
-            Opening {book.title}...
+            {t('Opening document', { title: book.title })}
           </p>
         </div>
       )}
@@ -990,13 +1012,13 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       {error && (
         <div className={styles.error}>
           <p style={{ fontSize: 40, marginBottom: 16 }}>Book</p>
-          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Could not open book</p>
+          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t('Could not open book')}</p>
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>{error}</p>
           <button
             style={{ padding: '12px 28px', background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
             onClick={closeReader}
           >
-            Back to Library
+            {t('Return to library')}
           </button>
         </div>
       )}
@@ -1004,6 +1026,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       {/* EPUB Viewer Container with Animation class wrapper */}
       <div
         ref={viewerRef}
+        data-reader-surface
         className={`${styles.viewer} ${settings.readingMode === 'scroll' ? styles.scrollViewer : ''}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -1024,7 +1047,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
           }}
         >
           <span />
-          <strong>{pullVisual.message}</strong>
+          <strong>{t(pullVisual.message)}</strong>
         </div>
       )}
 
@@ -1039,104 +1062,46 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       {/* Bookmark feedback toast */}
       {bookmarkFeedback && (
         <div className={styles.bookmarkToast}>
-          {bookmarkFeedback === 'added' ? 'Bookmark added' : 'Bookmark removed'}
+          {t(bookmarkFeedback === 'added' ? 'Bookmark added' : 'Bookmark removed')}
         </div>
       )}
 
-      {/* Controls overlay */}
-      {showControls && (
-        <>
-          {/* Top bar */}
-          <div className={styles.topBar}>
-              <button className={styles.backBtn} onClick={closeReader} title="Back to Library">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </button>
-              <div className={styles.topTitle}>
-                <p style={{ fontWeight: 650, fontSize: 14, opacity: 0.9 }}>{chapterLabel}</p>
-              </div>
-              <div className={styles.moreWrap}>
-                <button className={styles.backBtn} onClick={(e) => { e.stopPropagation(); setShowMore(prev => !prev); }} title="More">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12h.01M12 12h.01M19 12h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                  </svg>
-                </button>
-                {showMore && (
-                  <div className={styles.topMoreMenu} onClick={e => e.stopPropagation()}>
-                    {previousLocation && (
-                      <button onClick={() => { renditionRef.current?.display(previousLocation); setPreviousLocation(null); setShowMore(false); }}>
-                        <span>Back to previous location</span>
-                      </button>
-                    )}
-                    <button onClick={() => { setShowSearch(true); setShowMore(false); }}>
-                      <span>Search in book</span>
-                    </button>
-                    <button onClick={() => { setShowBookmarks(true); setShowMore(false); }}>
-                      <span>Bookmarks ({bookmarks.length})</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          {/* Bottom bar */}
-          <div className={styles.bottomBar}>
-              {/* Progress row */}
-              <div className={styles.progressRow}>
-                <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); setShowTOC(true); }} title="Table of Contents">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 6h16M4 10h12M4 14h16M4 18h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                </button>
-                <input
-                  className={styles.progressSlider}
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={visibleProgress}
-                  disabled={settings.readingMode !== 'scroll' && !totalPages}
-                  onPointerDown={handleSeekStart}
-                  onTouchStart={handleSeekStart}
-                  onClick={e => e.stopPropagation()}
-                  onInput={handleSeekChange}
-                  onChange={handleSeekChange}
-                  onPointerUp={handleSeekCommit}
-                  onMouseUp={handleSeekCommit}
-                  onTouchEnd={handleSeekCommit}
-                  onPointerCancel={() => { isSeekingRef.current = false; }}
-                  onBlur={() => { isSeekingRef.current = false; }}
-                  onKeyUp={handleSeekCommit}
-                  aria-label={chapterProgressAvailable ? 'Chapter progress' : 'Book progress'}
-                />
-                <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 500 }}>
-                  {chapterProgressAvailable ? `${Math.round(visibleProgress)}%` : `${Math.round(percentage)}% book`}
-                </span>
-                <button
-                  className={`${styles.actionBtn} ${isCurrentBookmarked ? styles.actionActive : ''}`}
-                  onClick={(e) => { e.stopPropagation(); handleBookmark(); }}
-                  title={isCurrentBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-                >
-                  <svg width="18" height="20" viewBox="0 0 24 24" fill={isCurrentBookmarked ? 'currentColor' : 'none'}>
-                    <path d="M5 3h14v18l-7-4-7 4V3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-                <button
-                  className={styles.actionBtn}
-                  onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
-                  title="Reading settings"
-                >
-                  <span className={styles.aaLabel}>Aa</span>
-                </button>
-              </div>
-              {statusLine && <div className={styles.statusLine}>{statusLine}</div>}
-            </div>
-        </>
-      )}
+      {!showControls && !isLoading && !error && <button className="reveal-controls" aria-label={t('Show reader controls')} onClick={() => setShowControls(true)}>☰</button>}
+      {showControls && <>
+        <header className={`${styles.topBar} reader-chrome`}>
+          <Action label={t('Close reader')} onPress={closeReader}>{t('Close')}</Action>
+          <div className={styles.topTitle}><p>{chapterLabel}</p></div>
+          <ActionMenu aria-label={t('More')} size="L" isOpen={showMore} onOpenChange={setShowMore} onAction={key => {
+            if (key === 'back') { renditionRef.current?.display(previousLocation); setPreviousLocation(null); }
+            if (key === 'search') setShowSearch(true);
+            if (key === 'bookmarks') setShowBookmarks(true);
+          }}>
+            {previousLocation && <MenuItem id="back">{t('Back to previous location')}</MenuItem>}
+            <MenuItem id="search">{t('Search document')}</MenuItem>
+            <MenuItem id="bookmarks">{t('Bookmarks')} ({bookmarks.length})</MenuItem>
+          </ActionMenu>
+        </header>
+        <footer className={`${styles.bottomBar} reader-chrome`}>
+          <div className="action-row" style={{ justifyContent: 'space-between' }}>
+            <Action label={t('Table of contents')} onPress={() => setShowTOC(true)}>{t('Contents')}</Action>
+            <Action label={t(isCurrentBookmarked ? 'Remove bookmark' : 'Add bookmark')} onPress={handleBookmark}>{t('Bookmark')}</Action>
+            <Action label={t('Reading settings')} onPress={() => setShowSettings(true)}>Aa</Action>
+          </div>
+          <div className={styles.progressRow}>
+            <input className={styles.progressSlider} type="range" min="0" max="100" step="1" value={visibleProgress}
+              disabled={settings.readingMode !== 'scroll' && !totalPages} onPointerDown={handleSeekStart} onTouchStart={handleSeekStart}
+              onClick={event => event.stopPropagation()} onInput={handleSeekChange} onChange={handleSeekChange} onPointerUp={handleSeekCommit}
+              onMouseUp={handleSeekCommit} onTouchEnd={handleSeekCommit} onPointerCancel={() => { isSeekingRef.current = false; }}
+              onBlur={() => { isSeekingRef.current = false; }} onKeyUp={handleSeekCommit}
+              aria-label={t(chapterProgressAvailable ? 'Chapter progress' : 'Book progress')} />
+            <span>{Math.round(visibleProgress)}%</span>
+          </div>
+          {statusLine && <div className={styles.statusLine}>{statusLine}</div>}
+        </footer>
+      </>}
 
       {/* Modals */}
-      <AnimatePresence>
+      <>
         {showBookmarks && (
           <BookmarksModal
             bookmarks={bookmarks}
@@ -1168,7 +1133,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
             onClose={() => setShowSettings(false)}
           />
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }

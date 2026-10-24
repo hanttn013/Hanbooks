@@ -1,155 +1,38 @@
 import BookCover from '../Library/BookCover';
-import styles from './HomeScreen.module.css';
+import { Action } from '../UI/Controls';
+import { useI18n } from '../../i18n/context';
 import { readProgressPercent } from '../../utils/storageKeys';
 
-function progressFor(book) {
-  return readProgressPercent(book);
+function BookCard({ book, onOpenBook, onOpenBookInfo }) {
+  const { t } = useI18n();
+  return <article className="book-card">
+    <button className="book-card-cover" onClick={() => onOpenBook(book)} aria-label={`${t('Read')}: ${book.title}`}><BookCover book={book} size="medium" /></button>
+    <h3>{book.title}</h3><p>{book.author}</p>
+    <p>{t('completePercent', { count: Math.round(readProgressPercent(book)) })}</p>
+    <div className="book-card-actions"><Action onPress={() => onOpenBookInfo(book)}>{t('Info')}</Action></div>
+  </article>;
 }
 
 export default function HomeScreen({ library, onOpenBook, onOpenBookInfo, onOpenList, onGoLibrary, onGoLists }) {
+  const { t } = useI18n();
   const books = library.allBooksRaw || [];
-  const reading = books
-    .filter(book => book.status === 'reading' || book.lastOpenedAt)
-    .sort((a, b) => (b.lastOpenedAt || 0) - (a.lastOpenedAt || 0));
+  const reading = books.filter(book => book.status === 'reading' || book.lastOpenedAt).sort((a, b) => (b.lastOpenedAt || 0) - (a.lastOpenedAt || 0));
   const current = reading[0] || books[0];
-  const queue = reading.filter(book => book.id !== current?.id).slice(0, 6);
-  const recent = [...books].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 6);
-  const lists = (library.lists || []).slice(0, 4);
-  const openHeroOnKey = (event, book) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onOpenBook(book);
-    }
-  };
-
-  return (
-    <div className={styles.screen}>
-      <header className={`${styles.header} safe-top`}>
-        <div className="brand-lockup">
-          <img className="brand-logo" src="/branding/shanbooks-logo.png" alt="" />
-          <p className="aurelia-wordmark">ShanBooks</p>
+  const recent = [...books].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 8);
+  return <div className="screen-container">
+    <header className="page-layout safe-top" style={{ paddingBottom: 0, gap: 12 }}><p className="aurelia-wordmark">ShanBooks</p><h1 className="screen-title">{t('Home')}</h1></header>
+    <div className="screen-scroll"><main className="page-layout">
+      {current ? <section aria-label={t('Continue Reading')} className="hero-reading">
+        <BookCover book={current} size="hero" />
+        <div style={{ minWidth: 0 }}><p className="aurelia-wordmark">{t('Now reading')}</p><h2>{current.title}</h2><p>{current.author}</p>
+          <p>{t('completePercent', { count: Math.round(readProgressPercent(current)) })}</p>
+          <div className="progress-track"><div className="progress-fill" style={{ width: `${readProgressPercent(current)}%` }} /></div>
+          <div className="action-row"><Action primary onPress={() => onOpenBook(current)}>{t('Read now')}</Action><Action onPress={() => onOpenBookInfo(current)}>{t('Info')}</Action></div>
         </div>
-        <h1 className="screen-title">Home</h1>
-      </header>
-
-      <div className="screen-scroll">
-        <main className={styles.content}>
-          {current && (
-            <section>
-              <div className={styles.sectionHeading}>
-                <h2>Continue Reading</h2>
-              </div>
-              <div
-                className={styles.heroCard}
-                role="button"
-                tabIndex={0}
-                onClick={() => onOpenBook(current)}
-                onKeyDown={event => openHeroOnKey(event, current)}
-              >
-                <BookCover book={current} size="hero" />
-                <span className={styles.heroInfo}>
-                  <span className={styles.eyebrow}>Now reading</span>
-                  <span className={styles.heroTitle}>{current.title}</span>
-                  <span className={styles.heroAuthor}>{current.author}</span>
-                  <span className={styles.progressMeta}>
-                    <span>{Math.round(progressFor(current))}% complete</span>
-                    <span>{current.estimatedPages ? `${current.estimatedPages} pages` : 'EPUB'}</span>
-                  </span>
-                  <span className="progress-track">
-                    <span className="progress-fill" style={{ width: `${progressFor(current)}%` }} />
-                  </span>
-                  <span className={styles.heroActions}>
-                    <button
-                      type="button"
-                      onClick={event => {
-                        event.stopPropagation();
-                        onOpenBook(current);
-                      }}
-                    >
-                      Read now
-                    </button>
-                    <button
-                      type="button"
-                      onClick={event => {
-                        event.stopPropagation();
-                        onOpenBookInfo(current);
-                      }}
-                    >
-                      Info
-                    </button>
-                  </span>
-                </span>
-              </div>
-            </section>
-          )}
-
-          {queue.length > 0 && (
-            <section>
-              <div className={styles.sectionHeading}>
-                <h2>Reading Queue</h2>
-                <button onClick={onGoLibrary}>See all</button>
-              </div>
-              <div className={styles.bookRail}>
-                {queue.map(book => (
-                  <button
-                    key={book.id}
-                    className={styles.railBook}
-                    onClick={() => onOpenBook(book)}
-                    onContextMenu={e => { e.preventDefault(); onOpenBookInfo(book); }}
-                  >
-                    <BookCover book={book} size="medium" style={{ width: 106, height: 159 }} />
-                    <span>{book.title}</span>
-                    <small>{Math.round(progressFor(book))}% complete</small>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section>
-            <div className={styles.sectionHeading}>
-              <h2>Recently Added</h2>
-              <button onClick={onGoLibrary}>See library</button>
-            </div>
-            <div className={styles.bookRail}>
-              {recent.map(book => (
-                <button
-                  key={book.id}
-                  className={styles.railBook}
-                  onClick={() => onOpenBook(book)}
-                  onContextMenu={e => { e.preventDefault(); onOpenBookInfo(book); }}
-                >
-                  <BookCover book={book} size="medium" style={{ width: 106, height: 159 }} />
-                  <span>{book.title}</span>
-                  <small>{book.author}</small>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div className={styles.sectionHeading}>
-              <h2>Your Lists</h2>
-              <button onClick={onGoLists}>All lists</button>
-            </div>
-            <div className={styles.listStack}>
-              {lists.map(list => (
-                <button key={list.id} className={styles.listRow} onClick={() => onOpenList(list.id)}>
-                  <span className={`${styles.listThumb} ${styles[list.coverStyle] || styles.gold}`} />
-                  <span className={styles.listText}>
-                    <strong>{list.name}</strong>
-                    <small>{list.bookIds.length} {list.bookIds.length === 1 ? 'book' : 'books'}</small>
-                  </span>
-                  <span className={styles.chevron}>›</span>
-                </button>
-              ))}
-              {lists.length === 0 && (
-                <button className={styles.emptyList} onClick={onGoLists}>Create your first list</button>
-              )}
-            </div>
-          </section>
-        </main>
-      </div>
-    </div>
-  );
+      </section> : <section className="empty-state"><h2>{t('No books yet')}</h2><p>{t('Import a document to start reading.')}</p><Action primary onPress={onGoLibrary}>{t('Import documents')}</Action></section>}
+      {reading.length > 1 && <section><div className="section-heading"><h2>{t('Reading Queue')}</h2><Action onPress={onGoLibrary}>{t('See all')}</Action></div><div className="book-cards">{reading.filter(book => book.id !== current?.id).slice(0, 4).map(book => <BookCard key={book.id} book={book} onOpenBook={onOpenBook} onOpenBookInfo={onOpenBookInfo} />)}</div></section>}
+      <section><div className="section-heading"><h2>{t('Recently Added')}</h2><Action onPress={onGoLibrary}>{t('See library')}</Action></div><div className="book-cards">{recent.map(book => <BookCard key={book.id} book={book} onOpenBook={onOpenBook} onOpenBookInfo={onOpenBookInfo} />)}</div></section>
+      <section><div className="section-heading"><h2>{t('Your Lists')}</h2><Action onPress={onGoLists}>{t('All lists')}</Action></div><div className="field-grid">{(library.lists || []).slice(0, 4).map(list => <article key={list.id} className="book-card"><h3>{list.name}</h3><p>{t('booksCount', { count: list.bookIds.length })}</p><Action onPress={() => onOpenList(list.id)}>{t('Read')}</Action></article>)}</div></section>
+    </main></div>
+  </div>;
 }

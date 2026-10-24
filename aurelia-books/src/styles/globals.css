@@ -1,3 +1,4 @@
+@layer legacy {
 /* ===== RESET ===== */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -407,3 +408,4 @@ body.native-app .context-menu {
 .mt-4 { margin-top: 4px; }
 .mt-8 { margin-top: 8px; }
 .mt-16 { margin-top: 16px; }
+}

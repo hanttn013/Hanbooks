@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import BookCover from './BookCover';
+import Sheet from '../UI/Sheet';
+import { Action, Field, Choice } from '../UI/Controls';
+import { ToastQueue } from '@react-spectrum/s2/Toast';
+import { useConfirm } from '../UI/feedbackContext';
+import { useI18n } from '../../i18n/context';
 import { StorageManager } from '../../utils/StorageManager';
 import { looksLikeTocText } from '../../utils/epubMetadata';
 import { extractDocumentMetadata } from '../../utils/documentMetadata';
@@ -29,6 +34,8 @@ function needsMetadataRefresh(book) {
 }
 
 export default function BookDetailModal({ book, onClose, onOpen, library }) {
+  const { t } = useI18n();
+  const confirm = useConfirm();
   const [bookmarks, setBookmarks] = useState([]);
   const [listId, setListId] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -114,7 +121,7 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
       });
     } catch (err) {
       console.warn('Could not refresh EPUB metadata:', err);
-      if (mountedRef.current) alert('Could not repair this EPUB metadata.');
+      if (mountedRef.current) ToastQueue.negative(t('Could not repair this EPUB metadata.'));
     } finally {
       if (mountedRef.current) setIsManualRefreshingMeta(false);
     }
@@ -170,13 +177,13 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   };
 
   const handleDelete = async () => {
-    if (isBusy || !confirm(`Delete "${book.title}" from your library?`)) return;
+    if (isBusy || !await confirm(`${t('deleteBookConfirm')} ${book.title}`)) return;
     setIsDeleting(true);
     try {
       await library?.deleteBook?.(book.id);
       onClose();
     } catch (err) {
-      alert(err.message || 'Could not delete this book.');
+      ToastQueue.negative(t(err.message || 'Could not delete this book.'));
       setIsDeleting(false);
     }
   };
@@ -193,206 +200,29 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
     }
   };
 
-  return (
-    <div
-      className="modal-overlay"
-      onClick={() => { if (!isBusy) onClose(); }}
-    >
-      <div
-        className="modal-sheet"
-        style={{ maxHeight: '88%' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="modal-handle" />
-        <div className="modal-header">
-          <span className="modal-title">Book Info</span>
-          <button className="btn-icon" onClick={onClose} aria-label="Close" disabled={isBusy}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-
-        <div className="modal-scroll">
-          <div style={{ display: 'flex', gap: 16, padding: '10px 20px 18px' }}>
-            <BookCover book={book} size="hero" />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {renaming ? (
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <input value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} />
-                  <input value={author} onChange={e => setAuthor(e.target.value)} style={inputStyle} />
-                  <button className="btn-primary" style={{ padding: 10, fontSize: 13 }} onClick={handleRename} disabled={isBusy}>
-                    {isRenaming ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 24, lineHeight: 1.05, color: 'var(--text-primary)' }}>
-                    {isRefreshingMeta ? <span style={{display:'inline-block', width:120, height:24, background:'var(--bg-secondary)', borderRadius:4, animation:'pulse 1.5s infinite'}} /> : displayBook.title}
-                  </h2>
-                  <p style={{ marginTop: 5, color: 'var(--text-secondary)', fontSize: 14 }}>
-                    {isRefreshingMeta ? <span style={{display:'inline-block', width:80, height:14, background:'var(--bg-secondary)', borderRadius:4, animation:'pulse 1.5s infinite'}} /> : displayBook.author}
-                  </p>
-                </>
-              )}
-              <p style={{ marginTop: 12, color: 'var(--accent)', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                {isRefreshingMeta ? 'LOADING...' : `${displayBook.genre || 'Fiction'} · ${displayBook.estimatedPages || 0} pages`}
-              </p>
-              <p style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: 12 }}>
-                {Math.round(pct)}% · {displayBook.status || 'unread'}
-              </p>
-              <div style={{ marginTop: 10 }} className="progress-track">
-                <div className="progress-fill" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button className="btn-primary" style={{ padding: 12, fontSize: 14 }} onClick={() => { if (!isBusy) onOpen(book); }} disabled={isBusy}>
-              {pct > 0 ? 'Continue' : 'Read'}
-            </button>
-            <button className="btn-primary" style={secondaryBtn} onClick={handleFavorite} disabled={isBusy}>
-              {isFavoriting ? 'Saving...' : displayBook.isFavorite ? 'Unfavorite' : 'Favorite'}
-            </button>
-          </div>
-
-          <div style={{ padding: '0 20px 16px' }}>
-            <p style={sectionLabel}>Synopsis</p>
-            {isRefreshingMeta && (
-              <p style={{ marginTop: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
-                {book.metadataStatus === 'pending' ? 'Waiting for metadata queue...' : 'Repairing EPUB info...'}
-              </p>
-            )}
-            {book.metadataStatus === 'failed' && (
-              <p role="alert" style={{ marginTop: 6, color: 'var(--danger, #9B2C2C)', fontSize: 12 }}>
-                Automatic metadata repair failed after {book.metadataAttempts || 0} attempts. You can retry manually.
-              </p>
-            )}
-            <p style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
-              {isRefreshingMeta ? (
-                <span style={{display:'block', width:'100%', height:60, background:'var(--bg-secondary)', borderRadius:4, animation:'pulse 1.5s infinite'}} />
-              ) : (!looksLikeTocText(displayBook.description) && displayBook.description)
-                ? displayBook.description
-                : 'No clean synopsis was found. Use Repair Info to extract the intro/summary from this EPUB.'}
-            </p>
-            {shouldRefreshMetadata && (
-              <button
-                style={{ ...plainBtn, marginTop: 12, width: '100%' }}
-                onClick={handleRefreshMetadata}
-                disabled={isBusy}
-              >
-                {isRefreshingMeta ? 'Repairing...' : 'Repair Info'}
-              </button>
-            )}
-          </div>
-
-          {(displayBook.originalTitle || displayBook.characters || displayBook.editor || displayBook.beta) && (
-            <div style={{ padding: '0 20px 16px' }}>
-              <p style={sectionLabel}>Review Info</p>
-              <div style={metaGrid}>
-                {displayBook.originalTitle && <Meta label="Original" value={displayBook.originalTitle} />}
-                {displayBook.characters && <Meta label="Characters" value={displayBook.characters} />}
-                {displayBook.editor && <Meta label="Editor" value={displayBook.editor} />}
-                {displayBook.beta && <Meta label="Beta" value={displayBook.beta} />}
-              </div>
-            </div>
-          )}
-
-          <div style={{ padding: '0 20px 16px' }}>
-            <p style={sectionLabel}>Metadata</p>
-            <div style={metaGrid}>
-              <Meta label="Publisher" value={displayBook.publisher || 'Unknown'} />
-              <Meta label="Language" value={displayBook.language || 'Unknown'} />
-              <Meta label="Published" value={displayBook.publishedAt || 'Unknown'} />
-              <Meta label="Chapters" value={displayBook.chapterCount || 'Unknown'} />
-              <Meta label="File" value={formatFileSize(displayBook.fileSize)} />
-              <Meta label="Bookmarks" value={bookmarks.length} />
-            </div>
-          </div>
-
-          <div style={{ padding: '0 20px 16px' }}>
-            <p style={sectionLabel}>Lists</p>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <select value={listId} onChange={e => setListId(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
-                <option value="">Choose list</option>
-                {(library?.lists || []).map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
-              </select>
-              <button className="btn-primary" style={{ width: 72, padding: 0, fontSize: 13 }} onClick={handleAddToList} disabled={!listId || isBusy}>
-                {isAddingToList ? '...' : 'Add'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ padding: '0 20px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            <button style={plainBtn} onClick={handleQuickBookmark} disabled={Boolean(infoBookmark) || isBusy}>
-              {isBookmarking ? 'Saving...' : infoBookmark ? 'Bookmarked' : 'Bookmark'}
-            </button>
-            <button style={plainBtn} onClick={() => setRenaming(prev => !prev)} disabled={isBusy}>Rename</button>
-            <button style={{ ...plainBtn, color: '#D33' }} onClick={handleDelete} disabled={isBusy}>
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-
-          <div style={{ padding: '0 20px 34px' }}>
-            <button className="btn-primary" style={{ padding: 12, fontSize: 14, background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: 'none' }} onClick={onClose} disabled={isBusy}>
-              Close
-            </button>
-          </div>
-        </div>
+  return <Sheet title="Book Info" onClose={onClose} busy={isDeleting || isRenaming} historyManaged>
+    <div className="hero-reading" style={{ padding: 0, border: 0 }}>
+      <BookCover book={book} size="hero" />
+      <div style={{ minWidth: 0 }}>
+        <h2>{displayBook.title}</h2><p>{displayBook.author}</p>
+        <p>{String(book.format || 'epub').toUpperCase()} · {t('completePercent', { count: Math.round(pct) })}</p>
+        {isRefreshingMeta && <p role="status">{t('Loading...')}</p>}
+        <div className="action-row"><Action primary onPress={() => onOpen(book)} disabled={isDeleting}>{t(pct > 0 ? 'Continue' : 'Read')}</Action><Action onPress={handleFavorite} disabled={isBusy}>{t(displayBook.isFavorite ? 'Unfavorite' : 'Favorite')}</Action></div>
       </div>
     </div>
-  );
-}
-
-function Meta({ label, value }) {
-  return (
-    <div style={{ minWidth: 0 }}>
-      <small style={{ display: 'block', color: 'var(--text-secondary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</small>
-      <strong style={{ display: 'block', marginTop: 3, color: 'var(--text-primary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</strong>
+    <section><h3>{t('Synopsis')}</h3><p>{!looksLikeTocText(displayBook.description) && displayBook.description ? displayBook.description : t('No synopsis available.')}</p>
+      {book.metadataStatus === 'failed' && <p role="alert">{book.metadataError}</p>}
+      {shouldRefreshMetadata && <Action onPress={handleRefreshMetadata} disabled={isBusy}>{t(isRefreshingMeta ? 'Repairing...' : 'Repair Info')}</Action>}
+    </section>
+    <dl className="field-grid">
+      {[[t('Publisher'), displayBook.publisher], [t('Language'), displayBook.language], [t('Published'), displayBook.publishedAt], [t('Chapters'), displayBook.chapterCount], [t('File'), formatFileSize(book.fileSize)], [t('Bookmarks'), bookmarks.length], [t('Original'), displayBook.originalTitle], [t('Characters'), displayBook.characters], [t('Editor'), displayBook.editor], [t('Beta'), displayBook.beta]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? t('Unknown')}</dd></div>)}
+    </dl>
+    <div className="field-grid"><Choice label="Choose list" value={listId} onChange={setListId} options={[{ id: '', label: 'Choose list' }, ...(library?.lists || []).map(list => ({ id: list.id, label: list.name, raw: true }))]} /><div style={{ alignSelf: 'end' }}><Action onPress={handleAddToList} disabled={!listId || isBusy}>{t('Add')}</Action></div></div>
+    {renaming && <div className="field-grid"><Field label="Title" value={title} onChange={setTitle} /><Field label="Author" value={author} onChange={setAuthor} /><Action onPress={handleRename} disabled={isBusy}>{t(isRenaming ? 'Saving...' : 'Save')}</Action></div>}
+    <div className="action-row">
+      <Action onPress={handleQuickBookmark} disabled={Boolean(infoBookmark) || isBusy}>{t(isBookmarking ? 'Saving...' : infoBookmark ? 'Bookmarked' : 'Bookmark')}</Action>
+      <Action onPress={() => { if (!renaming) { setTitle(displayBook.title); setAuthor(displayBook.author); } setRenaming(!renaming); }} disabled={isBusy}>{t('Rename')}</Action>
+      <Action negative onPress={handleDelete} disabled={isBusy}>{t(isDeleting ? 'Deleting...' : 'Delete')}</Action>
     </div>
-  );
+  </Sheet>;
 }
-
-const sectionLabel = {
-  color: 'var(--text-secondary)',
-  fontSize: 11,
-  fontWeight: 800,
-  letterSpacing: '0.14em',
-  textTransform: 'uppercase',
-};
-
-const inputStyle = {
-  width: '100%',
-  height: 40,
-  border: '1px solid var(--border)',
-  borderRadius: 10,
-  background: 'var(--bg-secondary)',
-  color: 'var(--text-primary)',
-  padding: '0 10px',
-  font: 'inherit',
-};
-
-const secondaryBtn = {
-  padding: 12,
-  fontSize: 14,
-  background: 'var(--bg-secondary)',
-  color: 'var(--text-primary)',
-  boxShadow: 'none',
-};
-
-const plainBtn = {
-  minHeight: 40,
-  border: '1px solid var(--border)',
-  borderRadius: 12,
-  background: 'var(--bg-card)',
-  color: 'var(--text-primary)',
-  fontWeight: 700,
-  cursor: 'pointer',
-};
-
-const metaGrid = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 10,
-  marginTop: 9,
-};

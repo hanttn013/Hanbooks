@@ -1,0 +1,35 @@
+import { expect, test } from '@playwright/test';
+
+test('Spectrum list create, add books, edit and delete preserve navigation', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Lists', exact: true }).click();
+  await page.getByRole('button', { name: 'Create list', exact: true }).click();
+  let dialog = page.getByRole('dialog', { name: 'New list', exact: true });
+  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('QA Spectrum');
+  await dialog.getByRole('textbox', { name: 'Description', exact: true }).fill('Keyboard-managed collection');
+  await dialog.getByRole('button', { name: 'Create list', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.locator('.list-tile').filter({ has: page.getByRole('heading', { name: 'QA Spectrum', exact: true }) }).getByRole('button', { name: 'Read', exact: true }).click();
+  await page.locator('header').getByRole('button', { name: 'Add', exact: true }).click();
+  dialog = page.getByRole('dialog', { name: 'Add books', exact: true });
+  await dialog.getByRole('checkbox').first().focus();
+  await page.keyboard.press('Space');
+  await dialog.getByRole('checkbox').nth(1).focus();
+  await page.keyboard.press('Space');
+  await dialog.getByRole('button', { name: 'Add (2)', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('main .book-card')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  dialog = page.getByRole('dialog', { name: 'Edit list', exact: true });
+  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('QA Updated');
+  await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'QA Updated', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete list', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Confirm', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Lists', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'QA Updated', exact: true })).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+});

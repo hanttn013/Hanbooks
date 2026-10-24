@@ -57,17 +57,17 @@ test('capture Phase 0 visual, console, and accessibility baseline', async ({ pag
 
   activeScreen = 'settings';
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await capture('settings');
 
   activeScreen = 'book-detail';
   await page.getByRole('button', { name: 'Home', exact: true }).click();
-  await page.getByRole('button', { name: 'Info', exact: true }).click();
-  await expect(page.locator('.modal-sheet')).toBeVisible();
+  await page.getByRole('button', { name: 'Info', exact: true }).first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
   await capture('book-detail');
 
   activeScreen = 'reader';
-  await page.locator('.modal-overlay .btn-icon').first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Read now', exact: true }).click();
   await expect(page.getByText(/^Opening /)).toBeHidden({ timeout: 30_000 });
   await expect(page.locator('iframe')).toHaveCount(1, { timeout: 30_000 });

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 const evidence = async (page, info, name) => {
-  const dir = path.resolve('qa/phase1/acceptance', info.project.name);
+  const dir = path.resolve(process.env.PHASE1_OUTPUT_DIR ? path.join(process.env.PHASE1_OUTPUT_DIR, 'acceptance') : 'qa/phase1/acceptance', info.project.name);
   await fs.mkdir(dir, { recursive: true });
   await page.screenshot({ path: path.join(dir, `${name}.png`), fullPage: true });
 };
@@ -53,7 +53,7 @@ test('bad files report individually while valid NFD document survives without ju
     { name: 'renamed.epub', mimeType: 'application/epub+zip', buffer: Buffer.from('ordinary text') },
   ];
   await page.locator('input[type="file"]').first().setInputFiles([...bad, { name: 'Tiếng Việt.txt'.normalize('NFD'), mimeType: 'text/plain', buffer: Buffer.from('Chương 1\nNội dung hợp lệ.') }]);
-  await expect(page.getByText(/Đã xử lý/)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText(/Processed/)).toBeVisible({ timeout: 30000 });
   for (const file of bad) await expect(page.getByRole('list', { name: 'Import results' }).getByText(file.name, { exact: true })).toBeVisible();
   await evidence(page, info, 'mixed-invalid-files');
   const records = await page.evaluate(async () => {
@@ -103,7 +103,7 @@ test('30 EPUB open-close cycles release reader DOM, Blob URLs and global listene
     samples.push(await page.evaluate(() => window.qaResources()));
   }
   await evidence(page, info, 'reader-after-30-cycles');
-  const dir = path.resolve('qa/phase1/acceptance', info.project.name);
+  const dir = path.resolve(process.env.PHASE1_OUTPUT_DIR ? path.join(process.env.PHASE1_OUTPUT_DIR, 'acceptance') : 'qa/phase1/acceptance', info.project.name);
   await fs.writeFile(path.join(dir, 'reader-resources.json'), JSON.stringify(samples, null, 2));
   expect(samples.at(-1).urls).toBeLessThanOrEqual(samples[0].urls);
   expect(samples.at(-1).listeners).toBeLessThanOrEqual(samples[0].listeners);

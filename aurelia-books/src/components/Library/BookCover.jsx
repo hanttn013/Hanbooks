@@ -17,6 +17,7 @@ export default function BookCover({ book, size = 'medium', style = {} }) {
     return (
       <div
         className={styles.cover}
+        aria-hidden="true"
         style={{
           width: dims.width,
           height: dims.height,
@@ -43,6 +44,7 @@ export default function BookCover({ book, size = 'medium', style = {} }) {
   return (
     <div
       className={styles.cover}
+      aria-hidden="true"
       style={{
         width: dims.width,
         height: dims.height,

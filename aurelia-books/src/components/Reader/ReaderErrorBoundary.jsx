@@ -1,6 +1,9 @@
 import { Component } from 'react';
+import { I18nContext } from '../../i18n/context';
+import { Action } from '../UI/Controls';
 
 export default class ReaderErrorBoundary extends Component {
+  static contextType = I18nContext;
   constructor(props) {
     super(props);
     this.state = { error: null };
@@ -15,12 +18,13 @@ export default class ReaderErrorBoundary extends Component {
   }
 
   render() {
+    const { t } = this.context;
     if (!this.state.error) return this.props.children;
     return (
-      <main style={{ minHeight: '100%', padding: 24, background: '#fff', color: '#1f1f1f' }}>
-        <h1>This document could not be opened</h1>
-        <p>{this.state.error.message || 'The file may be damaged or use an unsupported feature.'}</p>
-        <button className="btn-primary" onClick={this.props.onClose}>Return to library</button>
+      <main style={{ minHeight: '100%', padding: 24, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <h1>{t('Could not open this document')}</h1>
+        <p>{this.state.error.message || t('The file may be damaged or use an unsupported feature.')}</p>
+        <Action primary onPress={this.props.onClose}>{t('Return to library')}</Action>
       </main>
     );
   }

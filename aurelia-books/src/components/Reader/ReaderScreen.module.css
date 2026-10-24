@@ -5,7 +5,7 @@
   flex-direction: column;
   z-index: 100;
   overscroll-behavior-x: none;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
   font-family: var(--font-ui);
 }
 
@@ -14,14 +14,14 @@
   overflow: hidden;
   position: relative;
   overscroll-behavior-x: none;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 
 .scrollViewer {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 
 /* Invisible tap zones for page turning */

@@ -5,6 +5,7 @@ export default defineConfig({
   cacheDir: 'node_modules/.vite-vitest',
   plugins: [react()],
   test: {
+    server: { deps: { inline: [/@react-spectrum\/s2/] } },
     environment: 'jsdom',
     // Fork workers atomically rename transformed temp modules, which is blocked by
     // the Windows app sandbox. Threads keep the suite portable in this environment.

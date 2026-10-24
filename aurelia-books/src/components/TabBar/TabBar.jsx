@@ -1,5 +1,7 @@
 // src/components/TabBar/TabBar.jsx
 import styles from './TabBar.module.css';
+import { ActionButton } from '@react-spectrum/s2/ActionButton';
+import { useI18n } from '../../i18n/context';
 
 const TABS = [
   {
@@ -46,18 +48,22 @@ const TABS = [
 ];
 
 export default function TabBar({ activeTab, onTabChange }) {
+  const { t } = useI18n();
   return (
-    <nav className={styles.tabBar}>
+    <nav className={styles.tabBar} aria-label={t('Primary navigation')}>
       {TABS.map(tab => (
-        <button
+        <div className={`${styles.tab} ${activeTab === tab.id ? styles.active : ''}`} key={tab.id}>
+        <ActionButton
           key={tab.id}
-          className={`${styles.tab} ${activeTab === tab.id ? styles.active : ''}`}
-          onClick={() => onTabChange(tab.id)}
-          aria-label={tab.label}
+          onPress={() => onTabChange(tab.id)}
+          aria-label={t(tab.label)}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+          isQuiet
+          size="M"
         >
-          <span className={styles.icon}>{tab.icon(activeTab === tab.id)}</span>
-          <span className={styles.label}>{tab.label}</span>
-        </button>
+          {t(tab.label)}
+        </ActionButton>
+        </div>
       ))}
     </nav>
   );

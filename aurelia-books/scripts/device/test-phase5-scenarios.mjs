@@ -68,16 +68,20 @@ async function getCdpSession() {
       ws.send(JSON.stringify({ id: callId, method, params }));
       return new Promise((res, rej) => pending.set(callId, { resolve: res, reject: rej }));
     },
-    async eval(expr) {
-      const result = await this.send('Runtime.evaluate', {
-        expression: expr,
-        awaitPromise: true,
-        returnByValue: true,
-      });
-      if (result.exceptionDetails) {
-        throw new Error(result.exceptionDetails.text || 'Runtime.evaluate exception');
-      }
-      return result.result?.value;
+    async eval(expr, timeout = 6000) {
+      return Promise.race([
+        this.send('Runtime.evaluate', {
+          expression: expr,
+          awaitPromise: true,
+          returnByValue: true,
+        }).then(result => {
+          if (result.exceptionDetails) {
+            throw new Error(result.exceptionDetails.text || 'Runtime.evaluate exception');
+          }
+          return result.result?.value;
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`cdp.eval timeout after ${timeout}ms`)), timeout))
+      ]);
     },
     close() {
       try { ws.close(); } catch {}
@@ -232,6 +236,11 @@ export async function runAllPhase5Tests() {
     adb(`shell settings put system user_rotation ${originalRotation}`);
     console.log('   Đã hoàn nguyên cài đặt màn hình.');
     testResults.screenRotation = true;
+
+    // Tái kết nối CDP sau khi màn hình hoàn nguyên
+    await new Promise(r => setTimeout(r, 1500));
+    cdp.close();
+    cdp = await getCdpSession();
 
     // 7. Kiểm thử Safe Area Insets (Tai thỏ & Thanh điều hướng)
     console.log('\n>>> 7. Kiểm tra Safe Area Insets & Layout Collision...');

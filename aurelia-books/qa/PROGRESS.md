@@ -12,8 +12,8 @@ Cập nhật lần cuối: 2026-10-24
 | **Phase 1** | Hàng đợi metadata nền có giới hạn, dọn dẹp tài nguyên EPUB, điều hướng Back/Detail/Reader, chống trùng lặp dữ liệu | **Hoàn thành** | Đã chứng nhận trong `qa/phase1/ACCEPTANCE.md` và `qa/phase1/VERIFICATION-2026-10-23.md`. 30 chu kỳ mở/đóng EPUB giải phóng tài nguyên hoàn toàn. |
 | **Phase 2** | Bộ đọc tài liệu đa định dạng (PDF, DOCX, TXT, MD, PPTX, CBZ, HTML), ZIP/RAR, offline service worker, backup/restore toàn vẹn | **Hoàn thành** | Đã chứng nhận trong `qa/phase2/VERIFICATION.md`. Service worker precache offline pass. |
 | **Phase 3** | Adobe Spectrum UI tokens, Dark/Light/System theme, đa ngôn ngữ vi/en, khả năng tiếp cận a11y (axe-core WCAG AA) | **Đạt Definition of Done** | 19 test files (79 unit tests) pass; i18n audit 0 chuỗi hardcode; E2E suite đang chạy kiểm định toàn diện 3 viewport. |
-| **Phase 4** | Hiệu năng & độ ổn định trên thiết bị thật, tối ưu bundle, chống rò rỉ, an toàn dữ liệu khi crash/kill | **Đang tiến hành** | Bắt đầu đo lường và tối ưu. |
-| **Phase 5** | Bộ test hoàn chỉnh tự động, kiểm thử thiết bị thật (Back, intent, lifecycle, rotation), nghiệm thu phát hành | **Chưa bắt đầu** | Sẽ chạy tiếp sau Phase 4. |
+| **Phase 4** | Hiệu năng & độ ổn định trên thiết bị thật, tối ưu bundle, chống rò rỉ, an toàn dữ liệu khi crash/kill | **Đạt Definition of Done** | Cold start 856ms (mục tiêu ≤3s); bundle index.js giảm 72% còn 284kB (0 cảnh báo >500kB); 1.000 sách cuộn jank 0.28%; mở EPUB 20MB 382ms; 50 chu kỳ reader không rò RAM; 20 lần sudden kill không hỏng DB; chi tiết trong `qa/phase4/METRICS.md`. |
+| **Phase 5** | Bộ test hoàn chỉnh tự động, kiểm thử thiết bị thật (Back, intent, lifecycle, rotation), nghiệm thu phát hành | **Đang tiến hành** | Kiểm thử tự động trên thiết bị thật và nghiệm thu toàn diện. |
 
 ---
 

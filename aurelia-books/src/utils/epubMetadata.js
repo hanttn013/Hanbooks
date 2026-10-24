@@ -1,4 +1,3 @@
-import ePub from 'epubjs';
 import { destroyEpubBook } from './destroyEpubBook';
 
 const PREVIEW_SECTION_LIMIT = 6;
@@ -240,6 +239,8 @@ export async function extractEpubMetadata(fileOrBlob, fallback = {}, { strict = 
   let book = null;
   try {
     const arrayBuffer = await fileOrBlob.arrayBuffer();
+    const { default: ePubModule } = await import('epubjs');
+    const ePub = typeof ePubModule === 'function' ? ePubModule : ePubModule.default || ePubModule;
     book = ePub(arrayBuffer);
     await book.ready;
 

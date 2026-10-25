@@ -1,123 +1,113 @@
 # ShanBooks
 
-Main Hanbooks application: a React + Vite offline document reader packaged for Android with Capacitor.
+Main application package for Hanbooks: a React 19 + Vite offline document reader built with Adobe Spectrum S2 and packaged for Android with Capacitor 8.
 
-For the repository overview, see `../README.md`.
+For the comprehensive repository overview, showcase screenshots, and feature guide, see [README.md](../README.md).
 
-## Setup
+---
+
+## 🚀 Setup & Development
+
+### 1. Install Dependencies
 
 ```powershell
 npm install
 ```
 
-## Development
+### 2. Start Local Development Server
 
 ```powershell
 npm run dev
 ```
 
-To bind Vite to a specific local address:
+To bind Vite to a specific local address or port:
 
 ```powershell
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-## Checks
+---
+
+## 🧪 Testing & Quality Checks
+
+Run the verification suite locally:
 
 ```powershell
+# ESLint check
 npm run lint
-npm run build
+
+# Design system and element enforcement audit
+npm run test:elements
+
+# UI strings and i18n key audit
+npm run test:i18n
+
+# Unit tests (Vitest)
 npm run test:unit
+
+# Production build bundle check
+npm run build
+
+# End-to-end browser tests (Playwright)
 npm run test:e2e
-npx playwright test --config playwright.offline.config.js
 ```
 
-Generate the deterministic, license-safe document fixtures before tests that
-exercise file import:
+To regenerate deterministic test fixtures (EPUB, PDF, CBZ, DOCX, PPTX) before running import tests:
 
 ```powershell
 npm run fixtures
 ```
 
-Run the complete automated suite with:
+---
 
-```powershell
-npm run test:all
-```
+## 📱 Android Native Build
 
-Playwright runs Chromium at 360x800, 768x1024, and 1440x900. The Phase 0
-visual, console, and axe accessibility baselines live in `qa/baseline/`.
-Phase 1 navigation and lifecycle evidence lives in `qa/phase1/`.
-Transient Playwright reports and traces are ignored by Git.
+### Prerequisites
+- Java Development Kit (JDK) 21. Ensure `JAVA_HOME` points to your JDK 21 installation.
+- Android Studio with Android SDK Platform 34 or 35.
 
-The offline test uses the production build: run `npm run build` first. It checks
-cold reload, seven lazy readers, and full ZIP backup/restore with network off.
-Web installation requires one successful online visit; originals are kept in
-IndexedDB, not in the application-shell cache. Android uses bundled assets and
-does not register the browser service worker. Phase 2 evidence and limitations
-are recorded in `qa/phase2/VERIFICATION.md`.
+### Build Steps
 
-## Android
-
-Sync web assets into the native Android project:
-
+1. Sync web assets into the Capacitor Android project:
 ```powershell
 npm run android:sync
 ```
 
-Build a debug APK:
-
+2. Compile debug APK with Gradle:
 ```powershell
 npm run android:apk
 ```
 
-The Android toolchain requires JDK 21. Set `JAVA_HOME` to a JDK 21 installation
-before running the build if another Java version is the system default.
-
-Gradle writes the debug APK to:
-
+The compiled APK will be output to:
 ```text
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Native Back, background/force-stop persistence, and picker behavior still need
-to be checked on a device or emulator with
-`qa/phase1/MANUAL_ANDROID_CHECKLIST.md`.
+---
 
-## Storage compatibility
+## 💾 Storage Architecture
 
-On startup, legacy `aurelia_*` localStorage values are migrated once to the
-`shanbooks_*` namespace. Existing values under the new keys win, and migrated
-legacy keys are removed. The IndexedDB database name (`aurelia_db`) and Android
-application id (`com.aurelia.books`) intentionally stay unchanged so installed
-libraries and app upgrades retain their data.
+- **IndexedDB (`aurelia_db`)**: Primary storage for document binary blobs, parsed cover images, chapter navigation tables, bookmarks, and per-book reading locations (EPUB CFIs, PDF page offsets).
+- **LocalStorage (`shanbooks_*`)**: Stores lightweight reader settings, color themes, font preferences, and language selections.
+- **Backup & Migration**: Supports full offline export/import to `.zip` archive or `.json` metadata dump without data loss.
 
-## Source Map
+---
+
+## 📂 Source Structure
 
 ```text
 src/
-|-- App.jsx
-|-- main.jsx
+|-- App.jsx                   # Root application shell & routing
+|-- main.jsx                  # React entry point
 |-- components/
-|   |-- Home/
-|   |-- Library/
-|   |-- Lists/
-|   |-- Reader/
-|   |-- Settings/
-|   `-- TabBar/
-|-- data/
-|-- hooks/
-|-- styles/
-`-- utils/
-```
-
-Important files:
-
-```text
-src/hooks/useLibrary.js
-src/hooks/useReader.js
-src/hooks/useSettings.js
-src/utils/StorageManager.js
-src/utils/epubMetadata.js
-src/utils/archiveImport.js
+|   |-- Home/                 # Editorial Home screen & reading shelves
+|   |-- Library/              # Grid/List book library view & multi-selection
+|   |-- Lists/                # Shelves and collections management
+|   |-- Reader/               # Distraction-free reader surface & controls
+|   |-- Settings/             # Themes, typography, and backup settings
+|   `-- TabBar/               # Bottom navigation bar & desktop sidebar
+|-- hooks/                    # useLibrary, useReader, useSettings
+|-- readers/                  # Adapters for EPUB, PDF, DOCX, PPTX, CBZ, TXT, MD
+|-- styles/                   # CSS Design tokens & responsive layout media queries
+`-- utils/                    # StorageManager, archiveImport, epubMetadata, formatDetector
 ```

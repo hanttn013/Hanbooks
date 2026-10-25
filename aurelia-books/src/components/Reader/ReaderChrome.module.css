@@ -260,18 +260,6 @@
   height: 36px;
 }
 
-.progressChapter {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 500;
-  max-width: 110px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0.75;
-  flex-shrink: 0;
-}
-
 .sliderContainer {
   position: relative;
   flex: 1;
@@ -371,21 +359,21 @@
 /* Row 2: 4 Tools of EQUAL width (+-1px) */
 .toolsRow {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: space-around;
   width: 100%;
-  gap: 4px;
+  gap: 8px;
 }
 
 .toolBtn {
   flex: 1 1 0px;
   width: 0;
-  min-height: 48px;
+  min-height: 44px;
   min-width: 44px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4px 0 2px;
+  padding: 8px 0;
   border: none;
   background: transparent;
   color: var(--reader-text);
@@ -416,7 +404,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .toolIconText {
@@ -428,18 +417,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.toolLabel {
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
 @keyframes popoverIn {
@@ -545,10 +522,6 @@
     flex: initial;
     padding: 2px;
     border-radius: 8px;
-  }
-
-  .toolLabel {
-    display: none !important;
   }
 }
 

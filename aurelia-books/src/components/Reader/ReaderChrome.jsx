@@ -257,10 +257,6 @@ export default function ReaderChrome({
       <footer className={styles.bottomBar}>
         {/* Row 1: Progress Scrubber */}
         <div className={styles.progressRow}>
-          <span className={styles.progressChapter} title={chapterTitle}>
-            {chapterTitle || bookTitle}
-          </span>
-
           <div className={styles.sliderContainer}>
             {/* Scrubber preview bubble on drag */}
             {isScrubbing && locationsReady && (
@@ -308,13 +304,13 @@ export default function ReaderChrome({
             className={`${styles.toolBtn} ${isBookmarked ? styles.toolBtnActive : ''}`}
             onClick={handleBookmarkClick}
             aria-label={isBookmarked ? t('Remove bookmark') : t('Add bookmark')}
+            title={isBookmarked ? t('Remove bookmark') : t('Add bookmark')}
           >
             <span className={styles.toolIcon} aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
               </svg>
             </span>
-            <span className={styles.toolLabel} aria-hidden="true">{t('Bookmark')}</span>
           </button>
 
           {/* Tool 2: Ghi chú */}
@@ -323,6 +319,7 @@ export default function ReaderChrome({
             className={styles.toolBtn}
             onClick={onOpenBookmarks}
             aria-label={t('Show bookmarks')}
+            title={t('Bookmarks')}
           >
             <span className={styles.toolIcon} aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -330,7 +327,6 @@ export default function ReaderChrome({
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
             </span>
-            <span className={styles.toolLabel} aria-hidden="true">{t('Bookmarks')}</span>
           </button>
 
           {/* Tool 3: Giao diện chữ */}
@@ -339,6 +335,7 @@ export default function ReaderChrome({
             className={styles.toolBtn}
             onClick={onOpenSettings}
             aria-label={format === 'epub' ? t('Reading settings') : t('Reader settings')}
+            title={format === 'epub' ? t('Reading settings') : t('Reader settings')}
           >
             <span className={styles.toolIcon} aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -348,7 +345,6 @@ export default function ReaderChrome({
                 <path d="M19 13v6" />
               </svg>
             </span>
-            <span className={styles.toolLabel} aria-hidden="true">{t('Settings')}</span>
           </button>
 
           {/* Tool 4: Mục lục */}
@@ -357,6 +353,7 @@ export default function ReaderChrome({
             className={styles.toolBtn}
             onClick={onOpenTOC}
             aria-label={t('Table of contents')}
+            title={t('Contents')}
           >
             <span className={styles.toolIcon} aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -365,7 +362,6 @@ export default function ReaderChrome({
                 <line x1="3" y1="18" x2="15" y2="18" />
               </svg>
             </span>
-            <span className={styles.toolLabel} aria-hidden="true">{t('Contents')}</span>
           </button>
         </nav>
       </footer>

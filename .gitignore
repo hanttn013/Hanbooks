@@ -38,11 +38,19 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-# Generated QA artifacts
+# QA test outputs and captures
+qa/
+**/qa/
+.artifacts/
+**/.artifacts/
 test-artifacts/
 **/perf-shots/
 **/perf-shots-*/
 *.mp4
+
+# Local documentation (kept on machine only)
+docs/
+**/docs/
 
 # Editor / OS
 .idea/
@@ -56,12 +64,19 @@ Thumbs.db
 *.sln
 *.sw?
 
+# Local scratch and temporary directories
+scratch/
+**/scratch/
+Font/
+.tmp-font/
+soft-pages/
+next-app/
+
 # Local project context
 context.md
 .agent
 Anh_UX_UI
 Data
-.tmp-font/
 KQ Test.md
 
 # iOS separate repository

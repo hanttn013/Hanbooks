@@ -23,7 +23,15 @@ android/local.properties
 *.apk
 *.aab
 
-# Generated QA/performance screenshots
+# QA and local outputs
+qa/
+**/qa/
+.artifacts/
+**/.artifacts/
+scratch/
+**/scratch/
+docs/
+**/docs/
 perf-shots/
 perf-shots-*/
 qa/playwright-report/

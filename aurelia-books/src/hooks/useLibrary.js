@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { DEMO_BOOKS } from '../data/demoBooks';
 import { StorageManager } from '../utils/StorageManager';
-import { extractEpubMetadata, normalizeBookMetadata } from '../utils/epubMetadata';
+import { normalizeBookMetadata } from '../utils/epubMetadata';
 import { extractDocumentMetadata } from '../utils/documentMetadata';
 import { analyzeImportFile } from '../utils/importWorkerClient';
 import { getLibraryStats } from '../utils/libraryStats';
@@ -139,39 +139,23 @@ export function useLibrary() {
     setIsLoading(true);
     try {
       let list = await StorageManager.getAllBooks();
-      if (list.length === 0 && localStorage.getItem(STORAGE_KEYS.seededDemo) !== '1') {
-        // Load demo books from public URLs or assets
-        for (const demo of DEMO_BOOKS) {
-          try {
-            const res = await fetch(demo.epubUrl);
-            const blob = await res.blob();
-            const metadata = await extractEpubMetadata(blob, {
-              title: demo.title,
-              author: demo.author,
-              genre: demo.genre,
-              description: demo.description,
-              chapterCount: demo.chapterCount,
-              estimatedPages: demo.estimatedPages,
-            });
-            const bookRecord = {
-              ...demo,
-              ...metadata,
-              format: 'epub',
-              title: metadata.title || demo.title,
-              author: metadata.author || demo.author,
-              coverUrl: metadata.coverUrl,
-              fileBlob: blob,
-            };
-            await StorageManager.saveBook(bookRecord);
-          } catch (e) {
-            console.error('Failed to pre-fetch demo book:', demo.title, e);
-            // Fallback save metadata only
-            await StorageManager.saveBook({ ...demo, ...normalizeBookMetadata(demo), format: 'epub', fileBlob: null });
+      // Purge any legacy demo books if previously seeded
+      if (list.some(b => b.isDemo || (typeof b.id === 'string' && b.id.startsWith('demo-')))) {
+        const remaining = [];
+        for (const b of list) {
+          if (b.isDemo || (typeof b.id === 'string' && b.id.startsWith('demo-'))) {
+            try {
+              await StorageManager.deleteBook(b.id);
+            } catch (err) {
+              void err;
+            }
+          } else {
+            remaining.push(b);
           }
         }
-        localStorage.setItem(STORAGE_KEYS.seededDemo, '1');
-        list = await StorageManager.getAllBooks();
+        list = remaining;
       }
+      localStorage.setItem(STORAGE_KEYS.seededDemo, '1');
 
       const interrupted = [];
       const normalized = list.map(book => {

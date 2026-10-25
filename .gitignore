@@ -72,12 +72,15 @@ Font/
 soft-pages/
 next-app/
 
-# Local project context
+# Agent, trail, and local project context
+.agents/
+.agent/
+.trail/
+AGENTS.md
+KQ Test.md
 context.md
-.agent
 Anh_UX_UI
 Data
-KQ Test.md
 
 # iOS separate repository
 ios/

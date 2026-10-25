@@ -1,11 +1,16 @@
+// src/components/Settings/SettingsScreen.jsx
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Action, Choice, Range } from '../UI/Controls';
+import { Choice, Range } from '../UI/Controls';
 import { ToastQueue } from '@react-spectrum/s2/Toast';
+import Button from '../Common/Button';
+import { AlertDialog, DialogTrigger } from '@react-spectrum/s2/AlertDialog';
 import { useI18n } from '../../i18n/context';
 import { useConfirm } from '../UI/feedbackContext';
 import { StorageManager } from '../../utils/StorageManager';
 import { APP_THEMES, READER_FONTS, getFontStack, getThemeById } from '../../styles/designTokens';
 import { removeShanBooksLocalStorage, STORAGE_KEYS } from '../../utils/storageKeys';
+import PageHeader from '../Common/PageHeader';
+import styles from './SettingsScreen.module.css';
 
 function formatBytes(bytes = 0) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -13,12 +18,13 @@ function formatBytes(bytes = 0) {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-export default function SettingsScreen({ settings, updateSetting, library }) {
+export default function SettingsScreen({ settings, updateSetting, resetSettings, library }) {
   const { t, locale } = useI18n();
   const confirm = useConfirm();
   const activeTheme = getThemeById(settings.theme);
   const stats = library?.stats || {};
   const importRef = useRef(null);
+  const [deleteStep, setDeleteStep] = useState(null); // null | 1 | 2
   const [backupStatus, setBackupStatus] = useState(() => {
     const timestamp = Number(localStorage.getItem(STORAGE_KEYS.lastBackupAt) || 0);
     return timestamp ? { key: 'Last backup', at: timestamp } : { key: 'No backup yet' };
@@ -44,10 +50,9 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     return () => window.clearTimeout(timer);
   }, [refreshStorageState]);
 
-  const handleClearData = async () => {
-    const confirmed = await confirm(t('deleteDataConfirm'));
-    if (!confirmed) return;
-
+  // Execute two-step confirmed complete data deletion
+  const executeClearData = async () => {
+    setDeleteStep(null);
     try {
       await StorageManager.clearAllData();
       removeShanBooksLocalStorage();
@@ -55,7 +60,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
       localStorage.setItem(STORAGE_KEYS.seededDefaultLists, '1');
       window.location.reload();
     } catch (err) {
-      ToastQueue.negative(t(err.message || 'Khong the xoa du lieu. Hay dong va mo lai app roi thu lai.'));
+      ToastQueue.negative(t(err.message || 'Could not delete data. Please restart the app and try again.'));
     }
   };
 
@@ -76,7 +81,7 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     try {
       const snapshot = await StorageManager.exportLibrarySnapshot();
       const stamp = new Date(snapshot.exportedAt).toISOString().replace(/[:.]/g, '-');
-      downloadJson(snapshot, `hanbooks-library-${stamp}.json`);
+      downloadJson(snapshot, `shanbooks-library-${stamp}.json`);
     } catch (err) {
       ToastQueue.negative(t(err.message || 'Could not export library.'));
     }
@@ -134,51 +139,290 @@ export default function SettingsScreen({ settings, updateSetting, library }) {
     }
   };
 
-  return <div className="screen-container">
-    <header className="page-layout safe-top" style={{ paddingBottom: 0, gap: 12 }}><p className="aurelia-wordmark">ShanBooks</p><h1 className="screen-title">{t('Settings')}</h1></header>
-    <div className="screen-scroll"><main className="page-layout">
-      <section className="settings-section"><h2>{t('Application')}</h2><div className="field-grid">
-        <Choice label="App appearance" value={settings.appTheme} onChange={value => updateSetting('appTheme', value)} options={[{ id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }, { id: 'system', label: 'System' }]} />
-        <Choice label="Language" value={settings.language} onChange={value => updateSetting('language', value)} options={[{ id: 'vi', label: 'Tiếng Việt' }, { id: 'en', label: 'English' }]} />
-      </div></section>
-      <section className="settings-section"><h2>{t('Statistics')}</h2><div className="stats-grid">
-        {[[t('Books'), stats.totalBooks || 0], [t('Lists'), stats.totalLists || 0], [t('Reading'), stats.readingBooks || 0], [t('Storage'), stats.totalStorageLabel || '0 MB']].map(([label, value]) => <div className="stat" key={label}><strong>{value}</strong><span>{label}</span></div>)}
-      </div></section>
-      <section className="settings-section"><h2>{t('Reader settings')}</h2>
-        <div aria-label={t('Reading preference preview')} style={{ padding: 24, borderRadius: 8, background: activeTheme.bg, color: activeTheme.text, fontFamily: getFontStack(settings.font), fontSize: settings.fontSize, lineHeight: settings.lineHeight }}>{t('previewText')}</div>
-        <div className="field-grid">
-          <Choice label="Reader theme" value={settings.theme} onChange={value => updateSetting('theme', value)} options={APP_THEMES} />
-          <Choice label="Typeface" value={settings.font} onChange={value => updateSetting('font', value)} options={READER_FONTS} />
-          <Choice label="Reading mode" value={settings.readingMode} onChange={value => updateSetting('readingMode', value)} options={[{ id: 'scroll', label: 'Scroll' }, { id: 'classic', label: 'Pages' }]} />
-          <Choice label="Status line" value={settings.readingStatusLine} onChange={value => updateSetting('readingStatusLine', value)} options={[{ id: 'off', label: 'Off' }, { id: 'minimal', label: 'Minimal' }, { id: 'detailed', label: 'Detailed' }]} />
-          <Range label="Font size" value={settings.fontSize} min={14} max={28} onChange={value => updateSetting('fontSize', value)} />
-          <Range label="Line height" value={settings.lineHeight} min={1.2} max={2.4} step={0.05} onChange={value => updateSetting('lineHeight', value)} />
-          <Range label="Margins" value={settings.marginWidth} min={8} max={48} step={2} onChange={value => updateSetting('marginWidth', value)} />
-          <Range label="Letter spacing" value={settings.letterSpacing} min={0} max={3} step={0.25} onChange={value => updateSetting('letterSpacing', value)} />
+  const handleResetSettings = async () => {
+    const ok = await confirm({
+      title: t('Reset settings'),
+      message: t('Reset settings to default?'),
+      confirmText: t('Reset'),
+      destructive: true,
+    });
+    if (!ok) return;
+    resetSettings?.();
+    ToastQueue.positive(t('Settings reset to default'));
+  };
+
+  const formattedBackupTime = backupStatus.at
+    ? new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(backupStatus.at)
+    : '';
+
+  return (
+    <div className={styles.screen}>
+      <PageHeader title={t('Settings')} />
+      <div className={`${styles.scrollArea} screen-scroll`}>
+        <div className={styles.container}>
+          {/* 1. Giao diện (Application Appearance & Language) */}
+          <section className={styles.card}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>{t('Application')}</h2>
+            </div>
+            <div className={styles.fieldsGrid}>
+              <Choice
+                label="App appearance"
+                value={settings.appTheme}
+                onChange={value => updateSetting('appTheme', value)}
+                options={[
+                  { id: 'light', label: 'Light' },
+                  { id: 'dark', label: 'Dark' },
+                  { id: 'system', label: 'System' },
+                ]}
+              />
+              <Choice
+                label="Language"
+                value={settings.language}
+                onChange={value => updateSetting('language', value)}
+                options={[
+                  { id: 'vi', label: 'Tiếng Việt' },
+                  { id: 'en', label: 'English' },
+                ]}
+              />
+            </div>
+          </section>
+
+          {/* 2. Thống kê (Library Statistics) */}
+          <section className={styles.card}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>{t('Statistics')}</h2>
+            </div>
+            <div className={styles.statsGrid}>
+              {[
+                [t('Books'), stats.totalBooks || 0],
+                [t('Lists'), stats.totalLists || 0],
+                [t('Reading'), stats.readingBooks || 0],
+                [t('Storage'), stats.totalStorageLabel || '0 MB'],
+              ].map(([label, value]) => (
+                <div className={styles.statItem} key={label}>
+                  <span className={styles.statValue}>{value}</span>
+                  <span className={styles.statLabel}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 3. Cài đặt đọc (Reader Settings) */}
+          <section className={styles.card}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>{t('Reader settings')}</h2>
+            </div>
+            <div
+              className={styles.previewBox}
+              aria-label={t('Reading preference preview')}
+              style={{
+                background: activeTheme.bg,
+                color: activeTheme.text,
+                fontFamily: getFontStack(settings.font),
+                fontSize: settings.fontSize,
+                lineHeight: settings.lineHeight,
+              }}
+            >
+              {t('previewText')}
+            </div>
+            <div className={styles.fieldsGrid}>
+              <Choice label="Reader theme" value={settings.theme} onChange={value => updateSetting('theme', value)} options={APP_THEMES} />
+              <Choice label="Typeface" value={settings.font} onChange={value => updateSetting('font', value)} options={READER_FONTS} />
+              <Choice label="Reading mode" value={settings.readingMode} onChange={value => updateSetting('readingMode', value)} options={[{ id: 'scroll', label: 'Scroll' }, { id: 'classic', label: 'Pages' }]} />
+              <Choice label="Status line" value={settings.readingStatusLine} onChange={value => updateSetting('readingStatusLine', value)} options={[{ id: 'off', label: 'Off' }, { id: 'minimal', label: 'Minimal' }, { id: 'detailed', label: 'Detailed' }]} />
+              <Range label="Font size" value={settings.fontSize} min={14} max={28} onChange={value => updateSetting('fontSize', value)} />
+              <Range label="Line height" value={settings.lineHeight} min={1.2} max={2.4} step={0.05} onChange={value => updateSetting('lineHeight', value)} />
+              <Range label="Margins" value={settings.marginWidth} min={8} max={48} step={2} onChange={value => updateSetting('marginWidth', value)} />
+              <Range label="Letter spacing" value={settings.letterSpacing} min={0} max={3} step={0.25} onChange={value => updateSetting('letterSpacing', value)} />
+            </div>
+          </section>
+
+          {/* 4. Sao lưu (Backup & Restore & Storage Health) */}
+          <section className={styles.card}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>{t('Backup')}</h2>
+            </div>
+            <p className={styles.sectionDesc}>{t('backupNote')}</p>
+
+            {/* S2 Button 2-column Grid, aligned flush with section padding (deviation <= 1px) */}
+            <div className={styles.backupGrid}>
+              <Button
+                variant="secondary"
+                size="M"
+                onPress={handleExportLibrary}
+                styles={{ width: '100%' }}
+              >
+                {t('Export data only')}
+              </Button>
+
+              <Button
+                variant="accent"
+                size="M"
+                onPress={handleExportFullBackup}
+                isDisabled={backupStatus.key === 'Building full backup...'}
+                styles={{ width: '100%' }}
+              >
+                {t('Export full library')}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="M"
+                onPress={() => importRef.current?.click()}
+                styles={{ width: '100%' }}
+              >
+                {t('Import library')}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="M"
+                onPress={handleCreateBackup}
+                styles={{ width: '100%' }}
+              >
+                {t('Create auto backup')}
+              </Button>
+            </div>
+
+            {/* Non-repeating backup status row */}
+            <p className={styles.backupStatusRow} role="status">
+              {backupStatus.at
+                ? t('Last backup', { date: formattedBackupTime })
+                : backupStatus.size
+                  ? t('Full backup size', { size: backupStatus.size })
+                  : t(backupStatus.key)}
+            </p>
+
+            <input
+              aria-label={t('Import library')}
+              ref={importRef}
+              type="file"
+              accept="application/json,application/zip,.json,.zip"
+              hidden
+              onChange={handleImportLibrary}
+            />
+
+            {/* Offline storage & Queue summary within Backup section */}
+            <div className={styles.subCard}>
+              <div className={styles.subHeader}>
+                <span className={styles.subTitle}>{t('Offline storage')}</span>
+                <span className={styles.subMeta}>
+                  {formatBytes(storageState.usage)} / {formatBytes(storageState.quota)}
+                </span>
+              </div>
+              <p className={styles.subDesc}>
+                {t(storageState.persisted ? 'Protected' : storageState.supported ? 'Best effort' : 'Not available')}
+              </p>
+              <div>
+                <Button
+                  variant="secondary"
+                  size="S"
+                  onPress={handlePersistStorage}
+                >
+                  {t('Protect offline library')}
+                </Button>
+              </div>
+              {storageState.quota > 0 && storageState.usage / storageState.quota >= 0.8 && (
+                <p role="alert" style={{ color: 'var(--danger)', fontSize: 13, margin: '6px 0 0' }}>
+                  {t('quotaWarning')}
+                </p>
+              )}
+            </div>
+
+            {library?.pendingMetadataTotal > 0 && (
+              <div className={styles.subCard}>
+                <div className={styles.subHeader}>
+                  <span className={styles.subTitle}>{t('Metadata Queue')}</span>
+                  <span className={styles.subMeta}>
+                    {library.pendingMetadataTotal} {t('Pending books').toLowerCase()}
+                  </span>
+                </div>
+                <p className={styles.subDesc}>{t('queueNote')}</p>
+                <div>
+                  <Button
+                    variant="secondary"
+                    size="S"
+                    onPress={() => library.setIsMetadataQueuePaused(previous => !previous)}
+                  >
+                    {t(library.isMetadataQueuePaused ? 'Resume queue' : 'Pause queue')}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* 5. Nguy hiểm (Danger Zone) */}
+          <section className={`${styles.card} ${styles.dangerCard}`}>
+            <div className={styles.sectionHeader}>
+              <h2 className={`${styles.sectionTitle} ${styles.dangerTitle}`}>
+                {t('Danger zone')}
+              </h2>
+            </div>
+            <div className={styles.dangerActions}>
+              {/* Reset settings: Secondary with red border */}
+              <Button
+                variant="secondary"
+                size="L"
+                styles={{ width: '100%' }}
+                UNSAFE_className={`${styles.resetBtn} btn-destructive-outline`}
+                onPress={handleResetSettings}
+              >
+                {t('Reset settings')}
+              </Button>
+
+              {/* Delete all data: Destructive solid + 2-step AlertDialog */}
+              <Button
+                variant="negative"
+                size="L"
+                styles={{ width: '100%' }}
+                UNSAFE_className="btn-destructive"
+                onPress={() => setDeleteStep(1)}
+              >
+                {t('Delete all app data')}
+              </Button>
+            </div>
+          </section>
         </div>
-      </section>
-      <section className="settings-section"><h2>{t('Offline storage')}</h2>
-        <p>{t('Browser quota')}: {formatBytes(storageState.usage)} / {formatBytes(storageState.quota)} · {t(storageState.persisted ? 'Protected' : storageState.supported ? 'Best effort' : 'Not available')}</p>
-        <div><Action onPress={handlePersistStorage}>{t('Protect offline library')}</Action></div>
-        {storageState.quota > 0 && storageState.usage / storageState.quota >= 0.8 && <p role="alert">{t('quotaWarning')}</p>}
-      </section>
-      <section className="settings-section"><h2>{t('Metadata Queue')}</h2>
-        <p>{t('Pending books')}: {library?.pendingMetadataTotal || 0} · {t('Failed books')}: {library?.failedMetadataTotal || 0} · {t('Queue status')}: {library?.metadataProcessingCount || 0} / {t(library?.isMetadataQueuePaused ? 'Paused' : 'Idle')}</p>
-        <p>{t('queueNote')}</p>
-        {library?.pendingMetadataTotal > 0 && <div><Action onPress={() => library.setIsMetadataQueuePaused(previous => !previous)}>{t(library.isMetadataQueuePaused ? 'Resume queue' : 'Pause queue')}</Action></div>}
-      </section>
-      <section className="settings-section"><h2>{t('Backup')}</h2><p>{t('backupNote')}</p>
-        <div className="action-row">
-          <Action onPress={handleExportLibrary}>{t('Export data only')}</Action>
-          <Action primary onPress={handleExportFullBackup} isPending={backupStatus.key === 'Building full backup...'}>{t('Export full library')}</Action>
-          <Action onPress={() => importRef.current?.click()}>{t('Import library')}</Action>
-          <Action onPress={handleCreateBackup}>{t('Create auto backup')}</Action>
-        </div>
-        <p role="status">{t('Auto backup')}: {t(backupStatus.key, { size: backupStatus.size, date: backupStatus.at ? new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { dateStyle: 'short', timeStyle: 'short' }).format(backupStatus.at) : '' })}</p>
-        <input aria-label={t('Import library')} ref={importRef} type="file" accept="application/json,application/zip,.json,.zip" hidden onChange={handleImportLibrary} />
-        <small>{new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(new Date())}</small>
-      </section>
-      <section className="settings-section"><h2>{t('Danger zone')}</h2><div><Action negative onPress={handleClearData}>{t('Delete all app data')}</Action></div></section>
-    </main></div>
-  </div>;
+      </div>
+
+      {/* 2-Step Native Spectrum AlertDialogs */}
+      <DialogTrigger
+        isOpen={deleteStep === 1}
+        onOpenChange={(open) => !open && setDeleteStep(null)}
+      >
+        <span />
+        <AlertDialog
+          variant="destructive"
+          title={t('Delete all app data')}
+          cancelLabel={t('Cancel')}
+          primaryActionLabel={t('Continue')}
+          onPrimaryAction={() => setDeleteStep(2)}
+          onCancel={() => setDeleteStep(null)}
+        >
+          {t('deleteDataConfirm')}
+        </AlertDialog>
+      </DialogTrigger>
+
+      <DialogTrigger
+        isOpen={deleteStep === 2}
+        onOpenChange={(open) => !open && setDeleteStep(null)}
+      >
+        <span />
+        <AlertDialog
+          variant="destructive"
+          title={t('Final Confirmation')}
+          cancelLabel={t('Cancel')}
+          primaryActionLabel={t('Delete all app data')}
+          onPrimaryAction={executeClearData}
+          onCancel={() => setDeleteStep(null)}
+        >
+          {t('All books and reading progress will be permanently erased. Are you absolutely certain?')}
+        </AlertDialog>
+      </DialogTrigger>
+    </div>
+  );
 }

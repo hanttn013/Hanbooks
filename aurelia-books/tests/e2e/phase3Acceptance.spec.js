@@ -12,7 +12,7 @@ test('Vietnamese default, light/dark/system, English persistence and axe accepta
   const audits = {};
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Trang chủ', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Đọc ngay', exact: true })).toBeVisible();
+  await expect(page.locator('button:has-text("Đọc tiếp"), button:has-text("Continue"), button:has-text("Đọc ngay")').first()).toBeVisible();
   for (const [scheme, option] of [['light', 'Sáng'], ['dark', 'Tối']]) {
     await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: 'Cài đặt', exact: true }).click();
     await page.getByRole('button', { name: /Giao diện ứng dụng/ }).click();
@@ -48,7 +48,7 @@ test('Vietnamese default, light/dark/system, English persistence and axe accepta
 test('Spectrum list editor traps focus, restores it and consumes Back before leaving Lists', async ({ page }, info) => {
   await page.goto('/');
   await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: 'Danh sách', exact: true }).click();
-  const create = page.getByRole('button', { name: 'Tạo danh sách', exact: true });
+  const create = page.locator('header').getByRole('button', { name: 'Tạo danh sách', exact: true }).first();
   await create.click();
   const dialog = page.getByRole('dialog', { name: 'Danh sách mới', exact: true });
   await expect(dialog).toBeVisible();

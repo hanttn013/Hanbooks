@@ -1,0 +1,84 @@
+/* src/components/Reader/TOCModal.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.searchWrapper {
+  margin-bottom: 8px;
+}
+
+.listWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: none;
+  background: transparent;
+}
+
+.tocRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle, rgba(32, 30, 27, 0.08));
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left !important;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tocRow:last-child {
+  border-bottom: none;
+}
+
+.tocRow:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tocRow[data-active="true"] {
+  background: var(--accent-subtle, rgba(192, 86, 33, 0.10));
+  color: var(--accent);
+}
+
+.activeIndicator {
+  width: 3px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.tocRow > span,
+.label {
+  display: inline-flex !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-serif, Lora, serif);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.tocRow[data-active="true"] .label {
+  font-weight: 700;
+}
+
+.emptyState {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

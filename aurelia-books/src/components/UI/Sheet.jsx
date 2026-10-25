@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef } from 'react';
-import { Dialog, DialogContainer, Heading, Content, Footer } from '@react-spectrum/s2/Dialog';
+import { Dialog, DialogContainer, Heading, Content, Footer } from '@react-spectrum/s2';
 import { useI18n } from '../../i18n/context';
 import { Action } from './Controls';
 import { registerOverlay } from './overlayNavigation';
 
-export default function Sheet({ title, children, onClose, footer, busy = false, historyManaged = false }) {
+export default function Sheet({ title, children, onClose, footer, busy = false, historyManaged = false, hideFooter = false }) {
   const { t } = useI18n();
   const owner = useRef({ onClose, busy });
   useLayoutEffect(() => { owner.current = { onClose, busy }; }, [onClose, busy]);
@@ -33,7 +33,14 @@ export default function Sheet({ title, children, onClose, footer, busy = false, 
     <Dialog size="L" aria-label={t(title)} isDismissible={!busy} isKeyboardDismissDisabled={busy}>
       <Heading slot="title">{t(title)}</Heading>
       <Content><div className="sheet-content">{children}</div></Content>
-      <Footer><div className="action-row">{footer}<Action onPress={close} disabled={busy}>{t('Close')}</Action></div></Footer>
+      {!hideFooter && (
+        <Footer>
+          <div className="action-row">
+            {footer}
+            <Action onPress={close} disabled={busy}>{t('Close')}</Action>
+          </div>
+        </Footer>
+      )}
     </Dialog>
   </DialogContainer>;
 }

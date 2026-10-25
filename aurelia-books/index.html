@@ -9,10 +9,63 @@
     <link rel="icon" href="/branding/shanbooks-logo.png" type="image/svg+xml" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#F5F0E8" />
+    <meta name="theme-color" content="#FAF7F2" />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <link rel="preload" href="/fonts/be-vietnam-pro-normal-400-1.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/lora-normal-600-15.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      html, body {
+        background-color: #FAF7F2;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      @media (prefers-color-scheme: dark) {
+        html, body {
+          background-color: #141312;
+        }
+      }
+      [data-app-theme="dark"] body {
+        background-color: #141312 !important;
+      }
+      .app-boot-skeleton {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding-top: env(safe-area-inset-top, 24px);
+        box-sizing: border-box;
+      }
+      .boot-header {
+        height: 60px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .boot-title {
+        width: 140px;
+        height: 24px;
+        background: rgba(32, 30, 27, 0.08);
+        border-radius: 6px;
+      }
+      @media (prefers-color-scheme: dark) {
+        .boot-title {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-boot-skeleton" aria-hidden="true">
+        <div class="boot-header">
+          <div class="boot-title"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

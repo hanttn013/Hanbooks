@@ -1,0 +1,72 @@
+/* src/components/Common/Button.module.css */
+.appButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box;
+}
+
+.appButton :global(svg) {
+  vertical-align: middle !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+.appButton :global(span) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  text-box: trim-both cap alphabetic !important;
+  -webkit-text-box: trim-both cap alphabetic !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-block: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-block: 0 !important;
+  transform: translateY(var(--btn-text-y, 1.5px)) !important;
+}
+
+/* Enforce Editorial Amber Terracotta accent on primary/accent buttons - eliminates generic blue slop */
+.variantAccent,
+.variantPrimary,
+.appButton.variantAccent,
+.appButton.variantPrimary,
+.appButton[data-variant="accent"],
+.appButton[data-variant="primary"],
+:global(button[data-variant="accent"]),
+:global(button[data-variant="primary"]),
+:global(.spectrum-Button--accent),
+:global(.spectrum-Button--primary) {
+  background-color: var(--accent, #C05621) !important;
+  color: var(--accent-contrast, #FFFFFF) !important;
+  border-color: transparent !important;
+}
+
+.variantAccent:hover,
+.variantPrimary:hover,
+.appButton.variantAccent:hover,
+.appButton.variantPrimary:hover,
+.appButton[data-variant="accent"]:hover,
+.appButton[data-variant="primary"]:hover,
+:global(button[data-variant="accent"]:hover),
+:global(button[data-variant="primary"]:hover),
+:global(.spectrum-Button--accent:hover),
+:global(.spectrum-Button--primary:hover) {
+  background-color: var(--accent-hover, #A84515) !important;
+  color: var(--accent-contrast, #FFFFFF) !important;
+}
+
+.variantAccent:active,
+.variantPrimary:active,
+.appButton.variantAccent:active,
+.appButton.variantPrimary:active,
+.appButton[data-variant="accent"]:active,
+.appButton[data-variant="primary"]:active,
+:global(button[data-variant="accent"]:active),
+:global(button[data-variant="primary"]:active) {
+  background-color: var(--accent-active, #8F370D) !important;
+  color: var(--accent-contrast, #FFFFFF) !important;
+}

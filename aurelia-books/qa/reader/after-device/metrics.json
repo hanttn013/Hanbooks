@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-10-25T12:48:47.277Z",
+  "state2": {
+    "leftBtnSize": {
+      "w": 44,
+      "h": 44
+    },
+    "rightBtnSize": {
+      "w": 44,
+      "h": 44
+    },
+    "titleCenterOffsetPx": 0.36363983154296875,
+    "toolCount": 4,
+    "toolWidths": [
+      87.18182373046875,
+      87.18182373046875,
+      87.18182373046875,
+      87.18182373046875
+    ],
+    "toolWidthMaxDiff": 0,
+    "sliderTouchHeight": 6
+  },
+  "state3": {
+    "menuVisible": true,
+    "menuWidth": 315.6136474609375,
+    "menuRight": 380.72728729248047,
+    "btnRight": 380.727294921875,
+    "distanceFromScreenRight": 11.272712707519531,
+    "itemCount": 2
+  },
+  "state4": {
+    "sheetVisible": false,
+    "heightPx": 0,
+    "viewportHeight": 894,
+    "heightRatioDvh": 0,
+    "isUnder55Dvh": true,
+    "backdropStyle": "none",
+    "hasTopCloseBtn": false
+  }
+}

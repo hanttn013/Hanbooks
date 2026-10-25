@@ -1,7 +1,6 @@
-/* ===== GLOBAL DESIGN TOKENS ===== */
-#phone-frame,
+/* ===== LEGACY DESIGN TOKENS (Scoped) ===== */
 #phone-frame[data-theme="warm-cream"],
-#phone-frame:not([data-theme]) {
+#phone-frame[data-legacy-theme="true"] {
   --bg-primary: #F7F1E7;
   --bg-secondary: #EFE4D6;
   --bg-card: #FFFDF8;

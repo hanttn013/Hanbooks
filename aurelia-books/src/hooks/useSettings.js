@@ -1,5 +1,7 @@
 // src/hooks/useSettings.js
 import { useState, useEffect } from 'react';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 import { getFontStack, normalizeFont, normalizeTheme } from '../styles/designTokens';
 import { migrateLegacyLocalStorage, STORAGE_KEYS } from '../utils/storageKeys';
 
@@ -75,6 +77,18 @@ export function useSettings() {
     if (frame) {
       frame.setAttribute('data-app-theme', colorScheme);
     }
+
+    const themeColor = colorScheme === 'dark' ? '#141312' : '#FAF7F2';
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', themeColor);
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      const isDark = colorScheme === 'dark';
+      StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: themeColor }).catch(() => {});
+    }
   }, [settings, colorScheme]);
 
   const updateSetting = (key, value) => {
@@ -84,5 +98,9 @@ export function useSettings() {
     }));
   };
 
-  return { settings, updateSetting, colorScheme };
+  const resetSettings = () => {
+    setSettings({ ...DEFAULT_SETTINGS });
+  };
+
+  return { settings, updateSetting, resetSettings, colorScheme };
 }

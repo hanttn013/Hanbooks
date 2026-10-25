@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 
 test('Markdown search, bookmarks, settings and persisted resume are functional', async ({ page }, testInfo) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.locator('[data-tab="library"]:visible').click();
   const text = `# Interaction document\n\n${Array.from({ length: 100 }, (_, index) => `Paragraph ${index}: reading content for scrolling and resume.`).join('\n\n')}\n\n# Target chapter\n\nUniqueSearchNeedle at the end of the document.\n\nTrailing paragraph.`;
   await page.locator('input[type="file"]').first().setInputFiles({ name: 'interactions.md', mimeType: 'text/markdown', buffer: Buffer.from(text) });
   await expect(page.getByText(/Processed 1 documents/)).toBeVisible();

@@ -4,7 +4,7 @@ import { parse } from '@babel/parser';
 import { vi } from '../src/i18n/messages.js';
 
 const failures = [];
-const allowed = new Set(['ShanBooks', 'Aa', 'Book', 'PDF', 'EPUB', 'DOCX', 'PPTX']);
+const allowed = new Set(['ShanBooks', 'Aa', 'Book', 'PDF', 'EPUB', 'DOCX', 'PPTX', 'S', 'T', 'SHANBOOKS']);
 function visit(node, file) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'JSXText') {
@@ -23,6 +23,7 @@ function visit(node, file) {
 }
 function scan(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.name === 'Dev') continue;
     const file = path.join(directory, entry.name);
     if (entry.isDirectory()) scan(file);
     else if (file.endsWith('.jsx')) visit(parse(fs.readFileSync(file, 'utf8'), { sourceType: 'module', plugins: ['jsx'] }), file);

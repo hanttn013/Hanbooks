@@ -1,0 +1,255 @@
+/* src/components/Reader/ReaderSettingsPanel.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 16px 24px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #5C5855);
+  margin: 0;
+}
+
+/* 1. Theme Swatches */
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.themeSwatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  position: relative;
+  transition: transform 100ms ease, box-shadow 100ms ease;
+  box-sizing: border-box;
+}
+
+:root[data-app-theme="dark"] .themeSwatch,
+#phone-frame[data-app-theme="dark"] .themeSwatch {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.themeSwatch:hover {
+  transform: translateY(-1px);
+}
+
+.themeSwatchActive {
+  box-shadow: 0 0 0 2.5px var(--accent, #C05621);
+  border-color: transparent !important;
+}
+
+.themeAa {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.themeLabel {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+.checkBadge {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* 2. Reading Mode: Segmented Control */
+.segmentedControl {
+  display: flex;
+  background: rgba(128, 128, 128, 0.12);
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.segmentBtn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #5C5855);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.segmentBtnActive {
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #141312);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-app-theme="dark"] .segmentBtnActive,
+#phone-frame[data-app-theme="dark"] .segmentBtnActive {
+  background: var(--bg-surface-raised, #2D2A28);
+}
+
+/* 3. Typeface 2-column grid */
+.fontGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.fontBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.1));
+  background: var(--bg-surface-raised, #FAF7F2);
+  color: var(--text-primary, #141312);
+  cursor: pointer;
+  transition: border-color 100ms ease, box-shadow 100ms ease;
+  box-sizing: border-box;
+}
+
+:root[data-app-theme="dark"] .fontBtn,
+#phone-frame[data-app-theme="dark"] .fontBtn {
+  background: var(--bg-surface-raised, #242220);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fontBtnActive {
+  border-color: var(--accent, #C05621) !important;
+  box-shadow: 0 0 0 1.5px var(--accent, #C05621);
+}
+
+.fontName {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.fontSample {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+.formatNotice {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+/* 4-6. Sliders */
+.sliderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.sliderLabel {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sliderValue {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sliderWrapper > div {
+  flex: 1;
+}
+
+.sliderIconSmall {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.sliderIconLarge {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* 7. Footer Toggle */
+.sectionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+
+.toggleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 80%;
+}
+
+.toggleLabel {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.toggleDesc {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}

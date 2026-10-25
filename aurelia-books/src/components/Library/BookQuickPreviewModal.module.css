@@ -1,0 +1,167 @@
+/* src/components/Library/BookQuickPreviewModal.module.css */
+.quickPreviewContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  padding: var(--space-2, 8px) 0 var(--space-4, 16px);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4, 16px);
+}
+
+.coverContainer {
+  width: 80px;
+  height: 120px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  box-shadow: var(--shadow-cover);
+}
+
+.headerMeta {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: var(--font-size-headline, 18px);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: balance;
+}
+
+.author {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-label, 13px);
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badgesRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-top: 4px;
+}
+
+.formatBadge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs, 4px);
+  background: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  letter-spacing: 0.5px;
+}
+
+.progressBadge {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Synopsis Section */
+.synopsisSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-surface-raised);
+  border-radius: var(--radius-md, 10px);
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+}
+
+.synopsisLabel {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.synopsisText {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-label, 13px);
+  line-height: 1.55;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.clampedText {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toggleExpandBtn {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.emptySynopsis {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.emptyText {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
+/* Action Buttons Grid */
+.actionsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2, 8px);
+  width: 100%;
+  margin-top: 4px;
+}
+
+.actionsRow > * {
+  width: 100% !important;
+}
+
+@media (max-width: 360px) {
+  .actionsRow {
+    grid-template-columns: 1fr;
+  }
+}

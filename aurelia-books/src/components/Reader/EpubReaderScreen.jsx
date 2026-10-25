@@ -13,12 +13,15 @@ import { StorageManager } from '../../utils/StorageManager';
 import { getFontStack, getThemeById } from '../../styles/designTokens';
 import styles from './ReaderScreen.module.css';
 import { Action } from '../UI/Controls';
-import { ActionMenu, MenuItem } from '@react-spectrum/s2/ActionMenu';
+import ReaderChrome from './ReaderChrome';
+import ReaderViewport from './ReaderViewport';
 import { useI18n } from '../../i18n/context';
 import { translate } from '../../i18n/messages';
+import { syncReaderStatusBar } from '../../utils/statusBar';
 
-const PULL_THRESHOLD_RATIO = 0.4;
-const PULL_MAX_RATIO = 0.52;
+// Vertical reading threshold: "kéo lên 1/3 là qua trang đừng để kéo sâu quá"
+const PULL_THRESHOLD_RATIO = 0.33;
+const PULL_MAX_RATIO = 0.45;
 
 function getThemePalette(theme) {
   const tokens = getThemeById(theme);
@@ -57,8 +60,9 @@ function readerThemeRules(settings) {
       'max-width': '100% !important',
     },
     p: {
-      'margin': '0 0 1em !important',
-      'text-align': 'left !important',
+      'margin': '0 0 0.75em !important',
+      'text-indent': '0 !important',
+      'text-align': 'justify !important',
     },
     'section, article': {
       'margin-left': '0 !important',
@@ -67,11 +71,27 @@ function readerThemeRules(settings) {
       'padding-right': '0 !important',
     },
     img: {
-      'display': 'block',
+      'display': 'block !important',
       'max-width': '100% !important',
+      'max-height': '90vh !important',
       'height': 'auto !important',
       'object-fit': 'contain !important',
-      'margin': '1em auto !important',
+      'margin': 'auto !important',
+    },
+    svg: {
+      'max-width': '100% !important',
+      'max-height': '90vh !important',
+      'margin': 'auto !important',
+      'display': 'block !important',
+    },
+    'body:has(> img:only-child), body:has(> p:only-child > img:only-child), body:has(> div:only-child > img:only-child)': {
+      'display': 'flex !important',
+      'flex-direction': 'column !important',
+      'justify-content': 'center !important',
+      'align-items': 'center !important',
+      'min-height': '100vh !important',
+      'padding': '0 !important',
+      'box-sizing': 'border-box !important',
     },
     table: {
       'max-width': '100% !important',
@@ -93,30 +113,52 @@ function appendChapterEndMarker(contents, epubBookInstance, settings) {
   const hasNext = !hasKnownIndex || sectionIndex < spineItems.length - 1;
   const { bgColor, textColor } = getThemePalette(settings.theme);
 
+  let nextChapterTitle = '';
+  if (hasNext && hasKnownIndex) {
+    try {
+      const nextSpineItem = spineItems[sectionIndex + 1];
+      if (nextSpineItem?.href) {
+        const nav = epubBookInstance?.navigation?.toc || [];
+        const found = nav.find(t => t.href && nextSpineItem.href.includes(t.href.split('#')[0]));
+        if (found?.label) nextChapterTitle = found.label.trim();
+      }
+    } catch {}
+  }
+
   const wrapper = doc.createElement('div');
   wrapper.id = 'hanbooks-chapter-end';
   wrapper.style.cssText = [
-    'display:block',
-    'margin:10px 0 0',
-    'padding:16px 16px 48px',
-    'min-height:140px',
-    `background:${bgColor}`,
+    'display:flex',
+    'flex-direction:column',
+    'align-items:center',
+    'justify-content:center',
+    'margin:40px auto 24px',
+    'padding:20px 16px 40px',
+    'min-height:100px',
+    'box-sizing:border-box',
+    'width:100%',
+    'max-width:480px',
     `color:${textColor}`,
     'text-align:center',
     'break-inside:avoid',
-    'opacity:1',
   ].join(';');
+
+  const chevron = doc.createElement('div');
+  chevron.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.45;margin-bottom:6px;"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
   const hint = doc.createElement('p');
-  hint.textContent = translate(settings.language || 'vi', hasNext ? 'Pull for next chapter' : 'Book completed');
+  hint.textContent = nextChapterTitle
+    ? `${translate(settings.language || 'vi', 'Next')}: ${nextChapterTitle}`
+    : translate(settings.language || 'vi', hasNext ? 'Pull for next chapter' : 'Book completed');
   hint.style.cssText = [
-    'margin:0 auto',
-    'opacity:1',
+    'margin:0',
+    'opacity:0.7',
     'font:500 13px system-ui,-apple-system,sans-serif',
-    'letter-spacing:0',
-    'max-width:240px',
+    'letter-spacing:0.2px',
+    'max-width:320px',
   ].join(';');
 
+  wrapper.appendChild(chevron);
   wrapper.appendChild(hint);
   body.appendChild(wrapper);
 }
@@ -181,12 +223,13 @@ function getTouchY(event) {
 
 function pullThresholdPx() {
   const viewport = window.innerHeight || document.documentElement.clientHeight || 720;
-  return Math.max(132, Math.round(viewport * PULL_THRESHOLD_RATIO));
+  // User directive: "đọc dọc đó kéo lên 1/3 là qua trang đừng để kéo sâu quá"
+  return Math.min(75, Math.max(48, Math.round(viewport * PULL_THRESHOLD_RATIO)));
 }
 
 function pullMaxPx() {
   const viewport = window.innerHeight || document.documentElement.clientHeight || 720;
-  return Math.max(176, Math.round(viewport * PULL_MAX_RATIO));
+  return Math.min(110, Math.max(72, Math.round(viewport * PULL_MAX_RATIO)));
 }
 
 export default function ReaderScreen({ book, settings, updateSetting, onClose, onBookUpdate }) {
@@ -203,6 +246,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const [toc, setToc] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [bookmarkFeedback, setBookmarkFeedback] = useState(null); // 'added' | 'removed'
   const [totalPages, setTotalPages] = useState(null);
   const [epubBook, setEpubBook] = useState(null);
@@ -241,6 +285,12 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     startReading,
     stopReading,
   } = useReader(book.id);
+
+  // Synchronize status bar colors to match the active reader theme
+  useEffect(() => {
+    const cleanup = syncReaderStatusBar(settings.theme, settings.appTheme);
+    return cleanup;
+  }, [settings.theme, settings.appTheme]);
 
   // Determine EPUB source. epub.js is more reliable with ArrayBuffer for IndexedDB blobs.
   const getEpubSource = async () => {
@@ -338,13 +388,13 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const isAtScrollChapterEnd = useCallback(() => {
     const scrollState = getScrollState(currentContentsRef.current, viewerRef.current);
     if (!scrollState) return false;
-    return scrollState.maxScroll <= 0 || scrollState.scrolling.scrollTop >= scrollState.maxScroll - 6;
+    return scrollState.maxScroll <= 0 || scrollState.scrolling.scrollTop >= scrollState.maxScroll - 16;
   }, []);
 
   const isAtScrollChapterStart = useCallback(() => {
     const scrollState = getScrollState(currentContentsRef.current, viewerRef.current);
     if (!scrollState) return false;
-    return scrollState.scrolling.scrollTop <= 6;
+    return scrollState.scrolling.scrollTop <= 16;
   }, []);
 
   const applyPullTransform = useCallback((distance, released = false, direction = 'next') => {
@@ -412,7 +462,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     if (startY === null || currentY === null) return false;
     const dy = currentY - startY;
     const direction = dy > 0 ? 'previous' : 'next';
-    if (Math.abs(dy) < 16 && !pullActiveRef.current) return false;
+    if (Math.abs(dy) < 8 && !pullActiveRef.current) return false;
     if (!pullActiveRef.current) {
       const canPullNext = direction === 'next' && isAtScrollChapterEnd();
       const canPullPrevious = direction === 'previous' && isAtScrollChapterStart();
@@ -420,7 +470,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     }
 
     const threshold = pullThresholdPx();
-    const distance = Math.min(pullMaxPx(), Math.max(0, Math.abs(dy) - 16));
+    const distance = Math.min(pullMaxPx(), Math.max(0, Math.abs(dy) - 8));
     pullActiveRef.current = true;
     pullDistanceRef.current = distance;
     pullDirectionRef.current = direction;
@@ -666,20 +716,40 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         rendition.on('click', (event) => {
           const width = window.innerWidth || viewerRef.current?.clientWidth || 1;
           const x = event?.clientX ?? width / 2;
-          if (x >= width * 0.25 && x <= width * 0.75) {
+          const leftZone = width * 0.25;
+          const rightZone = width * 0.75;
+
+          if (x < leftZone) {
+            if (settings.readingMode === 'classic') {
+              renditionRef.current?.prev?.();
+            } else {
+              setShowControls(false);
+            }
+          } else if (x > rightZone) {
+            if (settings.readingMode === 'classic') {
+              renditionRef.current?.next?.();
+            } else {
+              setShowControls(false);
+            }
+          } else {
             setShowControls(prev => !prev);
           }
           setShowMore(false);
         });
 
         const savedProgress = await StorageManager.getProgress(book.id);
-        const cfi = savedProgress?.cfi || undefined;
+        const shouldStartFromBeginning = book.progress === 0 || book.progressPercent === 0;
+        const cfi = shouldStartFromBeginning ? undefined : (savedProgress?.cfi || undefined);
 
-        try {
-          await withTimeout(rendition.display(cfi), 12000, 'Timed out restoring saved reading position.');
-        } catch (displayErr) {
-          console.warn("Failed to restore saved reading position, opening from the start:", displayErr);
-          await withTimeout(rendition.display(), 12000, 'Timed out opening the EPUB.');
+        if (cfi) {
+          try {
+            await withTimeout(rendition.display(cfi), 6000, 'Timed out restoring saved reading position.');
+          } catch (displayErr) {
+            console.warn("Failed to restore saved reading position, opening from the start:", displayErr);
+            await withTimeout(rendition.display(), 6000, 'Timed out opening the EPUB.');
+          }
+        } else {
+          await withTimeout(rendition.display(), 6000, 'Timed out opening the EPUB.');
         }
 
         if (!isMounted) return;
@@ -745,7 +815,7 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       if (revokeUrl) URL.revokeObjectURL(revokeUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book.id, updateScrollChapterProgress]);
+  }, [book.id, updateScrollChapterProgress, retryCount]);
 
   // Re-apply typography when settings change (without re-mounting epub)
   useEffect(() => {
@@ -951,15 +1021,15 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   };
 
   const handleReaderTap = useCallback((event) => {
-    const width = window.innerWidth || event.currentTarget.clientWidth || 1;
-    const x = event.clientX;
+    const width = window.innerWidth || event.currentTarget?.clientWidth || 1;
+    const x = event.clientX ?? (width / 2);
     const left = width * 0.25;
     const right = width * 0.75;
-    if (x >= left && x <= right) {
+    if (settings.readingMode === 'scroll' || (x >= left && x <= right)) {
       setShowControls(prev => !prev);
     }
     setShowMore(false);
-  }, []);
+  }, [settings.readingMode]);
 
   const { bgColor, textColor } = getThemePalette(settings.theme);
 
@@ -1011,28 +1081,50 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       {/* Error */}
       {error && (
         <div className={styles.error}>
-          <p style={{ fontSize: 40, marginBottom: 16 }}>Book</p>
+          <p style={{ fontSize: 40, marginBottom: 16 }}>📖</p>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t('Could not open book')}</p>
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>{error}</p>
-          <button
-            style={{ padding: '12px 28px', background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
-            onClick={closeReader}
-          >
-            {t('Return to library')}
-          </button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <Action
+              primary
+              onPress={() => {
+                setError(null);
+                setIsLoading(true);
+                setRetryCount(c => c + 1);
+              }}
+            >
+              {t('Retry')}
+            </Action>
+            <Action onPress={closeReader}>
+              {t('Return to library')}
+            </Action>
+          </div>
         </div>
       )}
 
-      {/* EPUB Viewer Container with Animation class wrapper */}
-      <div
-        ref={viewerRef}
-        data-reader-surface
-        className={`${styles.viewer} ${settings.readingMode === 'scroll' ? styles.scrollViewer : ''}`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleReaderTap}
-      />
+      {/* Viewport with Safe-area Barriers and Mini-footer */}
+      <ReaderViewport
+        themeBg={bgColor}
+        themeText={textColor}
+        isChromeVisible={showControls}
+        showMiniFooter={!isLoading && !error}
+        chapterTitle={currentChapter}
+        progressPercent={visibleProgress}
+        readingMode={settings.readingMode}
+        onPrev={goPrev}
+        onNext={goNext}
+        onToggleChrome={(val) => setShowControls(prev => (typeof val === 'boolean' ? val : !prev))}
+      >
+        <div
+          ref={viewerRef}
+          data-reader-surface
+          className={`${styles.viewer} ${settings.readingMode === 'scroll' ? styles.scrollViewer : ''}`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={handleReaderTap}
+        />
+      </ReaderViewport>
 
       {settings.readingMode === 'scroll' && pullVisual.opacity > 0 && (
         <div
@@ -1051,54 +1143,34 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
         </div>
       )}
 
-      {/* Page navigation zones */}
-      {settings.readingMode !== 'scroll' && (
-        <>
-          <div className={styles.prevZone} onClick={(e) => { e.stopPropagation(); goPrev(); }} />
-          <div className={styles.nextZone} onClick={(e) => { e.stopPropagation(); goNext(); }} />
-        </>
-      )}
-
-      {/* Bookmark feedback toast */}
-      {bookmarkFeedback && (
-        <div className={styles.bookmarkToast}>
-          {t(bookmarkFeedback === 'added' ? 'Bookmark added' : 'Bookmark removed')}
-        </div>
-      )}
-
-      {!showControls && !isLoading && !error && <button className="reveal-controls" aria-label={t('Show reader controls')} onClick={() => setShowControls(true)}>☰</button>}
-      {showControls && <>
-        <header className={`${styles.topBar} reader-chrome`}>
-          <Action label={t('Close reader')} onPress={closeReader}>{t('Close')}</Action>
-          <div className={styles.topTitle}><p>{chapterLabel}</p></div>
-          <ActionMenu aria-label={t('More')} size="L" isOpen={showMore} onOpenChange={setShowMore} onAction={key => {
-            if (key === 'back') { renditionRef.current?.display(previousLocation); setPreviousLocation(null); }
-            if (key === 'search') setShowSearch(true);
-            if (key === 'bookmarks') setShowBookmarks(true);
-          }}>
-            {previousLocation && <MenuItem id="back">{t('Back to previous location')}</MenuItem>}
-            <MenuItem id="search">{t('Search document')}</MenuItem>
-            <MenuItem id="bookmarks">{t('Bookmarks')} ({bookmarks.length})</MenuItem>
-          </ActionMenu>
-        </header>
-        <footer className={`${styles.bottomBar} reader-chrome`}>
-          <div className="action-row" style={{ justifyContent: 'space-between' }}>
-            <Action label={t('Table of contents')} onPress={() => setShowTOC(true)}>{t('Contents')}</Action>
-            <Action label={t(isCurrentBookmarked ? 'Remove bookmark' : 'Add bookmark')} onPress={handleBookmark}>{t('Bookmark')}</Action>
-            <Action label={t('Reading settings')} onPress={() => setShowSettings(true)}>Aa</Action>
-          </div>
-          <div className={styles.progressRow}>
-            <input className={styles.progressSlider} type="range" min="0" max="100" step="1" value={visibleProgress}
-              disabled={settings.readingMode !== 'scroll' && !totalPages} onPointerDown={handleSeekStart} onTouchStart={handleSeekStart}
-              onClick={event => event.stopPropagation()} onInput={handleSeekChange} onChange={handleSeekChange} onPointerUp={handleSeekCommit}
-              onMouseUp={handleSeekCommit} onTouchEnd={handleSeekCommit} onPointerCancel={() => { isSeekingRef.current = false; }}
-              onBlur={() => { isSeekingRef.current = false; }} onKeyUp={handleSeekCommit}
-              aria-label={t(chapterProgressAvailable ? 'Chapter progress' : 'Book progress')} />
-            <span>{Math.round(visibleProgress)}%</span>
-          </div>
-          {statusLine && <div className={styles.statusLine}>{statusLine}</div>}
-        </footer>
-      </>}
+      {/* Unified Reader Chrome */}
+      <ReaderChrome
+        bookTitle={book.title}
+        chapterTitle={currentChapter}
+        percentage={visibleProgress}
+        format="epub"
+        locationsReady={settings.readingMode === 'scroll' ? true : Boolean(totalPages && totalPages > 0)}
+        isBookmarked={isCurrentBookmarked}
+        bookmarksCount={bookmarks.length}
+        isVisible={showControls}
+        onClose={closeReader}
+        onToggleBookmark={handleBookmark}
+        onOpenBookmarks={() => setShowBookmarks(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenTOC={() => setShowTOC(true)}
+        onOpenSearch={() => setShowSearch(true)}
+        onSeekChange={(val) => handleSeekChange({ target: { value: val } })}
+        onSeekCommit={(val) => handleSeekCommit({ currentTarget: { value: val }, stopPropagation: () => {} })}
+        previousLocation={previousLocation}
+        onJumpToPrevious={() => {
+          if (previousLocation) {
+            renditionRef.current?.display(previousLocation);
+            setPreviousLocation(null);
+          }
+        }}
+        themeBg={bgColor}
+        themeText={textColor}
+      />
 
       {/* Modals */}
       <>

@@ -4,11 +4,20 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+:focus:not(:focus-visible) {
+  outline: none !important;
 }
 
 /* ===== ROOT VARIABLES ===== */
 :root {
-  --app-safe-top: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --app-safe-top: max(64px, calc(env(safe-area-inset-top, 0px) + 20px));
   --app-safe-bottom: 0px;
   --font-ui: 'Montserrat Vietnamese', Montserrat, -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
   --color-gold: #8B6914;
@@ -32,12 +41,14 @@
 
 /* ===== BODY ===== */
 body {
-  font-family: var(--font-ui);
-  background: #111;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-family: var(--font-sans, -apple-system, sans-serif);
+  background: var(--bg-base, #FAF7F2);
+  color: var(--text-primary, #201E1B);
+  display: block;
   min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   overscroll-behavior-x: none;
   touch-action: pan-y;
@@ -45,35 +56,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ===== PHONE FRAME ===== */
+/* ===== APP ROOT FRAME ===== */
 #phone-frame {
-  width: 393px;
-  height: 852px;
-  border-radius: 54px;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
   overflow: hidden;
   position: relative;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.15),
-    0 0 0 10px #1a1a1a,
-    0 0 0 11px rgba(255,255,255,0.08),
-    0 50px 100px rgba(0,0,0,0.8);
-  background: var(--bg-primary, #EDE8DC);
+  box-shadow: none;
+  background: var(--bg-base, #FAF7F2);
   transition: background var(--transition-med);
 }
 
-/* Dynamic island notch simulation */
 #phone-frame::before {
-  content: '';
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 126px;
-  height: 36px;
-  background: #0f0f0f;
-  border-radius: 20px;
-  z-index: 1000;
-  pointer-events: none;
+  display: none;
 }
 
 /* ===== SCREEN CONTAINER ===== */
@@ -88,7 +85,7 @@ body {
 /* ===== SCROLLABLE AREA ===== */
 .screen-scroll {
   flex: 1;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -96,8 +93,15 @@ body {
   overscroll-behavior-x: none;
   touch-action: pan-y;
   scroll-behavior: auto;
+  padding-bottom: calc(var(--app-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + var(--space-6, 24px)) !important;
+  box-sizing: border-box;
 }
 .screen-scroll::-webkit-scrollbar { display: none; }
+
+.screen-scroll > .page-layout,
+.screen-scroll > main {
+  padding-bottom: calc(var(--app-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + var(--space-6, 24px)) !important;
+}
 
 /* ===== SAFE AREAS ===== */
 .safe-top {
@@ -218,12 +222,27 @@ body {
   transition: width var(--transition-med);
 }
 
-/* ===== MODAL OVERLAY ===== */
+/* ===== MODAL OVERLAY & DIALOG ELEVATION ===== */
+[role="dialog"],
+.modal-overlay,
+.modal-sheet,
+[class*="Underlay"],
+[class*="spectrum-Dialog"] {
+  z-index: 1000 !important;
+}
+
+/* Temporarily hide navigation bar when a sheet or dialog is open */
+body:has([role="dialog"]) [class*="mobileTabBar"],
+body:has(.modal-overlay) [class*="mobileTabBar"],
+#phone-frame:has([role="dialog"]) [class*="mobileTabBar"] {
+  display: none !important;
+}
+
 .modal-overlay {
   position: absolute;
   inset: 0;
   background: var(--overlay);
-  z-index: 200;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -408,4 +427,120 @@ body.native-app .context-menu {
 .mt-4 { margin-top: 4px; }
 .mt-8 { margin-top: 8px; }
 .mt-16 { margin-top: 16px; }
+
+/* ===== UNIFIED BUTTON SYSTEM (Step 3 Tokens) ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border-radius: var(--btn-radius, 10px);
+  cursor: pointer;
+  transition: all var(--motion-fast) ease;
+  box-sizing: border-box;
+  text-decoration: none;
+  border: 1px solid transparent;
+  gap: var(--space-2, 8px);
+  padding: 0 var(--space-4, 16px);
+  user-select: none;
+  -webkit-user-select: none;
 }
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-md {
+  min-height: var(--btn-height-md, 48px);
+  height: var(--btn-height-md, 48px);
+  font-size: var(--font-size-body, 15px);
+}
+
+.btn-sm {
+  min-height: var(--btn-height-sm, 40px);
+  height: var(--btn-height-sm, 40px);
+  font-size: var(--font-size-label, 13px);
+  padding: 0 var(--space-3, 12px);
+}
+
+.btn-pill {
+  border-radius: var(--btn-radius-pill, 9999px);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg, var(--accent));
+  color: var(--btn-primary-text, #FFFFFF);
+  border-color: var(--btn-primary-border, transparent);
+}
+
+.btn-primary:hover {
+  background: var(--btn-primary-hover, var(--accent-hover));
+}
+
+.btn-primary:active {
+  background: var(--btn-primary-active, var(--accent-active));
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg, var(--bg-surface-raised));
+  color: var(--btn-secondary-text, var(--text-primary));
+  border-color: var(--btn-secondary-border, var(--border-medium));
+}
+
+.btn-secondary:hover {
+  background: var(--btn-secondary-hover, var(--bg-surface-active));
+}
+
+.btn-secondary:active {
+  background: var(--btn-secondary-active, var(--border-strong));
+}
+
+.btn-tertiary {
+  background: var(--btn-tertiary-bg, transparent);
+  color: var(--btn-tertiary-text, var(--accent));
+  border-color: var(--btn-tertiary-border, transparent);
+  padding: 0 var(--space-2, 8px);
+}
+
+.btn-tertiary:hover {
+  background: var(--btn-tertiary-hover, var(--accent-subtle));
+}
+
+.btn-tertiary:active {
+  background: var(--btn-tertiary-active, rgba(192, 86, 33, 0.18));
+}
+
+.btn-destructive {
+  background: var(--btn-destructive-bg, #DC2626);
+  color: var(--btn-destructive-text, #FFFFFF);
+  border-color: var(--btn-destructive-border, transparent);
+}
+
+.btn-destructive:hover {
+  background: var(--btn-destructive-hover, #B91C1C);
+}
+
+.btn-destructive:active {
+  background: var(--btn-destructive-active, #991B1B);
+}
+
+.btn-destructive-outline {
+  background: var(--btn-destructive-outline-bg, transparent);
+  color: var(--btn-destructive-outline-text, #DC2626);
+  border-color: var(--btn-destructive-outline-border, #DC2626);
+}
+
+.btn-destructive-outline:hover {
+  background: var(--btn-destructive-outline-hover, rgba(220, 38, 38, 0.08));
+}
+
+.btn-destructive-outline:active {
+  background: var(--btn-destructive-outline-active, rgba(220, 38, 38, 0.16));
+}
+}
+

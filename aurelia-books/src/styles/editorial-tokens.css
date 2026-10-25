@@ -1,0 +1,216 @@
+/* src/styles/editorial-tokens.css */
+:root {
+  /* Typography Families */
+  --font-serif: 'Lora', 'Georgia', serif;
+  --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Type Scale */
+  --font-size-display: 28px;
+  --line-height-display: 36px;
+  --font-size-headline: 20px;
+  --line-height-headline: 28px;
+  --font-size-title: 16px;
+  --line-height-title: 22px;
+  --font-size-body: 15px;
+  --line-height-body: 22px;
+  --font-size-label: 13px;
+  --line-height-label: 18px;
+  --font-size-caption: 12px;
+  --line-height-caption: 16px;
+
+  /* Spacing Scale (4/8px grid) */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --page-margin: var(--space-4, 16px);
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Motion */
+  --motion-fast: 140ms;
+  --motion-normal: 200ms;
+  --motion-slow: 280ms;
+  --motion-timing: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Touch Target */
+  --touch-min-size: 44px;
+
+  /* Safe Area Insets (System Status & Navigation Bars) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Button System Tokens */
+  --btn-height-md: 48px;
+  --btn-height-sm: 40px;
+  --btn-radius: var(--radius-md, 10px);
+  --btn-radius-pill: var(--radius-full, 9999px);
+
+  --btn-primary-bg: var(--accent);
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-border: transparent;
+  --btn-primary-hover: var(--accent-hover);
+  --btn-primary-active: var(--accent-active);
+
+  --btn-secondary-bg: var(--bg-surface-raised);
+  --btn-secondary-text: var(--text-primary);
+  --btn-secondary-border: var(--border-medium);
+  --btn-secondary-hover: var(--bg-surface-active);
+  --btn-secondary-active: var(--border-strong);
+
+  --btn-tertiary-bg: transparent;
+  --btn-tertiary-text: var(--accent);
+  --btn-tertiary-border: transparent;
+  --btn-tertiary-hover: var(--accent-subtle);
+  --btn-tertiary-active: rgba(192, 86, 33, 0.18);
+
+  --btn-destructive-bg: #DC2626;
+  --btn-destructive-text: #FFFFFF;
+  --btn-destructive-border: transparent;
+  --btn-destructive-hover: #B91C1C;
+  --btn-destructive-active: #991B1B;
+
+  --btn-destructive-outline-bg: transparent;
+  --btn-destructive-outline-text: #DC2626;
+  --btn-destructive-outline-border: #DC2626;
+  --btn-destructive-outline-hover: rgba(220, 38, 38, 0.08);
+  --btn-destructive-outline-active: rgba(220, 38, 38, 0.16);
+
+  /* Default Light Palette (Warm Paper & Editorial Terracotta) */
+  --bg-base: #FAF7F2;
+  --bg-surface: #FFFFFF;
+  --bg-surface-raised: #F3EFE9;
+  --bg-surface-active: #EAE3D9;
+  
+  --text-primary: #201E1B;
+  --text-secondary: #6E6962;
+  --text-muted: #736E67;
+  
+  --accent: #C05621;
+  --accent-hover: #A84515;
+  --accent-active: #8F370D;
+  --accent-contrast: #FFFFFF;
+  --accent-subtle: rgba(192, 86, 33, 0.09);
+  --accent-border: rgba(192, 86, 33, 0.25);
+  
+  --border-subtle: rgba(32, 30, 27, 0.07);
+  --border-medium: rgba(32, 30, 27, 0.14);
+  --border-strong: rgba(32, 30, 27, 0.24);
+  --border-focus: #C05621;
+
+  --shadow-sm: 0 1px 3px rgba(32, 30, 27, 0.05), 0 1px 2px rgba(32, 30, 27, 0.03);
+  --shadow-cover: 0 6px 16px -2px rgba(32, 30, 27, 0.12), 0 2px 5px rgba(32, 30, 27, 0.07);
+  --shadow-cover-hover: 0 12px 24px -4px rgba(32, 30, 27, 0.18), 0 4px 8px rgba(32, 30, 27, 0.10);
+  --shadow-card: 0 4px 12px -2px rgba(32, 30, 27, 0.06), 0 1px 3px rgba(32, 30, 27, 0.04);
+  --shadow-raised: 0 12px 28px -6px rgba(32, 30, 27, 0.12), 0 4px 10px rgba(32, 30, 27, 0.06);
+  --shadow-sheet: 0 -8px 30px rgba(32, 30, 27, 0.14);
+  --cover-border: rgba(0, 0, 0, 0.06);
+
+  /* Bridge to existing legacy CSS variables */
+  --bg-primary: var(--bg-base);
+  --bg-secondary: var(--bg-surface-raised);
+  --bg-card: var(--bg-surface);
+}
+
+/* Dark Mode Palette (Deep Ink & Luminous Terracotta) */
+:root[data-app-theme="dark"],
+:root[data-theme="dark"],
+#phone-frame[data-app-theme="dark"],
+#phone-frame[data-theme="dark"],
+[data-app-theme="dark"],
+[data-theme="dark"],
+body.dark {
+  --bg-base: #141312;
+  --bg-surface: #1E1D1B;
+  --bg-surface-raised: #282624;
+  --bg-surface-active: #343230;
+
+  --text-primary: #F5F2EB;
+  --text-secondary: #A8A39A;
+  --text-muted: #9E988E;
+  
+  --accent: #E07A44;
+  --accent-hover: #F08F5B;
+  --accent-active: #F5A578;
+  --accent-contrast: #141312;
+  --accent-subtle: rgba(224, 122, 68, 0.15);
+  --accent-border: rgba(224, 122, 68, 0.32);
+
+  --border-subtle: rgba(245, 242, 235, 0.08);
+  --border-medium: rgba(245, 242, 235, 0.14);
+  --border-strong: rgba(245, 242, 235, 0.22);
+  --border-focus: #E07A44;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-cover: 0 6px 18px -2px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-cover-hover: 0 12px 28px -4px rgba(0, 0, 0, 0.60), 0 4px 10px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 4px 12px -2px rgba(0, 0, 0, 0.25);
+  --shadow-raised: 0 12px 28px -6px rgba(0, 0, 0, 0.45);
+  --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.55);
+  --cover-border: rgba(255, 255, 255, 0.12);
+
+  --bg-primary: var(--bg-base);
+  --bg-secondary: var(--bg-surface-raised);
+  --bg-card: var(--bg-surface);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-app-theme="light"]) {
+    --bg-base: #141312;
+    --bg-surface: #1E1D1B;
+    --bg-surface-raised: #282624;
+    --bg-surface-active: #343230;
+
+    --text-primary: #F5F2EB;
+    --text-secondary: #A8A39A;
+    --text-muted: #6E6A62;
+
+    --accent: #E07A44;
+    --accent-hover: #F08F5B;
+    --accent-active: #F5A578;
+    --accent-contrast: #141312;
+    --accent-subtle: rgba(224, 122, 68, 0.15);
+    --accent-border: rgba(224, 122, 68, 0.32);
+
+    --border-subtle: rgba(245, 242, 235, 0.08);
+    --border-medium: rgba(245, 242, 235, 0.14);
+    --border-strong: rgba(245, 242, 235, 0.22);
+    --border-focus: #E07A44;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-cover: 0 6px 18px -2px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
+    --shadow-cover-hover: 0 12px 28px -4px rgba(0, 0, 0, 0.60), 0 4px 10px rgba(0, 0, 0, 0.45);
+    --shadow-card: 0 4px 12px -2px rgba(0, 0, 0, 0.25);
+    --shadow-raised: 0 12px 28px -6px rgba(0, 0, 0, 0.45);
+    --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.55);
+    --cover-border: rgba(255, 255, 255, 0.12);
+
+    --bg-primary: var(--bg-base);
+    --bg-secondary: var(--bg-surface-raised);
+    --bg-card: var(--bg-surface);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

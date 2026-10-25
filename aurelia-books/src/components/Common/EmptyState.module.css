@@ -1,0 +1,67 @@
+/* src/components/Common/EmptyState.module.css */
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justifyContent: center;
+  text-align: center;
+  padding: var(--space-8, 32px) var(--space-4, 16px);
+  max-width: 420px;
+  margin: var(--space-6, 24px) auto;
+  box-sizing: border-box;
+}
+
+.iconCircle {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-raised, #F3EFE9);
+  color: var(--accent, #C05621);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4, 16px);
+  border: 1px solid var(--border-subtle);
+}
+
+.emptyTitle {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: var(--font-size-headline, 20px);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2, 8px) 0;
+}
+
+.emptyDescription {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body, 14px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--space-6, 24px) 0;
+}
+
+.actionButton {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-label, 14px);
+  font-weight: 600;
+  padding: var(--space-3, 12px) var(--space-6, 24px);
+  border-radius: var(--radius-md, 10px);
+  background: var(--accent, #C05621);
+  color: var(--accent-contrast, #FFFFFF);
+  border: none;
+  cursor: pointer;
+  min-height: var(--touch-min-size, 44px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  transition: background-color var(--motion-fast) ease, transform var(--motion-fast) ease;
+}
+
+.actionButton:hover {
+  background: var(--accent-hover, #A84515);
+  transform: translateY(-1px);
+}
+
+.actionButton:active {
+  transform: scale(0.97);
+}

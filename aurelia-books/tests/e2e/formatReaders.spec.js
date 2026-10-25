@@ -18,7 +18,7 @@ test('imports and opens every Phase 2 reader format', async ({ page }, testInfo)
   await fs.mkdir(evidenceDir, { recursive: true });
 
   await page.goto('/');
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.locator('[data-tab="library"]:visible').click();
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 
   const fixturePaths = DOCUMENTS.map(([, name]) => path.resolve('tests', 'fixtures', name));

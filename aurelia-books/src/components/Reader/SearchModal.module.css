@@ -1,0 +1,200 @@
+/* src/components/Reader/SearchModal.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 16px 24px;
+}
+
+.searchForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.inputWrapper {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface-raised, #FAF7F2);
+  border: 1px solid var(--border-medium, rgba(0, 0, 0, 0.16));
+  border-radius: 10px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  transition: border-color 100ms ease, box-shadow 100ms ease;
+}
+
+:root[data-app-theme="dark"] .inputWrapper,
+#phone-frame[data-app-theme="dark"] .inputWrapper {
+  background: var(--bg-surface-raised, #242220);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--accent, #C05621);
+  box-shadow: 0 0 0 1px var(--accent, #C05621);
+}
+
+.searchIcon {
+  color: var(--text-secondary, #75716B);
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  outline: none;
+  padding: 0;
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary, #75716B);
+  opacity: 0.8;
+}
+
+/* Scope SegmentedControl */
+.segmentedControl {
+  display: flex;
+  background: rgba(128, 128, 128, 0.1);
+  padding: 3px;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.segmentBtn {
+  flex: 1;
+  padding: 7px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #5C5855);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+  white-space: nowrap;
+}
+
+.segmentBtnActive {
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #141312);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-app-theme="dark"] .segmentBtnActive,
+#phone-frame[data-app-theme="dark"] .segmentBtnActive {
+  background: var(--bg-surface-raised, #2D2A28);
+}
+
+/* Status & Count */
+.searchingStatus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent, #C05621);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.resultSummary {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+/* Result cards */
+.resultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.resultCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  background: var(--bg-surface, #FFFFFF);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 100ms ease, transform 100ms ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:root[data-app-theme="dark"] .resultCard,
+#phone-frame[data-app-theme="dark"] .resultCard {
+  background: var(--bg-surface-raised, #242220);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.resultCard:hover {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.03));
+}
+
+.resultCard:focus-visible {
+  outline: 2px solid var(--accent, #C05621);
+  outline-offset: 1px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chapterBadge {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #C05621);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.cardSnippet {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.highlight {
+  background-color: rgba(192, 86, 33, 0.22);
+  color: var(--accent, #C05621);
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 1px 3px;
+}

@@ -8,7 +8,7 @@ import { extractDocumentMetadata } from '../utils/documentMetadata';
 import { analyzeImportFile } from '../utils/importWorkerClient';
 import { getLibraryStats } from '../utils/libraryStats';
 import { includesSearchText } from '../utils/searchText';
-import { migrateLegacyLocalStorage, readProgressPercent, STORAGE_KEYS } from '../utils/storageKeys';
+import { migrateLegacyLocalStorage, progressStorageKey, readProgressPercent, STORAGE_KEYS } from '../utils/storageKeys';
 
 const METADATA_MAX_ATTEMPTS = 3;
 const METADATA_CONCURRENCY = 2;
@@ -17,8 +17,8 @@ const METADATA_RETRY_DELAYS = [1000, 5000, 15000];
 const DEFAULT_LISTS = [
   {
     id: 'reading-now',
-    name: 'Reading Now',
-    description: 'Stories in progress.',
+    name: 'Đang đọc',
+    description: 'Các tác phẩm đang theo dõi.',
     coverStyle: 'gold',
     sortBy: 'lastOpenedAt',
     bookIds: ['demo-1'],
@@ -27,8 +27,8 @@ const DEFAULT_LISTS = [
   },
   {
     id: 'want-to-read',
-    name: 'Want to Read',
-    description: 'Saved for a quieter evening.',
+    name: 'Muốn đọc',
+    description: 'Dành cho những buổi tối tĩnh lặng.',
     coverStyle: 'cream',
     sortBy: 'addedAt',
     bookIds: ['demo-2'],
@@ -37,8 +37,8 @@ const DEFAULT_LISTS = [
   },
   {
     id: 'romance',
-    name: 'Romance',
-    description: 'Longing, restraint, and slow unfolding.',
+    name: 'Văn học & Tình cảm',
+    description: 'Những câu chuyện lắng đọng, sâu sắc.',
     coverStyle: 'burgundy',
     sortBy: 'title',
     bookIds: ['demo-1', 'demo-3'],
@@ -201,13 +201,13 @@ export function useLibrary() {
       setBooks(normalized);
       booksRef.current = normalized;
 
-      let storedLists = await StorageManager.getAllLists();
-      if (storedLists.length === 0 && localStorage.getItem(STORAGE_KEYS.seededDefaultLists) !== '1') {
+      let storedLists = (await StorageManager.getAllLists?.()) || [];
+      if (storedLists.length === 0 && typeof StorageManager.saveList === 'function') {
         for (const item of DEFAULT_LISTS) {
           await StorageManager.saveList(item);
         }
         localStorage.setItem(STORAGE_KEYS.seededDefaultLists, '1');
-        storedLists = await StorageManager.getAllLists();
+        storedLists = (await StorageManager.getAllLists?.()) || [];
       }
       setLists(storedLists);
 
@@ -272,9 +272,14 @@ export function useLibrary() {
         return Boolean(duplicateKeys.titleAuthorKey && storedTitleAuthor === duplicateKeys.titleAuthorKey)
           || Boolean(duplicateKeys.fileKey && storedFile === duplicateKeys.fileKey);
       });
-      const duplicateStrategy = options.duplicateStrategy || 'ask';
-      if (duplicate && duplicateStrategy === 'ask') {
-        return { ...duplicate, skippedDuplicate: true, duplicateOf: duplicate.id, analysis };
+      let duplicateStrategy = options.duplicateStrategy || (typeof options.onDuplicate === 'function' ? 'ask' : 'skip');
+      if (duplicate) {
+        if (typeof options.onDuplicate === 'function') {
+          duplicateStrategy = await options.onDuplicate(duplicate);
+        }
+        if (!duplicateStrategy || duplicateStrategy === 'skip' || duplicateStrategy === 'cancel' || duplicateStrategy === 'close') {
+          return { ...duplicate, skippedDuplicate: true, duplicateOf: duplicate.id, analysis };
+        }
       }
 
       const isPendingMetadata = options.fastMetadata || bookMetadata.metadataStatus === 'pending';
@@ -446,7 +451,26 @@ export function useLibrary() {
     return () => clearTimeout(timer);
   }, [books, isLoading, isMetadataQueuePaused, metadataQueueTick, repairMetadata]);
 
-  const createList = useCallback(async ({ name, description = '', coverStyle = 'gold', bookIds = [] }) => {
+  const createList = useCallback(async (input, legacyDesc = '', legacyStyle = 'gold', legacyIds = []) => {
+    let name = '';
+    let description = '';
+    let coverStyle = 'gold';
+    let coverImageUrl = '';
+    let bookIds = [];
+
+    if (typeof input === 'string') {
+      name = input;
+      description = legacyDesc;
+      coverStyle = legacyStyle;
+      bookIds = legacyIds;
+    } else if (input && typeof input === 'object') {
+      name = input.name || '';
+      description = input.description || '';
+      coverStyle = input.coverStyle || 'gold';
+      coverImageUrl = input.coverImageUrl || '';
+      bookIds = input.bookIds || [];
+    }
+
     const cleanName = name.trim();
     const incomingIds = Array.from(new Set(bookIds));
     const existing = lists.find(item => normalizeListName(item.name) === normalizeListName(cleanName));
@@ -455,6 +479,7 @@ export function useLibrary() {
         ...existing,
         description: existing.description || description.trim(),
         coverStyle: existing.coverStyle || coverStyle,
+        coverImageUrl: coverImageUrl || existing.coverImageUrl || '',
         bookIds: Array.from(new Set([...(existing.bookIds || []), ...incomingIds])),
         updatedAt: Date.now(),
       };
@@ -468,6 +493,7 @@ export function useLibrary() {
       name: cleanName,
       description: description.trim(),
       coverStyle,
+      coverImageUrl,
       sortBy: 'addedAt',
       bookIds: incomingIds,
       createdAt: Date.now(),
@@ -573,6 +599,21 @@ export function useLibrary() {
     return includesSearchText(haystack, query);
   }), [books, filterBy, bookmarkedBookIds, debouncedSearchQuery, lists]);
 
+  const resetBookProgress = useCallback(async (bookId) => {
+    await StorageManager.deleteProgress(bookId);
+    try {
+      localStorage.removeItem(progressStorageKey(bookId));
+    } catch (e) {
+      console.warn('Could not remove progress from localStorage:', e);
+    }
+    await updateBook(bookId, {
+      progress: 0,
+      progressPercent: 0,
+      status: 'reading',
+      lastOpenedAt: Date.now(),
+    });
+  }, [updateBook]);
+
   const sortedBooks = useMemo(() => getSorted(filteredBooks), [filteredBooks, getSorted]);
   const stats = useMemo(() => getLibraryStats(books, lists, bookmarkCount), [books, lists, bookmarkCount]);
 
@@ -583,6 +624,7 @@ export function useLibrary() {
     addBook,
     deleteBook,
     updateBook,
+    resetBookProgress,
     sortBy,
     setSortBy,
     filterBy,

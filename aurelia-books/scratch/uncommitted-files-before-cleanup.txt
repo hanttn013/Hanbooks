@@ -1,0 +1,248 @@
+﻿ M .gitignore
+ M aurelia-books/android/app/capacitor.build.gradle
+ M aurelia-books/android/build.gradle
+ M aurelia-books/android/capacitor.settings.gradle
+ M aurelia-books/docs/DECISIONS.md
+ M aurelia-books/index.html
+ M aurelia-books/package-lock.json
+ M aurelia-books/package.json
+ M aurelia-books/qa/PROGRESS.md
+ M aurelia-books/qa/baseline/desktop-1440x900/accessibility.json
+ M aurelia-books/qa/baseline/desktop-1440x900/book-detail.png
+ M aurelia-books/qa/baseline/desktop-1440x900/console.json
+ M aurelia-books/qa/baseline/desktop-1440x900/home.png
+ M aurelia-books/qa/baseline/desktop-1440x900/library.png
+ M aurelia-books/qa/baseline/desktop-1440x900/lists.png
+ M aurelia-books/qa/baseline/desktop-1440x900/reader.png
+ M aurelia-books/qa/baseline/desktop-1440x900/settings.png
+ M aurelia-books/qa/baseline/mobile-360x800/accessibility.json
+ M aurelia-books/qa/baseline/mobile-360x800/book-detail.png
+ M aurelia-books/qa/baseline/mobile-360x800/console.json
+ M aurelia-books/qa/baseline/mobile-360x800/home.png
+ M aurelia-books/qa/baseline/mobile-360x800/library.png
+ M aurelia-books/qa/baseline/mobile-360x800/lists.png
+ M aurelia-books/qa/baseline/mobile-360x800/reader.png
+ M aurelia-books/qa/baseline/mobile-360x800/settings.png
+ M aurelia-books/qa/baseline/tablet-768x1024/accessibility.json
+ M aurelia-books/qa/baseline/tablet-768x1024/book-detail.png
+ M aurelia-books/qa/baseline/tablet-768x1024/console.json
+ M aurelia-books/qa/baseline/tablet-768x1024/home.png
+ M aurelia-books/qa/baseline/tablet-768x1024/library.png
+ M aurelia-books/qa/baseline/tablet-768x1024/lists.png
+ M aurelia-books/qa/baseline/tablet-768x1024/reader.png
+ M aurelia-books/qa/baseline/tablet-768x1024/settings.png
+ M aurelia-books/qa/phase1/acceptance/desktop-1440x900/mixed-invalid-files.png
+ M aurelia-books/qa/phase1/acceptance/desktop-1440x900/queue-done.png
+ M aurelia-books/qa/phase1/acceptance/desktop-1440x900/queue-failed-reason.png
+ M aurelia-books/qa/phase1/acceptance/desktop-1440x900/queue-running-pending-failed.png
+ M aurelia-books/qa/phase1/acceptance/desktop-1440x900/reader-after-30-cycles.png
+ M aurelia-books/qa/phase1/acceptance/desktop-1440x900/reader-resources.json
+ M aurelia-books/qa/phase1/acceptance/mobile-360x800/mixed-invalid-files.png
+ M aurelia-books/qa/phase1/acceptance/mobile-360x800/queue-done.png
+ M aurelia-books/qa/phase1/acceptance/mobile-360x800/queue-failed-reason.png
+ M aurelia-books/qa/phase1/acceptance/mobile-360x800/queue-running-pending-failed.png
+ M aurelia-books/qa/phase1/acceptance/mobile-360x800/reader-after-30-cycles.png
+ M aurelia-books/qa/phase1/acceptance/mobile-360x800/reader-resources.json
+ M aurelia-books/qa/phase1/acceptance/tablet-768x1024/mixed-invalid-files.png
+ M aurelia-books/qa/phase1/acceptance/tablet-768x1024/queue-done.png
+ M aurelia-books/qa/phase1/acceptance/tablet-768x1024/queue-failed-reason.png
+ M aurelia-books/qa/phase1/acceptance/tablet-768x1024/queue-running-pending-failed.png
+ M aurelia-books/qa/phase1/acceptance/tablet-768x1024/reader-after-30-cycles.png
+ M aurelia-books/qa/phase1/acceptance/tablet-768x1024/reader-resources.json
+ M aurelia-books/qa/phase1/desktop-1440x900/detail-after-back.png
+ M aurelia-books/qa/phase1/desktop-1440x900/home-after-back.png
+ M aurelia-books/qa/phase1/desktop-1440x900/library-after-back.png
+ M aurelia-books/qa/phase1/desktop-1440x900/reader.png
+ M aurelia-books/qa/phase1/mobile-360x800/detail-after-back.png
+ M aurelia-books/qa/phase1/mobile-360x800/home-after-back.png
+ M aurelia-books/qa/phase1/mobile-360x800/library-after-back.png
+ M aurelia-books/qa/phase1/mobile-360x800/reader.png
+ M aurelia-books/qa/phase1/tablet-768x1024/detail-after-back.png
+ M aurelia-books/qa/phase1/tablet-768x1024/home-after-back.png
+ M aurelia-books/qa/phase1/tablet-768x1024/library-after-back.png
+ M aurelia-books/qa/phase1/tablet-768x1024/reader.png
+ M aurelia-books/qa/phase2/desktop-1440x900/cbz.png
+ M aurelia-books/qa/phase2/desktop-1440x900/docx.png
+ M aurelia-books/qa/phase2/desktop-1440x900/html.png
+ M aurelia-books/qa/phase2/desktop-1440x900/import-summary.png
+ M aurelia-books/qa/phase2/desktop-1440x900/md.png
+ M aurelia-books/qa/phase2/desktop-1440x900/pdf.png
+ M aurelia-books/qa/phase2/desktop-1440x900/pptx.png
+ M aurelia-books/qa/phase2/desktop-1440x900/search-bookmark-resume.png
+ M aurelia-books/qa/phase2/desktop-1440x900/txt.png
+ M aurelia-books/qa/phase2/mobile-360x800/cbz.png
+ M aurelia-books/qa/phase2/mobile-360x800/docx.png
+ M aurelia-books/qa/phase2/mobile-360x800/html.png
+ M aurelia-books/qa/phase2/mobile-360x800/import-summary.png
+ M aurelia-books/qa/phase2/mobile-360x800/md.png
+ M aurelia-books/qa/phase2/mobile-360x800/pdf.png
+ M aurelia-books/qa/phase2/mobile-360x800/pptx.png
+ M aurelia-books/qa/phase2/mobile-360x800/search-bookmark-resume.png
+ M aurelia-books/qa/phase2/mobile-360x800/txt.png
+ M aurelia-books/qa/phase2/tablet-768x1024/cbz.png
+ M aurelia-books/qa/phase2/tablet-768x1024/docx.png
+ M aurelia-books/qa/phase2/tablet-768x1024/html.png
+ M aurelia-books/qa/phase2/tablet-768x1024/import-summary.png
+ M aurelia-books/qa/phase2/tablet-768x1024/md.png
+ M aurelia-books/qa/phase2/tablet-768x1024/pdf.png
+ M aurelia-books/qa/phase2/tablet-768x1024/pptx.png
+ M aurelia-books/qa/phase2/tablet-768x1024/search-bookmark-resume.png
+ M aurelia-books/qa/phase2/tablet-768x1024/txt.png
+ M aurelia-books/qa/phase3/desktop-1440x900/accessibility.json
+ M aurelia-books/qa/phase3/desktop-1440x900/dark-home.png
+ M aurelia-books/qa/phase3/desktop-1440x900/dark-library.png
+ M aurelia-books/qa/phase3/desktop-1440x900/dark-lists.png
+ M aurelia-books/qa/phase3/desktop-1440x900/dark-settings.png
+ M aurelia-books/qa/phase3/desktop-1440x900/dialog-keyboard-back.png
+ M aurelia-books/qa/phase3/desktop-1440x900/light-home.png
+ M aurelia-books/qa/phase3/desktop-1440x900/light-library.png
+ M aurelia-books/qa/phase3/desktop-1440x900/light-lists.png
+ M aurelia-books/qa/phase3/desktop-1440x900/light-settings.png
+ M aurelia-books/qa/phase3/desktop-1440x900/reader-landscape.png
+ M aurelia-books/qa/phase3/mobile-360x800/accessibility.json
+ M aurelia-books/qa/phase3/mobile-360x800/dark-home.png
+ M aurelia-books/qa/phase3/mobile-360x800/dark-library.png
+ M aurelia-books/qa/phase3/mobile-360x800/dark-lists.png
+ M aurelia-books/qa/phase3/mobile-360x800/dark-settings.png
+ M aurelia-books/qa/phase3/mobile-360x800/dialog-keyboard-back.png
+ M aurelia-books/qa/phase3/mobile-360x800/light-home.png
+ M aurelia-books/qa/phase3/mobile-360x800/light-library.png
+ M aurelia-books/qa/phase3/mobile-360x800/light-lists.png
+ M aurelia-books/qa/phase3/mobile-360x800/light-settings.png
+ M aurelia-books/qa/phase3/mobile-360x800/reader-landscape.png
+ M aurelia-books/qa/phase3/tablet-768x1024/accessibility.json
+ M aurelia-books/qa/phase3/tablet-768x1024/dark-home.png
+ M aurelia-books/qa/phase3/tablet-768x1024/dark-library.png
+ M aurelia-books/qa/phase3/tablet-768x1024/dark-lists.png
+ M aurelia-books/qa/phase3/tablet-768x1024/dark-settings.png
+ M aurelia-books/qa/phase3/tablet-768x1024/dialog-keyboard-back.png
+ M aurelia-books/qa/phase3/tablet-768x1024/light-home.png
+ M aurelia-books/qa/phase3/tablet-768x1024/light-library.png
+ M aurelia-books/qa/phase3/tablet-768x1024/light-lists.png
+ M aurelia-books/qa/phase3/tablet-768x1024/light-settings.png
+ M aurelia-books/qa/phase3/tablet-768x1024/reader-landscape.png
+ M aurelia-books/scripts/audit-ui-strings.mjs
+ M aurelia-books/src/App.jsx
+ M aurelia-books/src/components/Home/HomeScreen.jsx
+ M aurelia-books/src/components/Home/HomeScreen.module.css
+ M aurelia-books/src/components/Library/BookDetailModal.jsx
+ M aurelia-books/src/components/Library/LibraryScreen.jsx
+ M aurelia-books/src/components/Library/LibraryScreen.module.css
+ M aurelia-books/src/components/Lists/ListsScreen.jsx
+ M aurelia-books/src/components/Lists/ListsScreen.module.css
+ M aurelia-books/src/components/Reader/BookmarksModal.jsx
+ M aurelia-books/src/components/Reader/EpubReaderScreen.jsx
+ M aurelia-books/src/components/Reader/ReaderErrorBoundary.jsx
+ M aurelia-books/src/components/Reader/ReaderScreen.module.css
+ M aurelia-books/src/components/Reader/ReaderSettingsPanel.jsx
+ M aurelia-books/src/components/Reader/SearchModal.jsx
+ M aurelia-books/src/components/Reader/TOCModal.jsx
+ M aurelia-books/src/components/Reader/UniversalReaderScreen.jsx
+ M aurelia-books/src/components/Reader/UniversalReaderScreen.module.css
+ M aurelia-books/src/components/Settings/SettingsScreen.jsx
+ M aurelia-books/src/components/Settings/SettingsScreen.module.css
+ M aurelia-books/src/components/TabBar/TabBar.jsx
+ M aurelia-books/src/components/UI/Controls.jsx
+ M aurelia-books/src/components/UI/Sheet.jsx
+ M aurelia-books/src/hooks/useLibrary.js
+ M aurelia-books/src/hooks/useSettings.js
+ M aurelia-books/src/i18n/messages.js
+ M aurelia-books/src/styles/globals.css
+ M aurelia-books/src/styles/spectrum.css
+ M aurelia-books/src/styles/themes.css
+ M aurelia-books/src/utils/StorageManager.js
+ M aurelia-books/tests/e2e/baseline.spec.js
+ M aurelia-books/tests/e2e/dialogNavigation.spec.js
+ M aurelia-books/tests/e2e/documentInteractions.spec.js
+ M aurelia-books/tests/e2e/formatReaders.spec.js
+ M aurelia-books/tests/e2e/importControls.spec.js
+ M aurelia-books/tests/e2e/listWorkflow.spec.js
+ M aurelia-books/tests/e2e/phase1Acceptance.spec.js
+ M aurelia-books/tests/e2e/phase3Acceptance.spec.js
+ M aurelia-books/tests/e2e/readerChrome.spec.js
+ M aurelia-books/tests/e2e/smoke.spec.js
+ M aurelia-books/tests/fixtures/mixed-documents.zip
+ M aurelia-books/tests/fixtures/sample.cbz
+ M aurelia-books/tests/fixtures/sample.docx
+ M aurelia-books/tests/fixtures/sample.epub
+ M aurelia-books/tests/fixtures/sample.pptx
+ M aurelia-books/tests/fixtures/too-deep.zip
+ M aurelia-books/vite.config.js
+?? .agents/
+?? .phase1-verification-backup-20261023/
+?? .trail/.gitignore
+?? .trail/README.md
+?? AGENTS.md
+?? aurelia-books/docs/DESIGN-AUDIT.md
+?? aurelia-books/docs/DESIGN.md
+?? aurelia-books/docs/LAYOUT-CONTRACT.md
+?? aurelia-books/docs/SPECTRUM-AUDIT.md
+?? aurelia-books/public/fonts/
+?? aurelia-books/qa/align/
+?? aurelia-books/qa/design/
+?? aurelia-books/qa/device-screenshots/
+?? aurelia-books/qa/fix/
+?? aurelia-books/qa/reader/
+?? aurelia-books/qa/test-device.png
+?? aurelia-books/scratch/
+?? aurelia-books/scripts/audit-raw-elements.mjs
+?? aurelia-books/scripts/capture-after.mjs
+?? aurelia-books/scripts/capture-baseline.mjs
+?? aurelia-books/scripts/capture-clean-before.mjs
+?? aurelia-books/scripts/capture-device-all.bat
+?? aurelia-books/scripts/capture-device-settings.bat
+?? aurelia-books/scripts/capture-device.bat
+?? aurelia-books/scripts/capture-fresh.bat
+?? aurelia-books/scripts/capture-gate-screens.mjs
+?? aurelia-books/scripts/capture-loaded.bat
+?? aurelia-books/scripts/capture-reader-features.mjs
+?? aurelia-books/scripts/check-safe-insets.mjs
+?? aurelia-books/scripts/device/capture-after-device.mjs
+?? aurelia-books/scripts/device/capture-all-before-device.mjs
+?? aurelia-books/scripts/device/capture-reader-states.mjs
+?? aurelia-books/scripts/device/capture-search.mjs
+?? aurelia-books/scripts/device/check-button.mjs
+?? aurelia-books/scripts/device/device-helper.mjs
+?? aurelia-books/scripts/device/explore-reader.mjs
+?? aurelia-books/scripts/device/inspect-reader-dom.mjs
+?? aurelia-books/scripts/device/probe.mjs
+?? aurelia-books/scripts/device/test-open-chrome.mjs
+?? aurelia-books/scripts/device/test-screencap.mjs
+?? aurelia-books/scripts/download-fonts.mjs
+?? aurelia-books/scripts/find-phone.mjs
+?? aurelia-books/scripts/install-debug.bat
+?? aurelia-books/scripts/launch-debug.bat
+?? aurelia-books/scripts/measure-device-alignment.mjs
+?? aurelia-books/scripts/measure-device-app.mjs
+?? aurelia-books/scripts/measure-device-settings.mjs
+?? aurelia-books/scripts/reproduce-phase-a.mjs
+?? aurelia-books/scripts/reproduce-phase-b.mjs
+?? aurelia-books/src/components/Common/
+?? aurelia-books/src/components/Dev/
+?? aurelia-books/src/components/Library/BookDetailModal.module.css
+?? aurelia-books/src/components/Library/BookQuickPreviewModal.jsx
+?? aurelia-books/src/components/Library/BookQuickPreviewModal.module.css
+?? aurelia-books/src/components/Reader/BookmarksModal.module.css
+?? aurelia-books/src/components/Reader/ReaderChrome.jsx
+?? aurelia-books/src/components/Reader/ReaderChrome.module.css
+?? aurelia-books/src/components/Reader/ReaderSettingsPanel.module.css
+?? aurelia-books/src/components/Reader/ReaderSheet.jsx
+?? aurelia-books/src/components/Reader/ReaderSheet.module.css
+?? aurelia-books/src/components/Reader/ReaderViewport.jsx
+?? aurelia-books/src/components/Reader/ReaderViewport.module.css
+?? aurelia-books/src/components/Reader/SearchModal.module.css
+?? aurelia-books/src/components/Reader/TOCModal.module.css
+?? aurelia-books/src/hooks/useLongPress.js
+?? aurelia-books/src/styles/editorial-tokens.css
+?? aurelia-books/src/utils/cleanSynopsis.js
+?? aurelia-books/src/utils/cleanToc.js
+?? aurelia-books/src/utils/imageCoverProcessor.js
+?? aurelia-books/src/utils/statusBar.js
+?? aurelia-books/tests/e2e/captureReaderFeatures.spec.js
+?? aurelia-books/tests/e2e/nav-overlap-scan.spec.js
+?? aurelia-books/tests/e2e/reread.spec.js
+?? aurelia-books/tests/e2e/visual-system.spec.js
+?? aurelia-books/tests/unit/cleanSynopsis.test.js
+?? aurelia-books/tests/unit/imageCoverProcessor.test.js
+?? aurelia-books/tests/unit/reread.test.jsx
+?? next-app/

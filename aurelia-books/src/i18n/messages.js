@@ -46,9 +46,12 @@ export const vi = {
   'DOCX is converted to reflowable text; complex layouts, headers and page breaks may differ from Word.': 'DOCX được chuyển thành văn bản dàn lại; bố cục phức tạp, đầu trang và ngắt trang có thể khác Word.',
   Home: 'Trang chủ', Library: 'Thư viện', Lists: 'Danh sách', Settings: 'Cài đặt',
   'Continue Reading': 'Đọc tiếp', 'Now reading': 'Đang đọc', 'Reading Queue': 'Đang đọc gần đây',
+  'Reading Now': 'Đang đọc', 'Stories in progress.': 'Các tác phẩm đang theo dõi.',
+  'Want to Read': 'Muốn đọc', 'Saved for a quieter evening.': 'Dành cho những buổi tối tĩnh lặng.',
+  'Romance': 'Văn học & Tình cảm', 'Longing, restraint, and slow unfolding.': 'Những câu chuyện lắng đọng, sâu sắc.',
   'Recently Added': 'Mới thêm', 'Your Lists': 'Danh sách của bạn', 'See all': 'Xem tất cả',
   'See library': 'Xem thư viện', 'All lists': 'Tất cả danh sách', 'Read now': 'Đọc ngay',
-  Info: 'Thông tin', Read: 'Đọc', Continue: 'Đọc tiếp', 'Create your first list': 'Tạo danh sách đầu tiên',
+  Info: 'Thông tin', Read: 'Đọc', Continue: 'Tiếp tục', 'Create your first list': 'Tạo danh sách đầu tiên',
   'No books yet': 'Chưa có sách', 'Import a document to start reading.': 'Nhập tài liệu để bắt đầu đọc.',
   'Import documents': 'Nhập tài liệu', 'Toggle view': 'Đổi cách hiển thị',
   All: 'Tất cả', Reading: 'Đang đọc', Unread: 'Chưa đọc', Finished: 'Đã đọc', Favorites: 'Yêu thích',
@@ -126,6 +129,75 @@ export const vi = {
   'deleteBookConfirm': 'Xóa sách và tệp gốc khỏi thiết bị này?',
   'deleteDataConfirm': 'Xóa toàn bộ dữ liệu ứng dụng? Hãy xuất bản sao lưu trước.',
   'importBackupConfirm': 'Hợp nhất bản sao lưu này vào thư viện hiện tại?',
+  'Unknown author': 'Tác giả chưa rõ',
+  'View details': 'Xem chi tiết',
+  'books': 'cuốn sách',
+  'Added to list': 'Đã thêm vào danh sách',
+  'Book Detail': 'Chi tiết sách',
+  'Format': 'Định dạng',
+  'Details': 'Chi tiết',
+  'Manage': 'Quản lý',
+  'Filters': 'Bộ lọc',
+  'Find your best book': 'Tìm cuốn sách của bạn',
+  'Hi Karan!': 'Chào bạn!',
+  'Search book ....': 'Tìm kiếm sách…',
+  'Search book': 'Tìm kiếm sách',
+  'Start Reading': 'Bắt đầu đọc',
+  'Recommended for you': 'Gợi ý cho bạn',
+  'See More': 'Xem thêm',
+  'Review': 'Đánh giá',
+  'Released': 'Phát hành',
+  'Part': 'Số phần',
+  'Rating': 'Đánh giá',
+  'Notes': 'Ghi chú',
+  'Re-read': 'Đọc lại',
+  'Re-read from start': 'Đọc lại từ đầu',
+  'Reset settings': 'Đặt lại cài đặt',
+  'Reset settings to default?': 'Đặt lại toàn bộ cài đặt về mặc định?',
+  'Settings reset to default': 'Đã đặt lại cài đặt về mặc định',
+  'Retry': 'Thử lại',
+  'Reset progress': 'Đặt lại tiến độ',
+  'Reset reading progress for this book?': 'Đặt lại tiến độ đọc của sách này về 0%?',
+  'Progress reset': 'Đã đặt lại tiến độ đọc',
+  'Cover size': 'Kích thước bìa',
+  'Small': 'Nhỏ',
+  'Medium': 'Vừa',
+  'Large': 'Lớn',
+  'Show more': 'Xem thêm',
+  'Show less': 'Thu gọn',
+  'Book details': 'Chi tiết sách',
+  'Final Confirmation': 'Xác nhận lần cuối',
+  'All books and reading progress will be permanently erased. Are you absolutely certain?': 'Toàn bộ sách và tiến độ đọc sẽ bị xóa vĩnh viễn khỏi thiết bị này. Bạn có chắc chắn không?',
+  'Quick preview': 'Xem nhanh',
+  'Display options': 'Tùy chọn hiển thị',
+  'Select books': 'Chọn nhiều',
+  'Done selecting': 'Xong',
+  'View mode': 'Chế độ xem',
+  'Grid': 'Lưới',
+  'List': 'Danh sách',
+  'Cover image': 'Ảnh bìa',
+  'Choose image': 'Chọn ảnh',
+  'Use automatic cover': 'Dùng bìa tự động',
+  'Cover image selected': 'Đã chọn ảnh bìa',
+  'Using automatic cover': 'Đã chuyển về bìa tự động',
+  'Edit list': 'Sửa danh sách',
+  'Delete list': 'Xóa danh sách',
+  'Change cover': 'Đổi ảnh bìa',
+  'List options': 'Tùy chọn danh sách',
+  'Book options': 'Tùy chọn sách',
+  'Synopsis': 'Giới thiệu',
+  'Update information': 'Cập nhật thông tin',
+  'Update metadata': 'Cập nhật thông tin',
+  'Favorite': 'Yêu thích',
+  'Favorited': 'Đã thích',
+  'Add to list': 'Thêm vào danh sách',
+  'Reading progress': 'Tiến độ đọc',
+  'Skip': 'Bỏ qua',
+  'Manage your personal literary collection': 'Quản lý bộ sưu tập văn học cá nhân',
+  'Library options': 'Tùy chọn thư viện',
+  'Sort by': 'Sắp xếp theo',
+  'This list is empty': 'Danh sách này chưa có sách',
+  'Add books from your library to this list.': 'Thêm sách từ thư viện của bạn vào danh sách này.',
 };
 
 export const en = {
@@ -151,7 +223,15 @@ export const en = {
   deleteDataConfirm: 'Delete all app data? Export a backup first.', importBackupConfirm: 'Merge this backup into the current library?',
 };
 
+function pseudoTransform(text) {
+  const expanded = text.replace(/[aeiouyáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ]/gi, (c) => c + c);
+  return `[!! ${expanded} !!]`;
+}
+
 export function translate(locale, key, params = {}) {
-  const template = (locale === 'vi' ? vi[key] : en[key]) ?? en[key] ?? key;
-  return String(template).replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`));
+  const isPseudo = locale === 'pseudo' || locale === 'qps-ploc';
+  const effectiveLocale = isPseudo ? 'en' : locale;
+  const template = (effectiveLocale === 'vi' ? vi[key] : en[key]) ?? en[key] ?? key;
+  const formatted = String(template).replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`));
+  return isPseudo ? pseudoTransform(formatted) : formatted;
 }

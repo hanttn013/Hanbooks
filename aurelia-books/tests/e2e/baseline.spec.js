@@ -41,35 +41,37 @@ test('capture Phase 0 visual, console, and accessibility baseline', async ({ pag
 
   activeScreen = 'home';
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Read now', exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: /^(Home|Trang chủ)$/i })).toBeVisible();
+  const readNowBtn = page.locator('button:has-text("Continue"), button:has-text("Đọc tiếp"), button:has-text("Read now"), button:has-text("Đọc ngay")').first();
+  await expect(readNowBtn).toBeVisible({ timeout: 30_000 });
   await capture('home');
 
   activeScreen = 'library';
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+  await page.locator('[data-tab="library"]:visible').click();
+  await expect(page.getByRole('heading', { name: /^(Library|Thư viện)$/i })).toBeVisible();
   await capture('library');
 
   activeScreen = 'lists';
-  await page.getByRole('button', { name: 'Lists', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Lists' })).toBeVisible();
+  await page.locator('[data-tab="lists"]:visible').click();
+  await expect(page.getByRole('heading', { name: /^(Lists|Danh sách)$/i })).toBeVisible();
   await capture('lists');
 
   activeScreen = 'settings';
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await page.locator('[data-tab="settings"]:visible').click();
+  await expect(page.getByRole('heading', { name: /^(Settings|Cài đặt)$/i })).toBeVisible();
   await capture('settings');
 
   activeScreen = 'book-detail';
-  await page.getByRole('button', { name: 'Home', exact: true }).click();
-  await page.getByRole('button', { name: 'Info', exact: true }).first().click();
+  await page.locator('[data-tab="home"]:visible').click();
+  const infoBtn = page.locator('[data-book-action] button, [data-book-id] button').first();
+  await infoBtn.click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await capture('book-detail');
 
   activeScreen = 'reader';
-  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
-  await page.getByRole('button', { name: 'Read now', exact: true }).click();
-  await expect(page.getByText(/^Opening /)).toBeHidden({ timeout: 30_000 });
+  await page.getByRole('dialog').getByRole('button', { name: /Close|Đóng/i }).first().click();
+  await readNowBtn.click();
+  await expect(page.getByText(/^(Opening|Đang mở) /)).toBeHidden({ timeout: 30_000 });
   await expect(page.locator('iframe')).toHaveCount(1, { timeout: 30_000 });
   await capture('reader');
 

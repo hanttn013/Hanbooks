@@ -1,323 +1,229 @@
-.screen {
-  height: 100%;
+/* src/components/Home/HomeScreen.module.css */
+.homeScreen {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  overflow: hidden;
-  color: var(--text-primary);
-}
-
-.header {
-  padding: 0 20px 18px;
-  flex-shrink: 0;
-  background:
-    radial-gradient(circle at 28% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 30%),
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 64%, transparent), transparent);
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-  padding: 0 18px 104px;
-}
-
-.sectionHeading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.sectionHeading h2 {
-  font-family: var(--font-ui);
-  font-size: 28px;
-  font-weight: 650;
-  color: var(--text-primary);
-  line-height: 0.95;
-  letter-spacing: 0;
-}
-
-.sectionHeading button {
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.heroCard {
   width: 100%;
-  min-height: 286px;
-  border: 1px solid var(--border);
-  background:
-    linear-gradient(135deg, var(--surface-raised), color-mix(in srgb, var(--bg-card) 72%, transparent)),
-    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 30%),
-    var(--bg-card);
-  border-radius: var(--radius-card-lg);
-  box-shadow: var(--shadow-card);
-  padding: 18px;
-  display: flex;
-  gap: 18px;
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
+  height: 100%;
   position: relative;
+  overflow: hidden;
+  background: var(--bg-base);
+  color: var(--text-primary);
 }
 
-.heroCard::after {
-  content: '';
-  position: absolute;
-  inset: auto -40px -80px 42%;
-  height: 160px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
-  filter: blur(10px);
-  pointer-events: none;
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-left: var(--page-margin, 16px);
+  padding-right: var(--page-margin, 16px);
+  padding-top: 0;
+  padding-bottom: calc(var(--app-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + var(--space-6, 24px));
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: var(--space-5, 20px);
+}
+
+/* S2 Search Section */
+.searchSection {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Shelf Section Common */
+.shelfSection,
+.heroSection {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2, 8px);
+  min-height: 36px;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+/* 1. Continue Reading Hero Card (2:3 cover 76x114, equal 16px padding on all 4 sides) */
+.heroCard {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--page-margin, 16px);
+  box-shadow: var(--shadow-card);
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+
+.heroCard:hover {
+  box-shadow: var(--shadow-raised);
+}
+
+.heroCoverArea {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.heroCover {
+  width: 76px;
+  height: 114px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  box-shadow: var(--shadow-cover);
 }
 
 .heroInfo {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  height: 114px;
+  box-sizing: border-box;
+  padding: 2px 0;
 }
 
-.eyebrow {
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.heroTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .heroTitle {
-  margin-top: 10px;
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
   color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 28px;
-  font-weight: 750;
-  line-height: 0.98;
-  letter-spacing: 0;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: balance;
 }
 
 .heroAuthor {
-  margin-top: 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.progressMeta {
-  margin-top: auto;
-  padding-top: 24px;
-  display: flex;
-  justify-content: space-between;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.heroActions {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.heroActions button {
-  min-height: 42px;
-  border: none;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 900;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.heroActions button:first-child {
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.heroActions button:last-child {
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
-}
-
-.activityLine {
-  min-height: 48px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface-raised);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0 12px;
+  font-family: var(--font-sans);
   font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.activityLine span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.activityLine span:not(:last-child)::after {
-  content: "·";
-  margin-left: 10px;
-  color: var(--accent);
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.statCard {
-  min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-card);
-  box-shadow: none;
-  padding: 10px 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.statCard strong {
-  max-width: 100%;
-  color: var(--text-primary);
-  font-size: 16px;
-  line-height: 1.1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.statCard span {
-  margin-top: 4px;
   color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.bookRail {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 3px;
-}
-.bookRail::-webkit-scrollbar { display: none; }
-
-.railBook {
-  width: 118px;
-  flex: 0 0 auto;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  color: var(--text-primary);
-}
-
-.railBook span {
-  display: block;
-  margin-top: 10px;
-  font-family: var(--font-ui);
-  font-size: 17px;
-  font-weight: 650;
-  line-height: 1.03;
-  letter-spacing: 0;
-}
-
-.railBook small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-secondary);
-  font-size: 11px;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.listStack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.listRow {
-  width: 100%;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  border-radius: var(--radius-card);
-  padding: 14px;
-  box-shadow: var(--shadow-card);
+.heroBottomRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  text-align: left;
-  cursor: pointer;
+  margin-top: auto;
+  width: 100%;
 }
 
-.listThumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+.heroProgressGroup {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.heroProgressGroup :global([role="progressbar"]) {
+  flex: 1;
+  min-width: 0;
+}
+
+.heroProgressPct {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 2. Unified Horizontal Shelves (108px cover size with scroll-snap & aligned padding) */
+.shelfScrollWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  padding: 2px 0 8px;
+  margin: 0 calc(-1 * var(--page-margin, 16px));
+  scroll-padding-inline: var(--page-margin, 16px);
+  scrollbar-width: none;
+}
+
+.shelfScrollWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.shelfScrollRow {
+  display: flex;
+  gap: 14px;
+  padding: 0 var(--page-margin, 16px);
+  width: max-content;
+}
+
+.shelfItem {
+  scroll-snap-align: start;
+  width: 108px;
+  min-width: 108px;
+  max-width: 108px;
   flex-shrink: 0;
 }
 
-.gold { background: #A47B18; }
-.cream { background: #D7BE82; }
-.burgundy { background: #8A3D4D; }
-.forest { background: #356B4E; }
-.ink { background: #4A3B32; }
-
-.listText {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+/* 3. Books Grid for Search Results */
+.booksGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3, 12px) 8px;
+  width: 100%;
 }
 
-.listText strong {
-  color: var(--text-primary);
-  font-size: 15px;
+@media (min-width: 600px) {
+  .booksGrid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: var(--space-4, 16px);
+  }
 }
 
-.listText small {
-  color: var(--text-secondary);
-  font-size: 12px;
-  margin-top: 2px;
+/* 4. Lists Grid */
+.listsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2, 8px);
+  width: 100%;
 }
 
-.chevron {
-  color: var(--text-secondary);
-  font-size: 24px;
-}
-
-.emptyList {
-  border: 1px dashed var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 16px;
-  padding: 18px;
-  cursor: pointer;
+@media (min-width: 600px) {
+  .listsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3, 12px);
+  }
 }

@@ -120,3 +120,58 @@ does not sanitize output; DOCX conversion therefore retains DOMPurify and a
 visible fidelity notice. See [Mammoth documentation](https://github.com/mwilliamson/mammoth.js).
 PPTX remains best-effort SVG with an explicit warning and a text fallback on
 slide-render failure; images/advanced effects are not guaranteed in fallback.
+
+## 2026-10-24 — Chuyển đổi toàn diện sang Adobe Spectrum S2 (Bước 0)
+
+1. **Phiên bản & Tương thích:**
+   - Dự án đang sử dụng `@react-spectrum/s2` v1.8.2 kết hợp `unplugin-parcel-macros` v0.2.0 trên nền Vite v8 và React 19.2.6.
+   - S2 v1.8.2 được thiết kế sẵn tương thích React 19 (`peerDependencies: {"react": "^19.0.0-rc.1"}`) và chạy trên nền `react-aria-components` v1.22.1, `react-aria` v3.53.1, `react-stately` v3.51.0.
+   - Toàn bộ component tương tác được import trực tiếp từ `@react-spectrum/s2`: `Button`, `ActionButton`, `ButtonGroup`, `SearchField`, `TextField`, `Picker`, `PickerItem`, `Tabs`, `TabList`, `Tab`, `TabPanel`, `Dialog`, `AlertDialog`, `DialogContainer`, `ProgressBar`, `Switch`, `StatusLight`, `Avatar`, `IllustratedMessage`.
+
+2. **Kích thước bundle & Đánh giá rủi ro:**
+   - Kích thước vendor chunk trước khi dựng S2: `spectrum-vendor` 380.14 kB (gzip 109.04 kB).
+   - Kích thước vendor chunk sau khi dựng S2 PoC (chứa Button, ActionButton, SearchField, Picker, ProgressBar, Switch, StatusLight, Avatar): `spectrum-vendor` 398.46 kB (gzip 113.48 kB).
+   - Mức tăng: +18.32 kB uncompressed (+4.8%), thấp hơn rất nhiều so với ngưỡng cảnh báo 30%. S2 đáp ứng hoàn hảo tiêu chí không gây phình bundle bất thường.
+   - `vite build` hoàn thành trong 1.46s không có bất kỳ lỗi cú pháp hoặc macro nào. Không cần fallback sang React Aria thuần vì S2 hoạt động trơn tru.
+
+3. **Chính sách Phông chữ (Font) & Tiếng Việt:**
+   - Adobe Clean là phông chữ có bản quyền thương mại của Adobe, tuyệt đối không bundle vào ứng dụng mã nguồn mở.
+   - `@react-spectrum/s2` không ép cứng `font-family: Adobe Clean` trong CSS của mình mà kế thừa trực tiếp từ thẻ gốc (`body` / `:root`).
+   - Ứng dụng cấu hình phông chữ giao diện chính thống là **Be Vietnam Pro** (Regular, Medium, SemiBold, Bold) được lưu trữ offline dạng `.woff2` tại `public/fonts/`. Phông chữ này thuộc giấy phép SIL Open Font License (OFL), kiểm thử hiển thị chuẩn xác 100% 19 nguyên âm có dấu tiếng Việt ("Ắ Ằ Ẳ Ẵ Ặ Ế Ề Ể Ễ Ệ Ớ Ờ Ở Ỡ Ợ Ứ Ừ Ử Ữ Ự").
+   - Phần hiển thị tiêu đề nghệ thuật kế thừa **Lora** (Serif) đã được nhúng sẵn woff2 offline.
+
+4. **Quản lý Token & Accent:**
+   - Thay thế toàn bộ mã màu hardcode hoặc hex phân tán. Sử dụng cơ chế `Provider` của Spectrum với `colorScheme` (light/dark) kết hợp một màu nhấn đồng nhất duy nhất (Accent) đáp ứng tương phản WCAG AA trên cả hai nền.
+
+## 2026-10-25 — Sửa tận gốc lệch nhãn nút, mép lề EdgeAction, và lọc giới thiệu Gutenberg
+
+1. **Nguyên nhân lệch nhãn nút (Button Vertical Alignment):**
+   - `@react-spectrum/s2` áp dụng CSS mặc định `display: flex; align-items: baseline; justify-content: center;` cho các nút bấm.
+   - Icon SVG bên trong mang `vertical-align: baseline; display: block`, khiến đáy của icon 16–20px bị neo vào baseline của dòng chữ, làm đỉnh icon chạm sát mép trên của nút (topPad = 0px trong CSS = 0px vật lý, botPad = ~10px trong CSS = 27.5px vật lý trên màn TECNO 440dpi).
+   - Icon cao hơn nhãn chữ ~13px vật lý, và toàn bộ nội dung bị đẩy lệch lên trên.
+   - **Giải pháp tận gốc**:
+     - Ghi đè hệ thống nút tại `src/styles/spectrum.css`: ép `display: inline-flex !important; align-items: center !important; justify-content: center !important;` cho mọi `button`, `button[data-rac]`, `[role="button"]`.
+     - Icon SVG: `vertical-align: middle !important; display: block !important; margin: 0 !important;`.
+     - Nhãn chữ: `line-height: 1 !important; text-box: trim-both cap alphabetic !important; padding-block: 0 !important; margin-block: 0 !important;`
+      - Cân đối metric tiếng Việt: Do các dấu thanh tiếng Việt nằm cao hơn cap-height Latinh, thêm vi chỉnh `transform: translateY(1.5px) !important;` trên span giúp cân bằng khoảng trống trên/dưới đạt chênh lệch 0–1px vật lý trên màn hình thật TECNO. (được xác nhận hỗ trợ 100% trên Android 15 Chrome 156 qua `CSS.supports`).
+     - Đóng gói wrapper chuẩn `<Button>`, `<IconButton>`, `<TextAction>` tại `src/components/Common/`.
+
+2. **Hành động sát lề (<EdgeAction>):**
+   - Các nút mép (avatar Home, ⋯ Library, Xem thêm các kệ, X Xem nhanh, nút Back) có vùng chạm tối thiểu 44dp. Khi nằm trong container đệm 16px, phần đệm nội tại của nút khiến glyph bị thụt vào trong 8–24dp.
+   - `<EdgeAction>` áp dụng margin âm bằng đúng nửa phần đệm ngoài glyph bù trừ phần đệm ngoài glyph. Với icon SVG có khoảng trống nội bộ (viewBox padding), component hỗ trợ tham số `offset` hoặc tính theo `(44 - glyphWidth) / 2 + glyphInset`. Đối với nhãn chữ (như "Xem thêm"), button được thiết lập `padding-right: 0 !important` giúp mép chữ chạm sát lề mà không cần margin âm.
+   - Kết quả: Vùng chạm 44dp được bảo toàn đầy đủ, đồng thời mép mực ngoài cùng của glyph/chữ chạm chuẩn xác lề 16px (±2px đo trên ảnh máy thật).
+
+3. **Thanh sắp xếp gọn (Compact Sort Button):**
+   - Thay thế `Picker` S2 rộng cố định ~220dp bằng nút gọn `width: fit-content; max-width: 50%` chứa icon sắp xếp + nhãn hiện tại + chevron nhỏ.
+   - Loại bỏ tiêu đề phụ lặp ở Header của Library và Home để giao diện tinh gọn, đúng chuẩn tạp chí.
+
+4. **Thẻ Đọc tiếp (Continue Reading Hero Card):**
+   - ProgressBar và phần trăm ("0%") được gom cùng hàng với nút "Tiếp tục" trong một hàng duy nhất với `align-items: center`.
+   - Tâm thanh tiến độ và tâm nút trùng nhau (chênh lệch $\le 2\text{px}$). Chiều cao thẻ đồng bộ theo bìa 2:3 với 4 phía padding 16px bằng nhau.
+
+5. **Lọc giới thiệu Gutenberg & bóc tách thẻ <a>:**
+   - Xử lý DOM bằng `DOMParser`, thay thế thẻ `<a>` bằng chính `textContent` của nó thay vì xoá phần tử, ngăn chặn triệt để hiện tượng rơi chữ (ví dụ "terms of the or online at www.").
+   - Lọc bỏ triệt để đoạn bản quyền Gutenberg, metadata machine header (`Title:/Author:/Release date:/Language:/Credits:`), cắt từ marker `*** START OF`.
+   - Áp dụng ngưỡng tối thiểu 40 ký tự: nếu không còn nội dung mô tả thực sự $\ge 40$ ký tự, trả về chuỗi rỗng để giao diện hiển thị fallback "Chưa có giới thiệu" kèm nút cập nhật thông tin, không bao giờ để lọt metadata thô.
+
+

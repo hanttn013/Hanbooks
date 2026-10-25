@@ -1,0 +1,25 @@
+/* src/components/Common/IconButton.module.css */
+.iconButton {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  padding-inline: 0 !important;
+  padding-block: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.iconButton :global(svg) {
+  vertical-align: middle !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  margin: 0 auto !important;
+}
+

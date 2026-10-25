@@ -1,0 +1,24 @@
+/* src/components/Common/TextAction.module.css */
+.textAction {
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box;
+}
+
+.textAction :global(span) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  text-box: trim-both cap alphabetic !important;
+  -webkit-text-box: trim-both cap alphabetic !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-block: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-block: 0 !important;
+  transform: translateY(1.5px) !important;
+}

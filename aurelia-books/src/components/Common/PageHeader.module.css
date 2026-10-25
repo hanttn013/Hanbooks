@@ -1,0 +1,54 @@
+/* src/components/Common/PageHeader.module.css */
+.headerContainer {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5, 20px) var(--page-margin, 16px) var(--space-3, 12px);
+  background: var(--bg-base);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-3, 12px);
+  min-height: 40px;
+}
+
+.pageTitle {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: var(--font-size-display, 28px);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.pageSubtitle {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-label, 13px);
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+.actionsArea {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
+}
+
+/* Compact header on mobile landscape (< 480px height) */
+@media (max-height: 480px) {
+  .headerContainer {
+    padding: var(--space-2, 8px) var(--page-margin, 16px) var(--space-1, 4px);
+  }
+  .pageTitle {
+    font-size: var(--font-size-headline, 20px);
+  }
+}
+

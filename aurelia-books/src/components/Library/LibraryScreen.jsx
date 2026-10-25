@@ -1,17 +1,27 @@
+// src/components/Library/LibraryScreen.jsx
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import BookCover from './BookCover';
-import { Action, Choice, SearchBox } from '../UI/Controls';
-import Sheet from '../UI/Sheet';
+import BookCard from '../Common/BookCard';
+import Cover from '../Common/Cover';
+import Sheet from '../Common/Sheet';
+import EmptyState from '../Common/EmptyState';
+import PageHeader from '../Common/PageHeader';
 import { useI18n } from '../../i18n/context';
 import { ToastQueue } from '@react-spectrum/s2/Toast';
+import Button from '../Common/Button';
+import IconButton from '../Common/IconButton';
+import EdgeAction from '../Common/EdgeAction';
+import { ActionMenu } from '@react-spectrum/s2/ActionMenu';
+import { MenuTrigger, Menu, MenuItem } from '@react-spectrum/s2/Menu';
+import { SearchField } from '@react-spectrum/s2/SearchField';
+import { ToggleButton } from '@react-spectrum/s2/ToggleButton';
+import { ToggleButtonGroup } from '@react-spectrum/s2/ToggleButtonGroup';
+import BookQuickPreviewModal from './BookQuickPreviewModal';
 import styles from './LibraryScreen.module.css';
 import { readProgressPercent } from '../../utils/storageKeys';
 import { isArchiveFile } from '../../utils/archiveImport';
 import { extractArchiveInWorker as extractDocumentsFromArchive } from '../../utils/archiveWorkerClient';
 
-const GRID_ROW_HEIGHT = 340;
-const LIST_ROW_HEIGHT = 104;
-const VIEWPORT_HEIGHT = 720;
+const VIEWPORT_HEIGHT = 800;
 const OVERSCAN_ROWS = 3;
 
 const FILTERS = [
@@ -35,44 +45,102 @@ function progressFor(book) {
   return readProgressPercent(book);
 }
 
-function MetadataStatus({ book }) {
-  const { t } = useI18n();
-  const status = { processing: 'running', ready: 'done' }[book.metadataStatus] || book.metadataStatus || 'done';
-  return <span data-metadata-status={status} role="status" title={book.metadataError || ''}>{t(status)}{status === 'failed' && book.metadataError ? `: ${book.metadataError}` : ''}</span>;
-}
-
-const BookGridItem = memo(function BookGridItem({ book, selected, selecting, pct, onTap, onHoldStart, onHoldCancel, onOpenInfo }) {
-  const { t } = useI18n();
-  return <article className="book-card library-book-card" data-selected={selected || undefined}>
-    <button className="book-card-cover" data-book-format={book.format || 'epub'} aria-label={`${selecting ? t('Select') : t('Read')}: ${book.title}`} aria-pressed={selecting ? selected : undefined}
-      onClick={() => onTap(book)} onPointerDown={() => onHoldStart(book)} onPointerUp={onHoldCancel} onPointerLeave={onHoldCancel} onContextMenu={event => onOpenInfo?.(event, book)}>
-      <BookCover book={book} size="medium" />
-    </button>
-    <h3>{book.title}</h3><p>{book.author}</p><MetadataStatus book={book} /><p>{String(book.format || 'epub').toUpperCase()} · {t('completePercent', { count: pct })}</p>
-    {!selecting && <div className="book-card-actions"><Action label={`${t('Book info')}: ${book.title}`} onPress={() => onOpenInfo({ preventDefault() {}, stopPropagation() {} }, book)}>{t('Info')}</Action></div>}
-  </article>;
+const BookGridItem = memo(function BookGridItem({
+  book,
+  selected,
+  selecting,
+  onTap,
+  onOpenInfo,
+  onQuickPreview,
+  onToggleSelect,
+}) {
+  return (
+    <BookCard
+      book={book}
+      selected={selected}
+      selecting={selecting}
+      onOpenBook={onTap}
+      onOpenBookInfo={onOpenInfo}
+      onQuickPreview={onQuickPreview}
+      onToggleSelect={onToggleSelect}
+    />
+  );
 });
 
-const BookListItem = memo(function BookListItem({ book, selected, selecting, pct, onTap, onToggleSelected, onOpenInfo }) {
+const BookListItem = memo(function BookListItem({
+  book,
+  selected,
+  selecting,
+  pct,
+  onTap,
+  onToggleSelected,
+  onOpenInfo,
+}) {
   const { t } = useI18n();
-  return <li className="library-list-row">
-    <button data-book-format={book.format || 'epub'} aria-pressed={selecting ? selected : undefined} onClick={() => selecting ? onToggleSelected(book.id) : onTap(book)}>
-      <BookCover book={book} size="small" /><span><strong>{book.title}</strong><small>{book.author}</small><MetadataStatus book={book} /><small>{t('completePercent', { count: pct })}</small></span>
-    </button>
-    {!selecting && <Action label={`${t('Book info')}: ${book.title}`} onPress={() => onOpenInfo(book)}>{t('Info')}</Action>}
-  </li>;
+  return (
+    <li className={styles.listRow} data-selected={selected || undefined}>
+      <div
+        role="button"
+        tabIndex={0}
+        className={styles.listRowButton}
+        onClick={() => selecting ? onToggleSelected(book.id) : onTap(book)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selecting ? onToggleSelected(book.id) : onTap(book);
+          }
+        }}
+        aria-pressed={selecting ? selected : undefined}
+      >
+        <div className={styles.listCoverThumb}>
+          <Cover
+            src={book.coverUrl || book.coverImage}
+            title={book.title}
+            author={book.author}
+            shape="book"
+          />
+        </div>
+        <div className={styles.listRowContent}>
+          <strong className={styles.listRowTitle}>{book.title}</strong>
+          <small className={styles.listRowAuthor}>{book.author || t('Unknown author')}</small>
+          <div className={styles.listRowMeta}>
+            <span className={styles.formatTag}>{String(book.format || 'epub').toUpperCase()}</span>
+            {pct > 0 && <span className={styles.progressBadge}>· {pct}%</span>}
+          </div>
+        </div>
+      </div>
+      {!selecting && (
+        <ActionButton
+          isQuiet
+          size="S"
+          aria-label={`${t('View details')}: ${book.title}`}
+          onPress={() => onOpenInfo(book)}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="19" cy="12" r="1.5" />
+            <circle cx="5" cy="12" r="1.5" />
+          </svg>
+        </ActionButton>
+      )}
+    </li>
+  );
 });
 
 export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onGoLists }) {
   const { t } = useI18n();
   const [duplicate, setDuplicate] = useState(null);
   const duplicateResolve = useRef(null);
-  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
-  const columns = Math.max(2, Math.min(6, Math.floor((containerWidth - 40) / 180)));
+  const [containerWidth, setContainerWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 800
+  );
   const [viewMode, setViewMode] = useState('grid');
+  const [coverSize, setCoverSize] = useState('medium'); // 'small' | 'medium' | 'large'
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [targetListId, setTargetListId] = useState('');
+  const [quickPreviewBook, setQuickPreviewBook] = useState(null);
+  const [showDisplayOptions, setShowDisplayOptions] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState('');
   const [importSummary, setImportSummary] = useState(null);
@@ -80,8 +148,6 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
   const [scrollTop, setScrollTop] = useState(0);
   const fileRef = useRef(null);
   const scrollRef = useRef(null);
-  const holdTimerRef = useRef(null);
-  const holdTriggeredRef = useRef(false);
 
   const {
     books,
@@ -106,9 +172,18 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
       frame = requestAnimationFrame(() => setContainerWidth(element.clientWidth));
     });
     observer.observe(element);
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); duplicateResolve.current?.('skip'); };
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      duplicateResolve.current?.('skip');
+    };
   }, []);
-  const chooseDuplicate = choice => { duplicateResolve.current?.(choice); duplicateResolve.current = null; setDuplicate(null); };
+
+  const chooseDuplicate = (choice) => {
+    duplicateResolve.current?.(choice);
+    duplicateResolve.current = null;
+    setDuplicate(null);
+  };
 
   const resetScroll = () => {
     setScrollTop(0);
@@ -116,8 +191,31 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
   };
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Phone 3-column grid enforced (< 600px) with width ceiling <= 120px
+  const columns = useMemo(() => {
+    if (containerWidth < 600) {
+      if (coverSize === 'small') return 4;
+      if (coverSize === 'large') return 2;
+      return 3; // Standard 3-column phone grid
+    }
+    if (containerWidth < 900) return coverSize === 'small' ? 5 : coverSize === 'large' ? 3 : 4;
+    if (containerWidth < 1200) return coverSize === 'small' ? 6 : coverSize === 'large' ? 4 : 5;
+    return coverSize === 'small' ? 8 : coverSize === 'large' ? 5 : 6;
+  }, [containerWidth, coverSize]);
+
+  const gridRowHeight = useMemo(() => {
+    const horizontalPadding = 32;
+    const gap = 12;
+    const availableWidth = Math.min(1200, containerWidth) - horizontalPadding;
+    const cardWidth = Math.min(170, Math.max(90, (availableWidth - (columns - 1) * gap) / columns));
+    return Math.round(cardWidth * 1.5 + 68);
+  }, [containerWidth, columns]);
+
+  const listRowHeight = 80;
+
   const virtual = useMemo(() => {
-    const rowHeight = viewMode === 'grid' ? GRID_ROW_HEIGHT : LIST_ROW_HEIGHT;
+    const rowHeight = viewMode === 'grid' ? gridRowHeight : listRowHeight;
     const itemCount = books.length;
     const rowCount = viewMode === 'grid'
       ? Math.ceil(itemCount / columns)
@@ -133,7 +231,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
       topSpacer: startRow * rowHeight,
       bottomSpacer: Math.max(0, (rowCount - endRow) * rowHeight),
     };
-  }, [books, scrollTop, viewMode, columns]);
+  }, [books, scrollTop, viewMode, columns, gridRowHeight]);
 
   const toggleSelected = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
@@ -145,28 +243,11 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
   };
 
   const handleBookTap = (book) => {
-    if (holdTriggeredRef.current) {
-      holdTriggeredRef.current = false;
-      return;
-    }
     if (selecting) {
       toggleSelected(book.id);
       return;
     }
     onOpenBook(book);
-  };
-
-  const startHold = (book) => {
-    holdTriggeredRef.current = false;
-    window.clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = window.setTimeout(() => {
-      holdTriggeredRef.current = true;
-      onOpenBookInfo?.(book);
-    }, 450);
-  };
-
-  const cancelHold = () => {
-    window.clearTimeout(holdTimerRef.current);
   };
 
   const handleFileImport = async (e) => {
@@ -182,151 +263,496 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
     let listsCreated = 0;
     let errorCount = 0;
 
-    const updateItem = (id, updates) => {
-      setImportItems(current => current.map(item => item.id === id ? { ...item, ...updates } : item));
-    };
-
-    const importOne = async (file, id) => {
-      totalFiles += 1;
-      updateItem(id, { name: file.name, status: 'processing', message: 'Checking format and content...' });
-      try {
-        let book = await addBook(file, null, { fastMetadata: true });
-        if (book.skippedDuplicate) {
-          const choice = await new Promise(resolve => { duplicateResolve.current = resolve; setDuplicate(file.name); });
-          if (choice === 'keep' || choice === 'replace') {
-            book = await addBook(file, null, {
-              fastMetadata: true,
-              analysis: book.analysis,
-              duplicateStrategy: choice,
-            });
-            importedCount += 1;
-            updateItem(id, { status: 'success', message: choice === 'replace' ? 'Replaced existing copy' : 'Kept both copies' });
-            return book;
-          }
-          skippedCount += 1;
-          updateItem(id, { status: 'duplicate', message: 'Duplicate skipped' });
-          return null;
-        }
-        importedCount += 1;
-        updateItem(id, { status: 'success', message: t('Imported format', { format: String(book.format || 'document').toUpperCase() }) });
-        return book;
-      } catch (error) {
-        errorCount += 1;
-        updateItem(id, { status: 'error', message: error?.message || 'Import failed' });
-        return null;
-      }
-    };
-
-    try {
-      for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
-        const file = files[fileIndex];
-        const selectedId = `selected-${fileIndex}`;
-        if (isArchiveFile(file)) {
-          setImportStatus(t('Extracting file', { name: file.name }));
-          updateItem(selectedId, { status: 'processing', message: 'Inspecting archive...' });
-          let archive;
-          try {
-            archive = await extractDocumentsFromArchive(file);
-          } catch (error) {
-            errorCount += 1;
-            updateItem(selectedId, { status: 'error', message: error.message || 'Invalid archive' });
-            continue;
-          }
-          if (archive.files.length === 0) {
-            errorCount++;
-            updateItem(selectedId, { status: 'error', message: 'No supported documents in archive' });
-            continue;
-          }
-          updateItem(selectedId, { status: 'success', message: t('Documents found', { count: archive.files.length }) });
-          let processed = 0;
-          for (const group of archive.groups || [{ name: archive.listName, files: archive.files }]) {
-            const importedIds = [];
-            for (let index = 0; index < group.files.length; index += 1) {
-              const documentFile = group.files[index];
-              processed += 1;
-              setImportStatus(t('Importing archive item', { current: processed, total: archive.files.length, name: archive.sourceName }));
-              const itemId = `archive-${fileIndex}-${processed}`;
-              setImportItems(current => [...current, { id: itemId, name: documentFile.name, status: 'pending', message: t('From archive', { name: archive.sourceName }) }]);
-              const book = await importOne(documentFile, itemId);
-              if (book) importedIds.push(book.id);
-              await new Promise(resolve => window.setTimeout(resolve, 0));
-            }
-            if (importedIds.length > 0) {
-              await createList({
-                name: group.name || archive.listName,
-                description: t('Imported list description', { count: importedIds.length, name: archive.sourceName }),
-                coverStyle: 'forest',
-                bookIds: importedIds,
-              });
-              listsCreated += 1;
-              await new Promise(resolve => window.setTimeout(resolve, 0));
-            }
-          }
-        } else {
-          setImportStatus(t('Importing file', { name: file.name }));
-          await importOne(file, selectedId);
-          await new Promise(resolve => window.setTimeout(resolve, 0));
-        }
-      }
-      setImportSummary({
-        totalFiles,
-        importedCount,
-        skippedCount,
-        listsCreated,
-        errorCount,
-        pendingCount: importedCount,
+    const askDuplicateDecision = (existingBook) => {
+      return new Promise((resolve) => {
+        duplicateResolve.current = resolve;
+        setDuplicate(existingBook.title || 'Untitled');
       });
-    } catch (err) {
-      console.error('Failed to import documents:', err);
-      ToastQueue.negative(t(err.message || 'Import failed. Check the per-file status for details.'));
-    } finally {
-      window.setTimeout(() => {
-        setIsImporting(false);
-        setImportStatus('');
-      }, 350);
-      if (fileRef.current) {
-        fileRef.current.value = '';
+    };
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'processing', message: 'Processing document...' } : item));
+
+      if (isArchiveFile(file)) {
+        setImportStatus(`Extracting ${file.name}...`);
+        try {
+          const archiveEntries = await extractDocumentsFromArchive(file);
+          if (archiveEntries.length === 0) {
+            setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'skipped', message: 'No documents in archive' } : item));
+            continue;
+          }
+
+          const archiveListName = file.name.replace(/\.[^/.]+$/, '');
+          let archiveList = lists.find(l => l.name.toLowerCase() === archiveListName.toLowerCase());
+          if (!archiveList) {
+            archiveList = await createList(archiveListName, `Imported from archive ${file.name}`);
+            listsCreated += 1;
+          }
+
+          const archiveBookIds = [];
+          for (let eIdx = 0; eIdx < archiveEntries.length; eIdx++) {
+            const entry = archiveEntries[eIdx];
+            totalFiles += 1;
+            setImportStatus(`Importing from ${file.name} (${eIdx + 1}/${archiveEntries.length})...`);
+            try {
+              const res = await addBook(entry.file, entry.folderCover, { onDuplicate: askDuplicateDecision, fastMetadata: true });
+              if (res.skippedDuplicate) {
+                skippedCount += 1;
+              } else if (res.book) {
+                importedCount += 1;
+                archiveBookIds.push(res.book.id);
+              }
+            } catch (err) {
+              console.error('Error importing archive file entry:', err);
+              errorCount += 1;
+            }
+          }
+
+          if (archiveBookIds.length > 0 && archiveList) {
+            await addBooksToList(archiveList.id, archiveBookIds);
+          }
+          setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'success', message: `Imported documents to list "${archiveListName}"` } : item));
+        } catch (err) {
+          console.error('Error extracting archive:', err);
+          errorCount += 1;
+          setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', message: 'Could not extract archive' } : item));
+        }
+      } else {
+        totalFiles += 1;
+        setImportStatus(`Importing ${file.name}...`);
+        try {
+          const res = await addBook(file, null, { onDuplicate: askDuplicateDecision, fastMetadata: true });
+          if (res.skippedDuplicate) {
+            skippedCount += 1;
+            setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'skipped', message: 'Duplicate skipped' } : item));
+          } else if (res.book) {
+            importedCount += 1;
+            setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'success', message: 'Successfully imported' } : item));
+          }
+        } catch (err) {
+          console.error('Error importing standalone file:', err);
+          errorCount += 1;
+          setImportItems(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', message: err.message || 'Import failed' } : item));
+        }
       }
     }
+
+    setIsImporting(false);
+    setImportStatus('');
+    setImportSummary({ totalFiles, importedCount, skippedCount, listsCreated, errorCount });
+    if (e.target) e.target.value = '';
   };
 
   const handleAddSelectedToList = async () => {
     if (!targetListId || selectedIds.length === 0) return;
-    await addBooksToList(targetListId, selectedIds);
-    clearSelection();
+    try {
+      await addBooksToList(targetListId, selectedIds);
+      ToastQueue.positive(t('Added to list'));
+      clearSelection();
+    } catch (err) {
+      ToastQueue.negative(t(err.message || 'Could not add to list'));
+    }
   };
 
-  const openInfo = (event, book) => {
-    event.preventDefault();
-    event.stopPropagation();
-    cancelHold();
-    holdTriggeredRef.current = true;
-    onOpenBookInfo?.(book);
-  };
+  return (
+    <div className={styles.libraryScreen}>
+      {/* Duplicate Resolution Dialog */}
+      {duplicate && (
+        <Sheet
+          title={t('Duplicate document')}
+          onClose={() => chooseDuplicate('skip')}
+          footer={
+            <div className={styles.sheetActions}>
+              <Button
+                variant="secondary"
+                onPress={() => chooseDuplicate('skip')}
+              >
+                {t('Skip')}
+              </Button>
+              <Button
+                variant="secondary"
+                onPress={() => chooseDuplicate('keep')}
+              >
+                {t('Keep both')}
+              </Button>
+              <Button
+                variant="accent"
+                onPress={() => chooseDuplicate('replace')}
+              >
+                {t('Replace')}
+              </Button>
+            </div>
+          }
+        >
+          <p style={{ margin: '0 0 8px', fontWeight: 600 }}>{duplicate}</p>
+          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{t('duplicatePrompt')}</p>
+        </Sheet>
+      )}
 
-  return <div className={styles.screen} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); handleFileImport({ target: { files: event.dataTransfer.files } }); }}>
-    {duplicate && <Sheet title="Duplicate document" onClose={() => chooseDuplicate('skip')} footer={<><Action onPress={() => chooseDuplicate('keep')}>{t('Keep both')}</Action><Action negative onPress={() => chooseDuplicate('replace')}>{t('Replace')}</Action></>}><p>{duplicate}</p><p>{t('duplicatePrompt')}</p></Sheet>}
-    {isImporting && !duplicate && <div className={styles.importingOverlay} role="status" aria-live="polite"><p>{t(importStatus || 'Importing...')}</p><small>{t('Documents are checked by content and processed offline')}</small></div>}
-    {importSummary && <Sheet title="Import Summary" onClose={() => setImportSummary(null)} footer={<Action primary onPress={() => { setImportSummary(null); onGoLists?.(); }}>{t('Lists')}</Action>}>
-      <p>{t('processedCount', { count: importSummary.totalFiles })}</p>
-      <ul aria-label={t('Import results')}>{importItems.map(item => <li key={item.id} data-import-status={item.status}><strong>{item.name}</strong> — {t(item.message)}</li>)}</ul>
-      <p>{t('newBooksCount', { count: importSummary.importedCount })} · {t('duplicatesCount', { count: importSummary.skippedCount })} · {t('errorsCount', { count: importSummary.errorCount })}</p>
-    </Sheet>}
-    <header className={`${styles.header} safe-top`}>
-      <div><p className="aurelia-wordmark">ShanBooks</p><h1 className="screen-title">{t('Library')}</h1></div>
-      <div className="action-row"><Action primary onPress={() => fileRef.current?.click()}>{t('Import documents')}</Action><Action onPress={() => { setViewMode(viewMode === 'grid' ? 'list' : 'grid'); resetScroll(); }}>{t('Toggle view')}</Action></div>
-      <input ref={fileRef} type="file" accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt" hidden multiple onChange={handleFileImport} />
-    </header>
-    <div className="library-search"><SearchBox label="Search title, author, genre, lists" value={searchQuery} onChange={value => { setSearchQuery(value); resetScroll(); }} /></div>
-    <div className={styles.filterRail}>{FILTERS.map(item => <Action key={item.id} aria-pressed={filterBy === item.id} onPress={() => { setFilterBy(item.id); resetScroll(); }}>{t(item.label)}</Action>)}</div>
-    <div className={styles.libraryTools}><span>{t('booksCount', { count: books.length })}</span><Choice label="Sort books" value={sortBy} onChange={value => { setSortBy(value); resetScroll(); }} options={SORT_OPTIONS} /><Action onPress={() => selecting ? clearSelection() : setSelecting(true)}>{t(selecting ? 'Done' : 'Select')}</Action></div>
-    <div ref={scrollRef} className="screen-scroll" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
-      {books.length === 0 ? <div className="empty-state"><strong>{t('No books found')}</strong><p>{t('Try another search, clear filters, or import a document.')}</p><Action onPress={() => { setSearchQuery(''); setFilterBy('all'); }}>{t('Clear')}</Action></div> : viewMode === 'grid' ? <>
-        {virtual.topSpacer > 0 && <div style={{ height: virtual.topSpacer }} />}
-        <div className="library-grid" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>{virtual.visibleBooks.map(book => <BookGridItem key={book.id} book={book} selected={selectedSet.has(book.id)} selecting={selecting} pct={Math.round(progressFor(book))} onTap={handleBookTap} onHoldStart={startHold} onHoldCancel={cancelHold} onOpenInfo={openInfo} />)}</div>
-        {virtual.bottomSpacer > 0 && <div style={{ height: virtual.bottomSpacer }} />}
-      </> : <ul className="library-list">{virtual.topSpacer > 0 && <li style={{ height: virtual.topSpacer }} />}{virtual.visibleBooks.map(book => <BookListItem key={book.id} book={book} selected={selectedSet.has(book.id)} selecting={selecting} pct={Math.round(progressFor(book))} onTap={onOpenBook} onToggleSelected={toggleSelected} onOpenInfo={onOpenBookInfo} />)}{virtual.bottomSpacer > 0 && <li style={{ height: virtual.bottomSpacer }} />}</ul>}
+      {isImporting && !duplicate && (
+        <div className={styles.importingOverlay} role="status" aria-live="polite">
+          <p>{t(importStatus || 'Importing...')}</p>
+          <small>{t('Documents are checked by content and processed offline')}</small>
+        </div>
+      )}
+
+      {importSummary && (
+        <Sheet
+          title={t('Import Summary')}
+          onClose={() => setImportSummary(null)}
+          footer={
+            <Button
+              variant="accent"
+              onPress={() => {
+                setImportSummary(null);
+                onGoLists?.();
+              }}
+            >
+              {t('Lists')}
+            </Button>
+          }
+        >
+          <p style={{ marginBottom: 12 }}>{t('processedCount', { count: importSummary.totalFiles })}</p>
+          <ul style={{ maxHeight: 200, overflowY: 'auto', paddingLeft: 20, margin: '0 0 12px' }} aria-label={t('Import results')}>
+            {importItems.map(item => (
+              <li key={item.id} data-import-status={item.status} style={{ fontSize: 13, marginBottom: 4 }}>
+                <strong>{item.name}</strong> — {t(item.message)}
+              </li>
+            ))}
+          </ul>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t('newBooksCount', { count: importSummary.importedCount })} · {t('duplicatesCount', { count: importSummary.skippedCount })} · {t('errorsCount', { count: importSummary.errorCount })}
+          </p>
+        </Sheet>
+      )}
+
+      <div className={styles.innerLimiter}>
+        {/* Single PageHeader with Import and View Switch */}
+        <PageHeader
+          title={t('Library')}
+          actions={
+            <div className={styles.headerActions}>
+              <Button
+                variant="accent"
+                size="S"
+                onPress={() => fileRef.current?.click()}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>{t('Import documents')}</span>
+              </Button>
+              <EdgeAction edge="right" offset={16}>
+                <ActionMenu
+                  isQuiet
+                  size="S"
+                  aria-label={t('Library options')}
+                  onAction={(key) => {
+                    if (key === 'select') setSelecting(true);
+                    else if (key === 'displayOptions') setShowDisplayOptions(true);
+                  }}
+                >
+                  <MenuItem id="select">{t('Select books')}</MenuItem>
+                  <MenuItem id="displayOptions">{t('Display options')}</MenuItem>
+                </ActionMenu>
+              </EdgeAction>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt"
+                hidden
+                multiple
+                onChange={handleFileImport}
+              />
+            </div>
+          }
+        />
+
+        {/* Spectrum S2 SearchField */}
+        <div className={styles.searchSection}>
+          <SearchField
+            aria-label={t('Search title, author, genre, lists')}
+            placeholder={t('Search title, author, genre, lists')}
+            value={searchQuery}
+            onChange={(v) => {
+              setSearchQuery(v);
+              resetScroll();
+            }}
+            onClear={() => {
+              setSearchQuery('');
+              resetScroll();
+            }}
+          />
+        </div>
+
+        {/* Filter rail using S2 ToggleButtonGroup */}
+        <div className={styles.filterRail} aria-label={t('Filters')}>
+          <ToggleButtonGroup
+            aria-label={t('Filters')}
+            selectionMode="single"
+            disallowEmptySelection
+            selectedKeys={new Set([filterBy])}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0];
+              if (selected) {
+                setFilterBy(selected);
+                resetScroll();
+              }
+            }}
+            isEmphasized
+            size="S"
+          >
+            {FILTERS.map((item) => (
+              <ToggleButton key={item.id} id={item.id}>
+                {t(item.label)}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </div>
+
+        {/* Tools row: Count on left, Sort button and Display Options button on right (Single row <= 44dp) */}
+        <div className={styles.toolsRow}>
+          <span className={styles.bookCount}>{t('booksCount', { count: books.length })}</span>
+          <div className={styles.toolsRight}>
+            <MenuTrigger>
+              <Button
+                variant="secondary"
+                size="S"
+                className={styles.compactSortBtn}
+                aria-label={t('Sort books')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M6 12h12m-9 6h6" />
+                </svg>
+                <span className={styles.sortLabel}>{t(SORT_OPTIONS.find(o => o.value === sortBy)?.label || 'Recent')}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </Button>
+              <Menu
+                onAction={(key) => {
+                  if (key) {
+                    setSortBy(key);
+                    resetScroll();
+                  }
+                }}
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} id={opt.value}>
+                    {t(opt.label)}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </MenuTrigger>
+
+            <EdgeAction edge="right" offset={15}>
+              <IconButton
+                size="S"
+                aria-label={t('Display options')}
+                onPress={() => setShowDisplayOptions(true)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="21" x2="4" y2="14" />
+                  <line x1="4" y1="10" x2="4" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12" y2="3" />
+                  <line x1="20" y1="21" x2="20" y2="16" />
+                  <line x1="20" y1="12" x2="20" y2="3" />
+                  <line x1="1" y1="14" x2="7" y2="14" />
+                  <line x1="9" y1="8" x2="15" y2="8" />
+                  <line x1="17" y1="16" x2="23" y2="16" />
+                </svg>
+              </IconButton>
+            </EdgeAction>
+          </div>
+        </div>
+
+        {/* Books Scroll Area */}
+        <div
+          ref={scrollRef}
+          className={`${styles.scrollArea} screen-scroll`}
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        >
+          {books.length === 0 ? (
+            <EmptyState
+              title={t('No books found')}
+              description={t('Try another search, clear filters, or import a document.')}
+              actionLabel={t('Clear')}
+              onAction={() => {
+                setSearchQuery('');
+                setFilterBy('all');
+              }}
+            />
+          ) : viewMode === 'grid' ? (
+            <>
+              {virtual.topSpacer > 0 && <div style={{ height: virtual.topSpacer }} />}
+              <div
+                className={styles.libraryGrid}
+                style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+              >
+                {virtual.visibleBooks.map((book) => (
+                  <BookGridItem
+                    key={book.id}
+                    book={book}
+                    selected={selectedSet.has(book.id)}
+                    selecting={selecting}
+                    onTap={handleBookTap}
+                    onOpenInfo={onOpenBookInfo}
+                    onQuickPreview={(b) => setQuickPreviewBook(b)}
+                    onToggleSelect={toggleSelected}
+                  />
+                ))}
+              </div>
+              {virtual.bottomSpacer > 0 && <div style={{ height: virtual.bottomSpacer }} />}
+            </>
+          ) : (
+            <ul className={styles.libraryList}>
+              {virtual.topSpacer > 0 && <li style={{ height: virtual.topSpacer }} />}
+              {virtual.visibleBooks.map((book) => (
+                <BookListItem
+                  key={book.id}
+                  book={book}
+                  selected={selectedSet.has(book.id)}
+                  selecting={selecting}
+                  pct={Math.round(progressFor(book))}
+                  onTap={onOpenBook}
+                  onToggleSelected={toggleSelected}
+                  onOpenInfo={onOpenBookInfo}
+                />
+              ))}
+              {virtual.bottomSpacer > 0 && <li style={{ height: virtual.bottomSpacer }} />}
+            </ul>
+          )}
+        </div>
+
+        {/* Selection Toolbar using S2 Picker and Button */}
+        {selecting && selectedIds.length > 0 && (
+          <div className={styles.selectionToolbar}>
+            <span className={styles.selectionCount}>
+              {t('selectedCount', { count: selectedIds.length })}
+            </span>
+            <div className={styles.selectionControls}>
+              <Picker
+                aria-label={t('Choose list')}
+                selectedKey={targetListId}
+                onSelectionChange={(key) => setTargetListId(key || '')}
+                size="S"
+                placeholder={t('Choose list')}
+              >
+                {lists.map((l) => (
+                  <PickerItem key={l.id} id={l.id}>
+                    {l.name}
+                  </PickerItem>
+                ))}
+              </Picker>
+              <Button
+                variant="accent"
+                size="S"
+                isDisabled={!targetListId}
+                onPress={handleAddSelectedToList}
+              >
+                {t('Add')}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Display Options Sheet (View Mode, Cover Size, Select Books) */}
+        {showDisplayOptions && (
+          <Sheet
+            title={t('Display options')}
+            onClose={() => setShowDisplayOptions(false)}
+            footer={
+              <Button
+                variant="accent"
+                size="M"
+                onPress={() => setShowDisplayOptions(false)}
+              >
+                {t('Done')}
+              </Button>
+            }
+          >
+            <div className={styles.displayOptionsContent}>
+              <div className={styles.displayOptionGroup}>
+                <span className={styles.displayOptionLabel}>{t('View mode')}</span>
+                <ToggleButtonGroup
+                  aria-label={t('View mode')}
+                  selectionMode="single"
+                  disallowEmptySelection
+                  selectedKeys={new Set([viewMode])}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0];
+                    if (selected) {
+                      setViewMode(selected);
+                      resetScroll();
+                    }
+                  }}
+                  size="S"
+                >
+                  <ToggleButton id="grid">{t('Grid')}</ToggleButton>
+                  <ToggleButton id="list">{t('List')}</ToggleButton>
+                </ToggleButtonGroup>
+              </div>
+
+              <div className={styles.displayOptionGroup}>
+                <span className={styles.displayOptionLabel}>{t('Cover size')}</span>
+                <ToggleButtonGroup
+                  aria-label={t('Cover size')}
+                  selectionMode="single"
+                  disallowEmptySelection
+                  selectedKeys={new Set([coverSize])}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0];
+                    if (selected) setCoverSize(selected);
+                  }}
+                  size="S"
+                >
+                  <ToggleButton id="small">{t('Small')}</ToggleButton>
+                  <ToggleButton id="medium">{t('Medium')}</ToggleButton>
+                  <ToggleButton id="large">{t('Large')}</ToggleButton>
+                </ToggleButtonGroup>
+              </div>
+
+              <div className={styles.displayOptionGroup}>
+                <Button
+                  variant={selecting ? 'accent' : 'secondary'}
+                  size="M"
+                  onPress={() => {
+                    setShowDisplayOptions(false);
+                    if (selecting) {
+                      clearSelection();
+                    } else {
+                      setSelecting(true);
+                    }
+                  }}
+                >
+                  {selecting ? t('Done selecting') : t('Select books')}
+                </Button>
+              </div>
+            </div>
+          </Sheet>
+        )}
+
+        {/* Long Press Quick Preview Modal */}
+        <BookQuickPreviewModal
+          book={quickPreviewBook}
+          isOpen={Boolean(quickPreviewBook)}
+          onClose={() => setQuickPreviewBook(null)}
+          onOpenBook={onOpenBook}
+          onOpenBookInfo={onOpenBookInfo}
+          onToggleFavorite={async (book) => {
+            await library.updateBook(book.id, { isFavorite: !book.isFavorite });
+            setQuickPreviewBook(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
+          }}
+          onAddToList={(book) => {
+            setSelectedIds([book.id]);
+            setSelecting(true);
+          }}
+        />
+      </div>
     </div>
-    {selecting && selectedIds.length > 0 && <div className="selection-toolbar"><strong>{t('selectedCount', { count: selectedIds.length })}</strong><Choice label="Choose list" value={targetListId} onChange={setTargetListId} options={[{ id: '', label: 'Choose list' }, ...lists.map(list => ({ id: list.id, label: list.name, raw: true }))]} /><Action primary disabled={!targetListId} onPress={handleAddSelectedToList}>{t('Add')}</Action></div>}
-  </div>;
+  );
 }

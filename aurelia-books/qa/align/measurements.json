@@ -1,0 +1,447 @@
+{
+  "timestamp": "2026-10-25T07:07:07.537Z",
+  "device": "TECNO LI6 (Android 15)",
+  "screenResolution": "1080x2460",
+  "buttons": [
+    {
+      "name": "Nút Tiếp tục (Hero Card)",
+      "buttonBox": {
+        "x": 792,
+        "y": 897,
+        "width": 200,
+        "height": 83
+      },
+      "inkBox": {
+        "minY": 900,
+        "maxY": 976,
+        "minX": 795,
+        "maxX": 988
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 938,
+      "textCenter": 938,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Nút Nhập tài liệu (Library Header)",
+      "buttonBox": {
+        "x": 605,
+        "y": 182,
+        "width": 334,
+        "height": 83
+      },
+      "inkBox": {
+        "minY": 185,
+        "maxY": 261,
+        "minX": 608,
+        "maxX": 935
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 223,
+      "textCenter": 223,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "★ Yêu thích (Xem nhanh)",
+      "buttonBox": {
+        "x": 309,
+        "y": 1666,
+        "width": 257,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 1669,
+        "maxY": 1783,
+        "minX": 312,
+        "maxX": 562
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 1726,
+      "textCenter": 1726,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Thêm vào danh sách (Xem nhanh)",
+      "buttonBox": {
+        "x": 588,
+        "y": 1666,
+        "width": 386,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 1669,
+        "maxY": 1783,
+        "minX": 591,
+        "maxX": 970
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 1726,
+      "textCenter": 1726,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Cập nhật thông tin (Xem nhanh)",
+      "buttonBox": {
+        "x": 85,
+        "y": 1976,
+        "width": 356,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 2020,
+        "maxY": 2053,
+        "minX": 127,
+        "maxX": 396
+      },
+      "topPad": 44,
+      "botPad": 44,
+      "padDiff": 0,
+      "iconCenter": 2036,
+      "textCenter": 2036.5,
+      "iconTextCenterDiff": 0.5,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Tiếp tục (Xem nhanh)",
+      "buttonBox": {
+        "x": 44,
+        "y": 2266,
+        "width": 486,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 2269,
+        "maxY": 2383,
+        "minX": 47,
+        "maxX": 526
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 2326,
+      "textCenter": 2326,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Chi tiết sách (Xem nhanh)",
+      "buttonBox": {
+        "x": 552,
+        "y": 2266,
+        "width": 486,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 2310,
+        "maxY": 2341,
+        "minX": 693,
+        "maxX": 892
+      },
+      "topPad": 44,
+      "botPad": 46,
+      "padDiff": 2,
+      "iconCenter": 2326,
+      "textCenter": 2325.5,
+      "iconTextCenterDiff": 0.5,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Nút Tạo danh sách (Lists)",
+      "buttonBox": {
+        "x": 681,
+        "y": 176,
+        "width": 357,
+        "height": 83
+      },
+      "inkBox": {
+        "minY": 179,
+        "maxY": 255,
+        "minX": 684,
+        "maxX": 1034
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 217,
+      "textCenter": 217,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Xuất dữ liệu (Settings)",
+      "buttonBox": {
+        "x": 107,
+        "y": 984,
+        "width": 869,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 987,
+        "maxY": 1101,
+        "minX": 110,
+        "maxX": 972
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 1044,
+      "textCenter": 1044,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Xuất toàn bộ thư viện (Settings)",
+      "buttonBox": {
+        "x": 107,
+        "y": 1139,
+        "width": 869,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 1142,
+        "maxY": 1256,
+        "minX": 110,
+        "maxX": 972
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 1199,
+      "textCenter": 1199,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Khôi phục thư viện (Settings)",
+      "buttonBox": {
+        "x": 107,
+        "y": 1293,
+        "width": 869,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 1296,
+        "maxY": 1410,
+        "minX": 110,
+        "maxX": 972
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 1353,
+      "textCenter": 1353,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    },
+    {
+      "name": "Tạo bản sao lưu (Settings)",
+      "buttonBox": {
+        "x": 107,
+        "y": 1447,
+        "width": 869,
+        "height": 121
+      },
+      "inkBox": {
+        "minY": 1450,
+        "maxY": 1564,
+        "minX": 110,
+        "maxX": 972
+      },
+      "topPad": 3,
+      "botPad": 4,
+      "padDiff": 1,
+      "iconCenter": 1507,
+      "textCenter": 1507,
+      "iconTextCenterDiff": 0,
+      "passPadding": true,
+      "passCenter": true
+    }
+  ],
+  "edgeActions": [
+    {
+      "name": "Home Avatar (Header)",
+      "edge": "right",
+      "elementBox": {
+        "x": 958,
+        "y": 163,
+        "width": 121,
+        "height": 121
+      },
+      "inkBox": {
+        "minX": 993,
+        "maxX": 1038,
+        "minY": 197,
+        "maxY": 247
+      },
+      "measuredInkEdgePx": 1038,
+      "expectedMarginPx": 1036,
+      "marginDiffPx": 2,
+      "passMargin": true
+    },
+    {
+      "name": "Xem thêm (Home Shelf)",
+      "edge": "right",
+      "elementBox": {
+        "x": 858,
+        "y": 482,
+        "width": 183,
+        "height": 121
+      },
+      "inkBox": {
+        "minX": 889,
+        "maxX": 1035,
+        "minY": 531,
+        "maxY": 555
+      },
+      "measuredInkEdgePx": 1035,
+      "expectedMarginPx": 1036,
+      "marginDiffPx": 1,
+      "passMargin": true
+    },
+    {
+      "name": "Library ⋯ (Header)",
+      "edge": "right",
+      "elementBox": {
+        "x": 961,
+        "y": 163,
+        "width": 121,
+        "height": 121
+      },
+      "inkBox": {
+        "minX": 1003,
+        "maxX": 1034,
+        "minY": 218,
+        "maxY": 225
+      },
+      "measuredInkEdgePx": 1034,
+      "expectedMarginPx": 1036,
+      "marginDiffPx": 2,
+      "passMargin": true
+    },
+    {
+      "name": "Nút Đóng X (Xem nhanh Sheet)",
+      "edge": "right",
+      "elementBox": {
+        "x": 964,
+        "y": 1229,
+        "width": 121,
+        "height": 121
+      },
+      "inkBox": {
+        "minX": 1006,
+        "maxX": 1038,
+        "minY": 1270,
+        "maxY": 1302
+      },
+      "measuredInkEdgePx": 1038,
+      "expectedMarginPx": 1036,
+      "marginDiffPx": 2,
+      "passMargin": true
+    },
+    {
+      "name": "Nút Quay lại (Book Detail Header)",
+      "edge": "left",
+      "elementBox": {
+        "x": -7,
+        "y": 174,
+        "width": 121,
+        "height": 121
+      },
+      "inkBox": {
+        "minX": 44,
+        "maxX": 62,
+        "minY": 217,
+        "maxY": 249
+      },
+      "measuredInkEdgePx": 44,
+      "expectedMarginPx": 44,
+      "marginDiffPx": 0,
+      "passMargin": true
+    },
+    {
+      "name": "Nút Yêu thích (Book Detail Header)",
+      "edge": "right",
+      "elementBox": {
+        "x": 961,
+        "y": 174,
+        "width": 121,
+        "height": 121
+      },
+      "inkBox": {
+        "minX": 1003,
+        "maxX": 1035,
+        "minY": 212,
+        "maxY": 253
+      },
+      "measuredInkEdgePx": 1035,
+      "expectedMarginPx": 1036,
+      "marginDiffPx": 1,
+      "passMargin": true
+    }
+  ],
+  "sortRow": {
+    "sortBtnWidthCss": 103.92045593261719,
+    "toolsRowWidthCss": 392.727294921875,
+    "ratio": 0.2646122570963396,
+    "isCompact": true,
+    "hasSortIcon": true,
+    "redundantSubtitleRemoved": true,
+    "passSortRow": true
+  },
+  "continueReadingCard": {
+    "name": "Thẻ Đọc tiếp (Progress vs Button)",
+    "cardBox": {
+      "x": 44,
+      "y": 625,
+      "width": 994,
+      "height": 406
+    },
+    "progressCenterY": 939,
+    "buttonCenterY": 938.5,
+    "centerDiffPx": 0.5,
+    "passCenter": true,
+    "paddings": {
+      "top": 306,
+      "bottom": 52,
+      "left": 294,
+      "right": 46
+    }
+  },
+  "synopsisValidation": {
+    "screen": "Xem nhanh",
+    "textSnippet": "Oscar Wilde",
+    "hasGutenberg": false,
+    "hasBrokenOr": false,
+    "passClean": true
+  },
+  "bookDetailSynopsisValidation": {
+    "screen": "Chi tiết sách",
+    "textSnippet": "Chưa có giới thiệu cho tài liệu này.",
+    "hasGutenberg": false,
+    "hasBrokenOr": false,
+    "passClean": true
+  }
+}

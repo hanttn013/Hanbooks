@@ -181,6 +181,17 @@ export class StorageManager {
     });
   }
 
+  static async deleteProgress(bookId) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('progress', 'readwrite');
+      const store = transaction.objectStore('progress');
+      const request = store.delete(bookId);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   static async getBookmarks(bookId) {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {

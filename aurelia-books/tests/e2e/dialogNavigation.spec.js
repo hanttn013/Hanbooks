@@ -11,7 +11,7 @@ test('closing reader settings preserves the Reader destination', async ({ page }
     window.addEventListener('popstate', event => window.qaHistory.push(['popstate', event.state]), true);
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.locator('[data-tab="library"]:visible').click();
   await page.locator('input[type="file"]').first().setInputFiles(path.resolve('tests/fixtures/sample.pdf'));
   await expect(page.getByRole('dialog', { name: 'Import Summary' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();

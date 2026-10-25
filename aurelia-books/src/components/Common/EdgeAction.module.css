@@ -1,0 +1,72 @@
+/* src/components/Common/EdgeAction.module.css */
+.edgeActionWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.edgeRight {
+  justify-content: flex-end;
+}
+
+.edgeLeft {
+  justify-content: flex-start;
+}
+
+/* Ensure any icon button inside has 44px min touch target and 0 padding */
+.edgeActionWrapper:not(.isTextAction) :global(button),
+.edgeActionWrapper:not(.isTextAction) :global([data-rac]),
+.edgeActionWrapper:not(.isTextAction) :global([role="button"]) {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 !important;
+  padding-inline: 0 !important;
+  padding-block: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+/* For text actions, flush edge padding is 0 to align text with container margin */
+.edgeRight.isTextAction :global(button),
+.edgeRight.isTextAction :global([data-rac]),
+.edgeRight.isTextAction :global([role="button"]) {
+  width: auto !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding-right: 0 !important;
+  padding-inline-end: 0 !important;
+  padding-left: 12px !important;
+  padding-inline-start: 12px !important;
+  margin-right: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+.edgeLeft.isTextAction :global(button),
+.edgeLeft.isTextAction :global([data-rac]),
+.edgeLeft.isTextAction :global([role="button"]) {
+  width: auto !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+  padding-right: 12px !important;
+  padding-inline-end: 12px !important;
+  margin-left: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}

@@ -1,0 +1,142 @@
+/* src/components/Common/Cover.module.css */
+.coverContainer {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  background: var(--bg-surface-raised, #F3EFE9);
+  box-shadow: var(--shadow-cover);
+  border: 1px solid var(--cover-border, rgba(0, 0, 0, 0.06));
+  transition: transform var(--motion-normal, 200ms) var(--motion-timing, ease),
+              box-shadow var(--motion-normal, 200ms) var(--motion-timing, ease);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+.squareCover {
+  aspect-ratio: 1 / 1 !important;
+  border-radius: var(--radius-md, 10px);
+}
+
+.coverContainer:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-cover-hover);
+}
+
+/* Subtle book spine curvature effect */
+.spineHighlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.12) 60%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.coverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Generated Typographic Cover with Initial Monogram */
+.generatedCover {
+  width: 100%;
+  height: 100%;
+  padding: var(--space-3, 12px) var(--space-2, 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  box-sizing: border-box;
+  color: #FFF9EF;
+  position: relative;
+}
+
+.monogram {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 249, 239, 0.6);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFF9EF;
+  margin-top: 2px;
+}
+
+.squareCover .monogram {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  margin: auto 0;
+}
+
+.generatedTitle {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: clamp(11px, 3.5cqi, 15px);
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  margin: auto 0;
+  padding: 0 2px;
+}
+
+.squareCover .generatedTitle {
+  font-size: 12px;
+  -webkit-line-clamp: 1;
+}
+
+.generatedAuthor {
+  font-family: var(--font-sans);
+  font-size: clamp(9px, 2.8cqi, 11px);
+  font-weight: 500;
+  opacity: 0.88;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+/* Composite 2x2 Cover for Lists */
+.compositeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: 100%;
+  height: 100%;
+  gap: 1px;
+  background: var(--border-subtle);
+}
+
+.compositeCell {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-surface-raised);
+}
+
+.compositeCellFallback {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: block;
+}

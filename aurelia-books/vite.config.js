@@ -9,7 +9,7 @@ export default defineConfig(({ command }) => ({
   base: './',
   cacheDir: command === 'build' ? 'node_modules/.vite-build' : 'node_modules/.vite',
   optimizeDeps: { include: ['Provider', 'Button', 'ActionButton', 'ActionMenu', 'Dialog', 'Picker', 'TextField', 'TextArea', 'SearchField', 'Slider', 'Checkbox', 'Skeleton', 'Toast'].map(name => `@react-spectrum/s2/${name}`) },
-  plugins: [macros.vite(), react(), { ...optimizeLocales.vite({ locales: ['en-US'] }), enforce: 'pre' }, offlinePlugin()],
+  plugins: [macros.vite(), react(), { ...optimizeLocales.vite({ locales: ['en-US', 'vi-VN'] }), enforce: 'pre' }, offlinePlugin()],
   build: {
     target: ['es2022'],
     cssMinify: 'lightningcss',

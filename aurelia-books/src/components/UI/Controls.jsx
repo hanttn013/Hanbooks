@@ -1,14 +1,24 @@
-import { Button } from '@react-spectrum/s2/Button';
-import { ActionButton } from '@react-spectrum/s2/ActionButton';
+import Button from '../Common/Button';
 import { Picker, PickerItem } from '@react-spectrum/s2/Picker';
 import { TextField } from '@react-spectrum/s2/TextField';
 import { SearchField } from '@react-spectrum/s2/SearchField';
 import { Slider } from '@react-spectrum/s2/Slider';
 import { useI18n } from '../../i18n/context';
 
-export function Action({ children, onPress, onClick, disabled, label, primary, negative, ...props }) {
-  const Component = primary || negative ? Button : ActionButton;
-  return <Component {...props} size="L" variant={negative ? 'negative' : primary ? 'accent' : undefined} isDisabled={disabled} aria-label={label} onPress={onPress || onClick}>{children}</Component>;
+export function Action({ children, onPress, onClick, disabled, label, primary, negative, variant, ...props }) {
+  const resolvedVariant = variant || (negative ? 'negative' : primary ? 'accent' : 'secondary');
+  return (
+    <Button
+      {...props}
+      size="L"
+      variant={resolvedVariant}
+      isDisabled={disabled}
+      aria-label={label}
+      onPress={onPress || onClick}
+    >
+      {children}
+    </Button>
+  );
 }
 export function Choice({ label, value, onChange, options, ...props }) {
   const { t } = useI18n();

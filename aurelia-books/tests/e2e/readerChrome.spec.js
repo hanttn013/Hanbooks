@@ -35,7 +35,7 @@ test('Reader chrome auto-hides, remains keyboard-reachable and has accessible sh
 
 test('EPUB keyboard settings dismiss without closing Reader', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Read now', exact: true }).click();
+  await page.locator('button:has-text("Continue"), button:has-text("Tiếp tục"), button:has-text("Read now")').first().click();
   await expect(page.getByText(/^Opening /)).toBeHidden({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Show reader controls' }).focus();
   await page.keyboard.press('Enter');

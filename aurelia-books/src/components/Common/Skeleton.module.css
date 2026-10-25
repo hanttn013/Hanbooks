@@ -1,0 +1,33 @@
+/* src/components/Common/Skeleton.module.css */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-raised, #F3EFE9) 0%,
+    var(--bg-surface, #FFFFFF) 50%,
+    var(--bg-surface-raised, #F3EFE9) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+  border-radius: var(--radius-sm, 6px);
+  display: block;
+}
+
+[data-app-theme="dark"] .skeleton,
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-raised, #282624) 0%,
+    var(--bg-surface-active, #343230) 50%,
+    var(--bg-surface-raised, #282624) 100%
+  );
+  background-size: 200% 100%;
+}

@@ -2,7 +2,6 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import TabBar from './components/TabBar/TabBar';
 import HomeScreen from './components/Home/HomeScreen';
 import LibraryScreen from './components/Library/LibraryScreen';
 import { useLibrary } from './hooks/useLibrary';
@@ -10,6 +9,7 @@ import { useSettings } from './hooks/useSettings';
 import { initializeNativeShareTarget } from './utils/nativeShareTarget';
 import './styles/globals.css';
 import './styles/themes.css';
+import './styles/editorial-tokens.css';
 import { Provider } from '@react-spectrum/s2/Provider';
 import { Skeleton } from '@react-spectrum/s2/Skeleton';
 import { ToastContainer, ToastQueue } from '@react-spectrum/s2/Toast';
@@ -19,11 +19,14 @@ import { useI18n } from './i18n/context';
 import './styles/spectrum.css';
 import FeedbackProvider from './components/UI/FeedbackProvider';
 import { afterOverlaysClosed, consumeOverlayPop, dismissTopOverlay } from './components/UI/overlayNavigation';
+import AppShell from './components/Common/AppShell';
+import DebugOverlay from './components/Dev/DebugOverlay';
 
 const BookDetailModal = lazy(() => import('./components/Library/BookDetailModal'));
 const ListsScreen = lazy(() => import('./components/Lists/ListsScreen'));
 const SettingsScreen = lazy(() => import('./components/Settings/SettingsScreen'));
 const ReaderScreen = lazy(() => import('./components/Reader/ReaderScreen'));
+const DesignSystemScreen = lazy(() => import('./components/Dev/DesignSystemScreen'));
 
 function PerfFallback() {
   const { t } = useI18n();
@@ -48,6 +51,7 @@ export default function App() {
   const [openBook, setOpenBook] = useState(null);
   const [detailBook, setDetailBook] = useState(null);
   const [activeListId, setActiveListId] = useState(null);
+  const [isDesignRoute, setIsDesignRoute] = useState(() => typeof window !== 'undefined' && window.location.hash === '#/dev/design');
   const activeTabRef = useRef(activeTab);
   const openBookRef = useRef(openBook);
   const detailBookRef = useRef(detailBook);
@@ -59,7 +63,13 @@ export default function App() {
 
   const library = useLibrary();
   const { addBook } = library;
-  const { settings, updateSetting, colorScheme } = useSettings();
+  const { settings, updateSetting, resetSettings, colorScheme } = useSettings();
+
+  useEffect(() => {
+    const handleHash = () => setIsDesignRoute(window.location.hash === '#/dev/design');
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
   const currentDetailBook = detailBook
     ? library.allBooksRaw.find(book => book.id === detailBook.id) || detailBook
     : null;
@@ -251,134 +261,129 @@ export default function App() {
     <Provider locale={settings.language === 'vi' ? 'vi-VN' : 'en-US'} colorScheme={colorScheme}>
     <FeedbackProvider>
     <div style={{
-      background: 'var(--bg-primary, #EDE8DC)',
-      minHeight: '100vh',
+      background: 'var(--bg-base)',
+      height: '100dvh',
+      minHeight: '100dvh',
+      width: '100vw',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: 'column',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div id="phone-frame" data-app-theme={colorScheme}>
-        {!openBook && <a className="skip-link" href="#app-content" onClick={event => { event.preventDefault(); document.getElementById('app-content')?.focus(); }}>{translate(settings.language, 'Skip to content')}</a>}
-        <>
-          {openBook ? (
-            <Suspense fallback={<PerfFallback />}>
-              <ReaderScreen
-                key={`reader-${openBook.id}`}
-                book={openBook}
-                settings={settings}
-                updateSetting={updateSetting}
-                onBookUpdate={(updates) => library.updateBook(openBook.id, updates)}
-                onClose={handleCloseBook}
-              />
-            </Suspense>
-          ) : (
-            <div
-              key="app-shell"
-              className="app-shell"
-            >
-              {/* Screen area */}
-              <div id="app-content" className="app-content" tabIndex={-1}>
-                <>
-                  {activeTab === 'home' && (
-                    <div
-                      key="home"
-                      style={{ position: 'absolute', inset: 0 }}
-                    >
-                      <HomeScreen
-                        library={library}
-                        onOpenBook={handleOpenBook}
-                        onOpenBookInfo={handleOpenBookInfo}
-                        onOpenList={handleOpenList}
-                        onGoLibrary={() => setActiveTab('library')}
-                        onGoLists={() => setActiveTab('lists')}
-                      />
-                    </div>
-                  )}
-                  {activeTab === 'library' && (
-                    <div
-                      key="library"
-                      style={{ position: 'absolute', inset: 0 }}
-                    >
-                      <LibraryScreen
-                        library={library}
-                        onOpenBook={handleOpenBook}
-                        onOpenBookInfo={handleOpenBookInfo}
-                        onGoLists={() => setActiveTab('lists')}
-                      />
-                    </div>
-                  )}
-                  {activeTab === 'lists' && (
-                    <div
-                      key="lists"
-                      style={{ position: 'absolute', inset: 0 }}
-                    >
-                      <Suspense fallback={<PerfFallback />}>
-                      <ListsScreen
-                        library={library}
-                        activeListId={activeListId}
-                        setActiveListId={(id) => {
-                          afterOverlaysClosed(() => {
-                          captureScroll();
-                          if (!id && activeListIdRef.current && window.history.state?.shanbooks) window.history.back();
-                          else setActiveListId(id);
-                          });
-                        }}
-                        onOpenBook={handleOpenBook}
-                        onOpenBookInfo={handleOpenBookInfo}
-                      />
-                      </Suspense>
-                    </div>
-                  )}
-                  {activeTab === 'settings' && (
-                    <div
-                      key="settings"
-                      style={{ position: 'absolute', inset: 0 }}
-                    >
-                      <Suspense fallback={<PerfFallback />}>
-                      <SettingsScreen
-                        settings={settings}
-                        updateSetting={updateSetting}
-                        library={library}
-                      />
-                      </Suspense>
-                    </div>
-                  )}
-                </>
+      <div id="phone-frame" data-app-theme={colorScheme} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+        {!openBook && !isDesignRoute && <a className="skip-link" href="#app-content" onClick={event => { event.preventDefault(); document.getElementById('app-content')?.focus(); }}>{translate(settings.language, 'Skip to content')}</a>}
+        {isDesignRoute && DesignSystemScreen ? (
+          <Suspense fallback={<PerfFallback />}>
+            <DesignSystemScreen />
+          </Suspense>
+        ) : openBook ? (
+          <Suspense fallback={<PerfFallback />}>
+            <ReaderScreen
+              key={`reader-${openBook.id}`}
+              book={openBook}
+              settings={settings}
+              updateSetting={updateSetting}
+              onBookUpdate={(updates) => library.updateBook(openBook.id, updates)}
+              onClose={handleCloseBook}
+            />
+          </Suspense>
+        ) : (
+          <AppShell
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              captureScroll();
+              if (tab !== 'lists') setActiveListId(null);
+              setDetailBook(null);
+              setActiveTab(tab);
+              restoreScroll(tab);
+            }}
+          >
+            {activeTab === 'home' && (
+              <div
+                key="home"
+                style={{ width: '100%', height: '100%' }}
+              >
+                <HomeScreen
+                  library={library}
+                  onOpenBook={handleOpenBook}
+                  onOpenBookInfo={handleOpenBookInfo}
+                  onOpenList={handleOpenList}
+                  onGoLibrary={() => setActiveTab('library')}
+                  onGoLists={() => setActiveTab('lists')}
+                />
               </div>
+            )}
+            {activeTab === 'library' && (
+              <div
+                key="library"
+                style={{ width: '100%', height: '100%' }}
+              >
+                <LibraryScreen
+                  library={library}
+                  onOpenBook={handleOpenBook}
+                  onOpenBookInfo={handleOpenBookInfo}
+                  onGoLists={() => setActiveTab('lists')}
+                />
+              </div>
+            )}
+            {activeTab === 'lists' && (
+              <div
+                key="lists"
+                style={{ width: '100%', height: '100%' }}
+              >
+                <Suspense fallback={<PerfFallback />}>
+                <ListsScreen
+                  library={library}
+                  activeListId={activeListId}
+                  setActiveListId={(id) => {
+                    afterOverlaysClosed(() => {
+                    captureScroll();
+                    if (!id && activeListIdRef.current && window.history.state?.shanbooks) window.history.back();
+                    else setActiveListId(id);
+                    });
+                  }}
+                  onOpenBook={handleOpenBook}
+                  onOpenBookInfo={handleOpenBookInfo}
+                />
+                </Suspense>
+              </div>
+            )}
+            {activeTab === 'settings' && (
+              <div
+                key="settings"
+                style={{ width: '100%', height: '100%' }}
+              >
+                <Suspense fallback={<PerfFallback />}>
+                <SettingsScreen
+                  settings={settings}
+                  updateSetting={updateSetting}
+                  resetSettings={resetSettings}
+                  library={library}
+                />
+                </Suspense>
+              </div>
+            )}
+          </AppShell>
+        )}
 
-              {/* Tab bar */}
-              <TabBar
-                activeTab={activeTab}
-                onTabChange={(tab) => {
-                  captureScroll();
-                  if (tab !== 'lists') setActiveListId(null);
-                  setDetailBook(null);
-                  setActiveTab(tab);
-                  restoreScroll(tab);
-                }}
-              />
-            </div>
-          )}
-        </>
-        <>
-          {currentDetailBook && !openBook && (
-            <Suspense fallback={null}>
-              <BookDetailModal
-                key={currentDetailBook.id}
-                book={currentDetailBook}
-                onClose={() => {
-                  if (window.history.state?.shanbooks) window.history.back();
-                  else setDetailBook(null);
-                }}
-                onOpen={handleOpenBook}
-                library={library}
-              />
-            </Suspense>
-          )}
-        </>
+        {currentDetailBook && !openBook && (
+          <Suspense fallback={null}>
+            <BookDetailModal
+              key={currentDetailBook.id}
+              book={currentDetailBook}
+              onClose={() => {
+                if (window.history.state?.shanbooks) window.history.back();
+                else setDetailBook(null);
+              }}
+              onOpen={handleOpenBook}
+              library={library}
+            />
+          </Suspense>
+        )}
       </div>
     </div>
     <ToastContainer placement="bottom end" />
+    <DebugOverlay />
     </FeedbackProvider>
     </Provider>
     </I18nProvider>

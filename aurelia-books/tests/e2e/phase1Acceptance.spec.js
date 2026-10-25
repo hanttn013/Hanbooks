@@ -9,7 +9,7 @@ const evidence = async (page, info, name) => {
 };
 
 test('per-book queue exposes pending running done and failed', async ({ page }, info) => {
-  await page.route('**/src/utils/documentMetadata.js', route => route.fulfill({ contentType: 'application/javascript', body: `export async function extractDocumentMetadata(file, format, fallback) { await new Promise(r => setTimeout(r, 4000)); return {...fallback, title: fallback.title}; }` }));
+  await page.route('**/src/utils/documentMetadata.js*', route => route.fulfill({ contentType: 'application/javascript', body: `export async function extractDocumentMetadata(file, format, fallback) { await new Promise(r => setTimeout(r, 4000)); return {...fallback, title: fallback.title}; }` }));
   await page.addInitScript(() => {
     localStorage.setItem('shanbooks_seeded_demo', '1');
     localStorage.setItem('shanbooks_seeded_default_lists', '1');
@@ -24,7 +24,7 @@ test('per-book queue exposes pending running done and failed', async ({ page }, 
     }); db.close();
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.locator('[data-tab="library"]:visible').click();
   await expect(page.locator('[data-metadata-status="running"]')).toHaveCount(2);
   await expect(page.locator('[data-metadata-status="pending"]')).toHaveCount(1);
   await expect(page.locator('[data-metadata-status="failed"]')).toHaveCount(1);
@@ -38,8 +38,8 @@ test('per-book queue exposes pending running done and failed', async ({ page }, 
 
 test('bad files report individually while valid NFD document survives without junk records', async ({ page }, info) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Read now', exact: true })).toBeVisible({ timeout: 30000 });
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await expect(page.locator('button:has-text("Read now"), button:has-text("Continue"), button:has-text("Read"), button:has-text("Tiếp tục"), button:has-text("Đọc tiếp")').first()).toBeVisible({ timeout: 30000 });
+  await page.locator('[data-tab="library"]:visible').click();
   const original = await page.evaluate(async () => {
     const db = await new Promise(resolve => { const r = indexedDB.open('aurelia_db', 4); r.onsuccess = () => resolve(r.result); });
     const count = await new Promise(resolve => { const r = db.transaction('books').objectStore('books').count(); r.onsuccess = () => resolve(r.result); }); db.close(); return count;
@@ -92,10 +92,11 @@ test('30 EPUB open-close cycles release reader DOM, Blob URLs and global listene
     window.qaResources = () => ({ urls: urls.size, listeners: listeners.length, frames: document.querySelectorAll('iframe').length, epubInstances: window.qaEpubLive || 0 });
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Read now', exact: true })).toBeVisible();
+  const readNowBtn = page.locator('button:has-text("Read now"), button:has-text("Continue"), button:has-text("Read"), button:has-text("Tiếp tục"), button:has-text("Đọc tiếp")').first();
+  await expect(readNowBtn).toBeVisible();
   const samples = [];
   for (let i = 0; i < 30; i++) {
-    await page.getByRole('button', { name: 'Read now', exact: true }).click();
+    await readNowBtn.click();
     await expect(page.locator('iframe')).toHaveCount(1);
     await page.goBack();
     await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();

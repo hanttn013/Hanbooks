@@ -111,7 +111,7 @@ function appendChapterEndMarker(contents, epubBookInstance, settings) {
   const sectionIndex = contents?.section?.index;
   const hasKnownIndex = Number.isInteger(sectionIndex);
   const hasNext = !hasKnownIndex || sectionIndex < spineItems.length - 1;
-  const { bgColor, textColor } = getThemePalette(settings.theme);
+  const { textColor } = getThemePalette(settings.theme);
 
   let nextChapterTitle = '';
   if (hasNext && hasKnownIndex) {
@@ -122,7 +122,9 @@ function appendChapterEndMarker(contents, epubBookInstance, settings) {
         const found = nav.find(t => t.href && nextSpineItem.href.includes(t.href.split('#')[0]));
         if (found?.label) nextChapterTitle = found.label.trim();
       }
-    } catch {}
+    } catch {
+      // Best-effort lookup; title remains empty if TOC entry missing
+    }
   }
 
   const wrapper = doc.createElement('div');
@@ -247,7 +249,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [bookmarkFeedback, setBookmarkFeedback] = useState(null); // 'added' | 'removed'
   const [totalPages, setTotalPages] = useState(null);
   const [epubBook, setEpubBook] = useState(null);
   const [chapterPercentage, setChapterPercentage] = useState(0);
@@ -865,12 +866,9 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
     try {
       if (existing) {
         await removeBookmark(existing.id);
-        setBookmarkFeedback('removed');
       } else {
         await addBookmark(cfi, currentChapterRef.current, '');
-        setBookmarkFeedback('added');
       }
-      window.setTimeout(() => setBookmarkFeedback(null), 1500);
     } finally {
       bookmarkBusyRef.current = false;
     }
@@ -952,12 +950,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
       }, 120);
     }
   }, [chapterProgressAvailable, rememberCurrentLocation, saveLatestProgress, seekWithinScrollChapter, settings.readingMode, updateScrollChapterProgress]);
-
-  const handleSeekStart = useCallback((event) => {
-    event.stopPropagation();
-    isSeekingRef.current = true;
-    setShowControls(true);
-  }, []);
 
   // Swipe gesture
   const touchStartX = useRef(null);
@@ -1046,16 +1038,6 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
 
   const isCurrentBookmarked = isBookmarked(currentCfi);
   const visibleProgress = chapterProgressAvailable ? chapterPercentage : percentage;
-  const chapterLabel = currentChapter || book.title;
-  const statusLine = (() => {
-    if ((settings.readingStatusLine || 'off') === 'off') return '';
-    const shortChapter = chapterLabel.length > 32 ? `${chapterLabel.slice(0, 29)}...` : chapterLabel;
-    if (settings.readingStatusLine === 'detailed') {
-      return t('Detailed progress', { chapter: shortChapter, current: Math.round(visibleProgress), whole: Math.round(percentage) });
-    }
-    return `${shortChapter} - ${Math.round(visibleProgress)}%`;
-  })();
-
   return (
     <div
       className={styles.reader}

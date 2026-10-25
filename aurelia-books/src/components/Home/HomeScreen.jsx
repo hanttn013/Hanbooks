@@ -84,13 +84,11 @@ export default function HomeScreen({
             <section className={styles.shelfSection}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>{t('Search results')}</h2>
-                <ActionButton
-                  isQuiet
-                  size="S"
+                <TextAction
                   onPress={() => setSearchQuery('')}
                 >
                   {t('Clear')}
-                </ActionButton>
+                </TextAction>
               </div>
               {filteredBooks.length > 0 ? (
                 <div className={styles.booksGrid}>
@@ -185,7 +183,7 @@ export default function HomeScreen({
                         <Button
                           variant="accent"
                           size="S"
-                          onPress={(e) => {
+                          onPress={() => {
                             onOpenBook(current);
                           }}
                         >

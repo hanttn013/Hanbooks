@@ -6,10 +6,10 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
-  outputDir: 'qa/test-results',
+  outputDir: '.artifacts/test-results',
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'qa/playwright-report', open: 'never' }],
+    ['html', { outputFolder: '.artifacts/playwright-report', open: 'never' }],
   ],
   use: {
     storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'shanbooks_settings', value: '{"language":"en"}' }] }] },

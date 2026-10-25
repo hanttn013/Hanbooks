@@ -11,6 +11,7 @@ import Button from '../Common/Button';
 import IconButton from '../Common/IconButton';
 import EdgeAction from '../Common/EdgeAction';
 import { ActionMenu } from '@react-spectrum/s2/ActionMenu';
+import { Picker, PickerItem } from '@react-spectrum/s2/Picker';
 import { MenuTrigger, Menu, MenuItem } from '@react-spectrum/s2/Menu';
 import { SearchField } from '@react-spectrum/s2/SearchField';
 import { ToggleButton } from '@react-spectrum/s2/ToggleButton';
@@ -110,8 +111,7 @@ const BookListItem = memo(function BookListItem({
         </div>
       </div>
       {!selecting && (
-        <ActionButton
-          isQuiet
+        <IconButton
           size="S"
           aria-label={`${t('View details')}: ${book.title}`}
           onPress={() => onOpenInfo(book)}
@@ -121,7 +121,7 @@ const BookListItem = memo(function BookListItem({
             <circle cx="19" cy="12" r="1.5" />
             <circle cx="5" cy="12" r="1.5" />
           </svg>
-        </ActionButton>
+        </IconButton>
       )}
     </li>
   );

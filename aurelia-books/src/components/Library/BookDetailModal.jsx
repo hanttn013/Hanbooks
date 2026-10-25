@@ -31,17 +31,6 @@ function formatFileSize(size) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function needsMetadataRefresh(book) {
-  return Boolean(book.fileBlob) && (
-    book.metadataStatus === 'pending'
-    || !book.metadataExtractedAt
-    || looksLikeTocText(book.description)
-    || !book.description
-    || !book.author
-    || book.author === 'Unknown Author'
-    || !book.chapterCount
-  );
-}
 
 export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const { t } = useI18n();
@@ -63,7 +52,6 @@ export default function BookDetailModal({ book, onClose, onOpen, library }) {
   const mountedRef = useRef(true);
 
   const repairMetadata = library?.repairMetadata;
-  const shouldRefreshMetadata = needsMetadataRefresh(book);
   const isAutoRefreshingMeta = book.metadataStatus === 'pending' || book.metadataStatus === 'processing';
   const isRefreshingMeta = isManualRefreshingMeta || isAutoRefreshingMeta;
   const displayBook = { ...book, ...displayOverrides };

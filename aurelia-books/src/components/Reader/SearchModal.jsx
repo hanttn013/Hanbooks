@@ -1,5 +1,5 @@
 // src/components/Reader/SearchModal.jsx
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import ReaderSheet from './ReaderSheet';
 import Button from '../Common/Button';
 import { useI18n } from '../../i18n/context';
@@ -45,7 +45,7 @@ export default function SearchModal({
   const [hasSearched, setHasSearched] = useState(false);
   const abortRef = useRef(false);
 
-  const formatChapterTitle = (idref) => {
+  const formatChapterTitle = useCallback((idref) => {
     if (!idref) return t('Chapter');
     if (/pg-header|front|preface|title/i.test(idref)) return t('Front matter') || 'Phần đầu sách';
     if (/tail|back|colophon|afterword/i.test(idref)) return t('Back matter') || 'Phần cuối sách';
@@ -56,7 +56,7 @@ export default function SearchModal({
 
     const cleaned = idref.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     return cleanTocLabel(cleaned);
-  };
+  }, [t, toc]);
 
   const handleSearch = useCallback(async () => {
     const q = query.trim();
@@ -102,7 +102,7 @@ export default function SearchModal({
     } finally {
       setSearching(false);
     }
-  }, [query, epubBook, scope, currentCfi]);
+  }, [query, epubBook, scope, currentCfi, formatChapterTitle]);
 
   const handleCancel = () => {
     abortRef.current = true;

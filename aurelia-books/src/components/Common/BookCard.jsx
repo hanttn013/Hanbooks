@@ -21,14 +21,12 @@ export default function BookCard({
   onToggleSelect,
 }) {
   const { t } = useI18n();
-  if (!book) return null;
 
   const handleOpen = onOpenBook || onTap || onClick;
   const handleInfo = onOpenBookInfo || onOpenInfo || onInfo;
 
-  const progress = Number(book.progressPercent || book.progress || 0);
-
   const handleClick = (e) => {
+    if (!book) return;
     if (selecting) {
       if (onToggleSelect) onToggleSelect(book.id);
       return;
@@ -39,6 +37,7 @@ export default function BookCard({
   };
 
   const handleLongPress = () => {
+    if (!book) return;
     if (selecting) {
       if (onToggleSelect) onToggleSelect(book.id);
       return;
@@ -56,6 +55,10 @@ export default function BookCard({
     threshold: 500,
     moveTolerance: 8,
   });
+
+  if (!book) return null;
+
+  const progress = Number(book.progressPercent || book.progress || 0);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {

@@ -1,5 +1,3 @@
-// src/components/Reader/ReaderSettingsPanel.jsx
-import React from 'react';
 import ReaderSheet from './ReaderSheet';
 import { Slider } from '@react-spectrum/s2/Slider';
 import { Switch } from '@react-spectrum/s2/Switch';

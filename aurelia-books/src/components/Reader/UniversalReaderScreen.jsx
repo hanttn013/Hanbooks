@@ -150,7 +150,7 @@ export default function UniversalReaderScreen({ book, format, settings, updateSe
   const pendingScrollLocationRef = useRef(null);
   const finishedRef = useRef(book.status === 'finished');
   const flushProgressRef = useRef(() => {});
-  const { progress, bookmarks, saveProgress, addBookmark, isBookmarked, startReading, stopReading, markFinished } = useReader(book.id);
+  const { progress, bookmarks, saveProgress, addBookmark, removeBookmark, isBookmarked, startReading, stopReading, markFinished } = useReader(book.id);
 
   useEffect(() => {
     onBookUpdateRef.current = onBookUpdate;

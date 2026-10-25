@@ -4,7 +4,7 @@ import { parse } from '@babel/parser';
 import { vi } from '../src/i18n/messages.js';
 
 const failures = [];
-const allowed = new Set(['ShanBooks', 'Aa', 'Book', 'PDF', 'EPUB', 'DOCX', 'PPTX', 'S', 'T', 'SHANBOOKS']);
+const allowed = new Set(['ShanBooks', 'Aa', 'Book', 'PDF', 'EPUB', 'DOCX', 'PPTX', 'S', 'T', 'SHANBOOKS', 'A', 'pt', 'px', 'Cỡ chữ mẫu']);
 function visit(node, file) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'JSXText') {

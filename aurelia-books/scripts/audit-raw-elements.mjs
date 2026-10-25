@@ -44,6 +44,46 @@ const ALLOWLIST = [
     reason: 'Search result card button inside Reader Search dialog, formatted for multi-line excerpt typography',
   },
   {
+    file: 'src/components/Reader/BookmarksModal.jsx',
+    tag: 'button',
+    reason: 'Reader bookmarks list and tab buttons styled with reader-specific themes',
+  },
+  {
+    file: 'src/components/Reader/ReaderChrome.jsx',
+    tag: 'button',
+    reason: 'Reader navigation toolbar buttons styled for reading immersion and device touch targets',
+  },
+  {
+    file: 'src/components/Reader/ReaderChrome.jsx',
+    tag: 'input',
+    reason: 'Reader progress range scrubber input with theme background',
+  },
+  {
+    file: 'src/components/Reader/ReaderSettingsPanel.jsx',
+    tag: 'button',
+    reason: 'Reader theme palettes and font choice chips requiring custom color swatch styling',
+  },
+  {
+    file: 'src/components/Reader/ReaderSheet.jsx',
+    tag: 'button',
+    reason: 'Reader bottom sheet close button styled with reader theme',
+  },
+  {
+    file: 'src/components/Reader/ReaderViewport.jsx',
+    tag: 'button',
+    reason: 'Accessible reader viewport mini-footer toggle button',
+  },
+  {
+    file: 'src/components/Reader/SearchModal.jsx',
+    tag: 'input',
+    reason: 'Search text input inside reader search modal',
+  },
+  {
+    file: 'src/components/Reader/UniversalReaderScreen.jsx',
+    tag: 'button',
+    reason: 'Universal reader navigation and control buttons',
+  },
+  {
     file: 'src/components/Dev/DesignSystemScreen.jsx',
     tag: 'button',
     reason: 'Internal dev-only styleguide screen comparing legacy buttons with Spectrum S2 components',

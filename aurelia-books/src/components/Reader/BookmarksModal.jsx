@@ -1,5 +1,4 @@
-// src/components/Reader/BookmarksModal.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ReaderSheet from './ReaderSheet';
 import { useI18n } from '../../i18n/context';
 import styles from './BookmarksModal.module.css';

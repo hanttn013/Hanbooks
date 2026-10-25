@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
 
-const OUT_DIR = path.resolve('qa/reader');
+const OUT_DIR = path.resolve('.artifacts/reader');
 
 test.describe('In-book Reader Features Capture (Antislop & Editorial)', () => {
   test.use({
@@ -39,7 +39,9 @@ test.describe('In-book Reader Features Capture (Antislop & Editorial)', () => {
       if (await readBtn.isVisible({ timeout: 2000 })) {
         await readBtn.click();
       }
-    } catch {}
+    } catch {
+      // Quick preview modal may not be open
+    }
 
     // Wait for reader surface to render
     const readerSurface = page.locator('[data-reader-surface], [class*="viewer"]');

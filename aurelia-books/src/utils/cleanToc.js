@@ -11,7 +11,7 @@ export function cleanTocLabel(raw) {
   let str = String(raw).replace(/\s+/g, ' ').trim();
 
   // Pattern: Sentence ending with punctuation/quotes followed by Chapter/Chương/Book/Part/Volume or Roman numeral
-  const chapterMatch = str.match(/^(?:.*?[.!?\"”’]\s+)?((?:Chapter|Chương|Book|Part|Volume|Section|Hồi|Quyển)\s+(?:[IVXLCDM\d]+|[A-Za-z]+).*)$/i);
+  const chapterMatch = str.match(/^(?:.*?[.!?"”’]\s+)?((?:Chapter|Chương|Book|Part|Volume|Section|Hồi|Quyển)\s+(?:[IVXLCDM\d]+|[A-Za-z]+).*)$/i);
   if (chapterMatch) {
     str = chapterMatch[1];
   }

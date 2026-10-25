@@ -1,5 +1,4 @@
-// src/components/Reader/ReaderSheet.jsx
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useI18n } from '../../i18n/context';
 import styles from './ReaderSheet.module.css';
 

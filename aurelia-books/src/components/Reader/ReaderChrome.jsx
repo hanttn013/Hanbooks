@@ -1,5 +1,5 @@
 // src/components/Reader/ReaderChrome.jsx
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useI18n } from '../../i18n/context';
 import styles from './ReaderChrome.module.css';
 
@@ -46,13 +46,6 @@ export default function ReaderChrome({
   const toastTimerRef = useRef(null);
   const moreBtnRef = useRef(null);
   const menuRef = useRef(null);
-
-  // Sync scrubValue when not scrubbing
-  useEffect(() => {
-    if (!isScrubbing) {
-      setScrubValue(percentage);
-    }
-  }, [percentage, isScrubbing]);
 
   // Close more menu when clicking outside or pressing Escape
   useEffect(() => {

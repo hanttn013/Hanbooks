@@ -21,18 +21,64 @@
   overflow: hidden;
 }
 
-/* Header & Actions */
+/* Responsive Library Header */
+.libraryHeaderArea {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "title actions"
+    "search search";
+  padding: var(--space-4, 16px) var(--page-margin, 16px) var(--space-2, 8px);
+  gap: var(--space-3, 12px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.libraryTitleArea {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+}
+
+.libraryTitle {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: var(--font-size-display, 28px);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
 .headerActions {
+  grid-area: actions;
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
+  flex-shrink: 0;
 }
 
-/* Spectrum S2 Search Section */
 .searchSection {
-  padding: 0 var(--page-margin, 16px) var(--space-2, 8px);
+  grid-area: search;
+  padding: 0 !important;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Desktop (>= 1024px): Search + Import on unified single header row */
+@media (min-width: 1024px) {
+  .libraryHeaderArea {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "title search actions";
+    align-items: center;
+    gap: var(--space-5, 20px);
+    padding: var(--space-5, 20px) var(--page-margin, 16px) var(--space-3, 12px);
+  }
+
+  .searchSection {
+    max-width: 420px;
+    margin-left: auto;
+  }
 }
 
 /* Filter Rail */
@@ -109,15 +155,10 @@
 
 .libraryGrid {
   display: grid;
-  gap: var(--space-3, 12px) 8px;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(105px, 28vw, 160px), 1fr));
+  gap: clamp(12px, 2.5vw, 24px);
   width: 100%;
   box-sizing: border-box;
-}
-
-@media (min-width: 600px) {
-  .libraryGrid {
-    gap: var(--space-4, 16px) var(--space-3, 12px);
-  }
 }
 
 .displayOptionsContent {

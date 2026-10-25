@@ -48,6 +48,19 @@
   /* Touch Target */
   --touch-min-size: 44px;
 
+  /* Standard Responsive Breakpoint Tokens */
+  --bp-compact: 640px;
+  --bp-medium: 768px;
+  --bp-expanded: 1024px;
+  --bp-large: 1280px;
+
+  /* Optimal Reading Measure & Fluid Tokens */
+  --reader-max-measure: 68ch;
+  --reader-max-width-single: 720px;
+  --reader-max-width-spread: 1200px;
+  --reader-padding-inline: clamp(16px, 5vw, 64px);
+  --reader-font-size-fluid: clamp(1rem, 0.95rem + 0.25vw, 1.25rem);
+
   /* Safe Area Insets (System Status & Navigation Bars) */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

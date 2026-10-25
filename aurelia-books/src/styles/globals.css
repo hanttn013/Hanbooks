@@ -45,7 +45,6 @@ body {
   background: var(--bg-base, #FAF7F2);
   color: var(--text-primary, #201E1B);
   display: block;
-  min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
   padding: 0;
@@ -59,7 +58,6 @@ body {
 /* ===== APP ROOT FRAME ===== */
 #phone-frame {
   width: 100vw;
-  height: 100vh;
   height: 100dvh;
   border-radius: 0;
   overflow: hidden;

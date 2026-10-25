@@ -57,7 +57,7 @@
 
 .backdropFullHeight .sheetContent {
   height: 100% !important;
-  max-height: 100vh !important;
+  max-height: 100dvh !important;
   border-radius: 0 !important;
   border: none !important;
   background: var(--bg-base, #FAF7F2) !important;
@@ -66,7 +66,7 @@
 
 .fullHeightVariant {
   height: 100% !important;
-  max-height: 100vh !important;
+  max-height: 100dvh !important;
   border-radius: 0 !important;
   border-top: none !important;
   background: var(--bg-base, #FAF7F2) !important;
@@ -186,7 +186,7 @@
 .sidePanelVariant .sheetContent {
   width: 380px;
   max-width: 100vw;
-  max-height: 100vh;
+  max-height: 100dvh;
   height: 100%;
   border-radius: 0;
   border-left: 1px solid var(--border-subtle);

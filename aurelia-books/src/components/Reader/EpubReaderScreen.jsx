@@ -39,16 +39,17 @@ function readerThemeRules(settings) {
     body: {
       'touch-action': 'pan-y pinch-zoom !important',
       'font-family': `${getFontStack(settings.font)} !important`,
-      'font-size': `${settings.fontSize}px !important`,
+      'font-size': `calc(${settings.fontSize}px * clamp(0.95, 0.92 + 0.25vw, 1.15)) !important`,
       'line-height': `${settings.lineHeight} !important`,
       'letter-spacing': `${settings.letterSpacing}px !important`,
-      'padding': `${settings.marginWidth}px !important`,
+      'padding': `${settings.marginWidth || '0'}px clamp(16px, 5vw, 64px) !important`,
       'background': `${bgColor} !important`,
       'color': `${textColor} !important`,
-      'margin': '0 !important',
-      'max-width': '760px !important',
-      'margin-left': 'auto !important',
-      'margin-right': 'auto !important',
+      'margin': '0 auto !important',
+      'margin-inline': 'auto !important',
+      'width': '100% !important',
+      'max-width': '68ch !important',
+      'box-sizing': 'border-box !important',
       'text-align': 'left !important',
       'font-style': 'normal !important',
       'overflow-wrap': 'break-word !important',
@@ -72,16 +73,20 @@ function readerThemeRules(settings) {
     },
     img: {
       'display': 'block !important',
-      'max-width': '100% !important',
-      'max-height': '90vh !important',
+      'max-width': 'min(80vw, 420px) !important',
+      'max-height': '65dvh !important',
+      'width': 'auto !important',
       'height': 'auto !important',
       'object-fit': 'contain !important',
-      'margin': 'auto !important',
+      'margin': '0 auto !important',
     },
     svg: {
-      'max-width': '100% !important',
-      'max-height': '90vh !important',
-      'margin': 'auto !important',
+      'max-width': 'min(80vw, 420px) !important',
+      'max-height': '65dvh !important',
+      'width': 'auto !important',
+      'height': 'auto !important',
+      'object-fit': 'contain !important',
+      'margin': '0 auto !important',
       'display': 'block !important',
     },
     'body:has(> img:only-child), body:has(> p:only-child > img:only-child), body:has(> div:only-child > img:only-child)': {
@@ -89,7 +94,7 @@ function readerThemeRules(settings) {
       'flex-direction': 'column !important',
       'justify-content': 'center !important',
       'align-items': 'center !important',
-      'min-height': '100vh !important',
+      'min-height': '100dvh !important',
       'padding': '0 !important',
       'box-sizing': 'border-box !important',
     },
@@ -682,6 +687,24 @@ export default function ReaderScreen({ book, settings, updateSetting, onClose, o
           contentCleanupRef.current.forEach(cleanup => cleanup());
           contentCleanupRef.current = [];
           currentContentsRef.current = contents;
+
+          const doc = contents?.document;
+          if (doc && !doc.getElementById('hanbooks-spread-rules')) {
+            const spreadStyle = doc.createElement('style');
+            spreadStyle.id = 'hanbooks-spread-rules';
+            spreadStyle.textContent = `
+              @media (min-width: 1024px) {
+                body {
+                  max-width: 1200px !important;
+                  column-count: 2 !important;
+                  column-gap: 48px !important;
+                  column-rule: 1px solid rgba(128, 128, 128, 0.2) !important;
+                }
+              }
+            `;
+            doc.head?.appendChild(spreadStyle);
+          }
+
           appendChapterEndMarker(contents, epubBookInstance, settings);
           const onContentScroll = () => {
             updateScrollChapterProgress(contents);

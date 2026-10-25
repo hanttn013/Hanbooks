@@ -4,7 +4,6 @@ import BookCard from '../Common/BookCard';
 import Cover from '../Common/Cover';
 import Sheet from '../Common/Sheet';
 import EmptyState from '../Common/EmptyState';
-import PageHeader from '../Common/PageHeader';
 import { useI18n } from '../../i18n/context';
 import { ToastQueue } from '@react-spectrum/s2/Toast';
 import Button from '../Common/Button';
@@ -192,21 +191,21 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
-  // Phone 3-column grid enforced (< 600px) with width ceiling <= 120px
+  // Auto-calculating responsive columns aligned with CSS Grid:
+  // repeat(auto-fill, minmax(clamp(105px, 28vw, 160px), 1fr)) & gap: clamp(12px, 2.5vw, 24px)
   const columns = useMemo(() => {
-    if (containerWidth < 600) {
-      if (coverSize === 'small') return 4;
-      if (coverSize === 'large') return 2;
-      return 3; // Standard 3-column phone grid
-    }
-    if (containerWidth < 900) return coverSize === 'small' ? 5 : coverSize === 'large' ? 3 : 4;
-    if (containerWidth < 1200) return coverSize === 'small' ? 6 : coverSize === 'large' ? 4 : 5;
-    return coverSize === 'small' ? 8 : coverSize === 'large' ? 5 : 6;
-  }, [containerWidth, coverSize]);
+    if (containerWidth <= 0) return 3;
+    const padding = 32;
+    const available = Math.min(1200, containerWidth) - padding;
+    const minCard = Math.max(105, Math.min(160, containerWidth * 0.28));
+    const gap = Math.max(12, Math.min(24, containerWidth * 0.025));
+    const count = Math.floor((available + gap) / (minCard + gap));
+    return Math.max(2, Math.min(8, count));
+  }, [containerWidth]);
 
   const gridRowHeight = useMemo(() => {
     const horizontalPadding = 32;
-    const gap = 12;
+    const gap = Math.max(12, Math.min(24, containerWidth * 0.025));
     const availableWidth = Math.min(1200, containerWidth) - horizontalPadding;
     const cardWidth = Math.min(170, Math.max(90, (availableWidth - (columns - 1) * gap) / columns));
     return Math.round(cardWidth * 1.5 + 68);
@@ -428,64 +427,64 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
       )}
 
       <div className={styles.innerLimiter}>
-        {/* Single PageHeader with Import and View Switch */}
-        <PageHeader
-          title={t('Library')}
-          actions={
-            <div className={styles.headerActions}>
-              <Button
-                variant="accent"
-                size="S"
-                onPress={() => fileRef.current?.click()}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <span>{t('Import documents')}</span>
-              </Button>
-              <EdgeAction edge="right" offset={16}>
-                <ActionMenu
-                  isQuiet
-                  size="S"
-                  aria-label={t('Library options')}
-                  onAction={(key) => {
-                    if (key === 'select') setSelecting(true);
-                    else if (key === 'displayOptions') setShowDisplayOptions(true);
-                  }}
-                >
-                  <MenuItem id="select">{t('Select books')}</MenuItem>
-                  <MenuItem id="displayOptions">{t('Display options')}</MenuItem>
-                </ActionMenu>
-              </EdgeAction>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt"
-                hidden
-                multiple
-                onChange={handleFileImport}
-              />
-            </div>
-          }
-        />
+        {/* Adaptive Responsive Library Header */}
+        <div className={styles.libraryHeaderArea}>
+          <div className={styles.libraryTitleArea}>
+            <h1 className={styles.libraryTitle}>{t('Library')}</h1>
+          </div>
 
-        {/* Spectrum S2 SearchField */}
-        <div className={styles.searchSection}>
-          <SearchField
-            aria-label={t('Search title, author, genre, lists')}
-            placeholder={t('Search title, author, genre, lists')}
-            value={searchQuery}
-            onChange={(v) => {
-              setSearchQuery(v);
-              resetScroll();
-            }}
-            onClear={() => {
-              setSearchQuery('');
-              resetScroll();
-            }}
-          />
+          <div className={styles.searchSection}>
+            <SearchField
+              aria-label={t('Search title, author, genre, lists')}
+              placeholder={t('Search title, author, genre, lists')}
+              value={searchQuery}
+              onChange={(v) => {
+                setSearchQuery(v);
+                resetScroll();
+              }}
+              onClear={() => {
+                setSearchQuery('');
+                resetScroll();
+              }}
+            />
+          </div>
+
+          <div className={styles.headerActions}>
+            <Button
+              variant="accent"
+              size="S"
+              onPress={() => fileRef.current?.click()}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span>{t('Import documents')}</span>
+            </Button>
+            <EdgeAction edge="right" offset={16}>
+              <ActionMenu
+                isQuiet
+                size="S"
+                aria-label={t('Library options')}
+                onAction={(key) => {
+                  if (key === 'select') setSelecting(true);
+                  else if (key === 'displayOptions') setShowDisplayOptions(true);
+                }}
+              >
+                <MenuItem id="select">{t('Select books')}</MenuItem>
+                <MenuItem id="displayOptions">{t('Display options')}</MenuItem>
+              </ActionMenu>
+            </EdgeAction>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".epub,.pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.cbz,.zip,.rar,.doc,.xls,.ppt"
+              hidden
+              multiple
+              onChange={handleFileImport}
+            />
+          </div>
         </div>
 
         {/* Filter rail using S2 ToggleButtonGroup */}
@@ -589,10 +588,7 @@ export default function LibraryScreen({ library, onOpenBook, onOpenBookInfo, onG
           ) : viewMode === 'grid' ? (
             <>
               {virtual.topSpacer > 0 && <div style={{ height: virtual.topSpacer }} />}
-              <div
-                className={styles.libraryGrid}
-                style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-              >
+              <div className={styles.libraryGrid}>
                 {virtual.visibleBooks.map((book) => (
                   <BookGridItem
                     key={book.id}

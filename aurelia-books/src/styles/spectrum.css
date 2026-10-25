@@ -185,7 +185,7 @@ button[data-size="S"][data-descenders="no"] span {
     width: 380px !important;
     max-width: 90vw !important;
     height: 100% !important;
-    max-height: 100vh !important;
+    max-height: 100dvh !important;
     border-radius: 0 !important;
     border-left: 1px solid var(--border-subtle) !important;
   }

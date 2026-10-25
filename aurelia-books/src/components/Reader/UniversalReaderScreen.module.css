@@ -161,12 +161,25 @@
 }
 
 .reflowable {
-  width: min(100%, 780px);
+  width: 100%;
+  max-width: 68ch;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 5vw, 64px);
+  box-sizing: border-box;
   font-family: var(--document-font);
-  font-size: var(--document-size);
+  font-size: clamp(1rem, 0.95rem + 0.25vw, 1.25rem);
   line-height: var(--document-line);
   letter-spacing: var(--document-spacing);
   overflow-wrap: anywhere;
+}
+
+@media (min-width: 1024px) {
+  .reflowable {
+    max-width: 1200px;
+    column-count: 2;
+    column-gap: 48px;
+    column-rule: 1px solid rgba(128, 128, 128, 0.2);
+  }
 }
 
 .pagedContent {
@@ -184,7 +197,16 @@
   column-fill: auto;
 }
 
-.reflowable img,
+.reflowable img {
+  max-height: 65dvh;
+  max-width: min(80vw, 420px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
 .reflowable table {
   max-width: 100%;
 }

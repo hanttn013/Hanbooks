@@ -452,6 +452,106 @@
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* ================= RESPONSIVE ADAPTIVE RULES ================= */
+
+/* Tablet & Desktop (>= 768px): Floating Dock (pill-shaped floating bars) */
+@media (min-width: 768px) {
+  .topBar {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 48px), 800px);
+    max-width: 800px;
+    border-radius: 20px;
+    border: 1px solid var(--reader-hairline, rgba(128, 128, 128, 0.22));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 16px;
+  }
+
+  .bottomBar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 48px), 600px);
+    max-width: 600px;
+    border-radius: 24px;
+    border: 1px solid var(--reader-hairline, rgba(128, 128, 128, 0.22));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 10px 20px;
+  }
+}
+
+/* Mobile Landscape (max-height: 500px and landscape): Compact 44px Bars */
+@media (max-height: 500px) and (orientation: landscape) {
+  .topBar {
+    height: 44px;
+    padding: 2px 12px;
+  }
+
+  .buttonSlot {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .circleBtn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .bookTitle {
+    display: none;
+  }
+
+  .chapterTitle {
+    font-size: 13px;
+    margin: 0;
+  }
+
+  .bottomBar {
+    height: 44px;
+    padding: 2px 14px max(2px, env(safe-area-inset-bottom, 0px));
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    bottom: max(6px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .progressRow {
+    flex: 1;
+    height: 36px;
+  }
+
+  .toolsRow {
+    width: auto;
+    flex: initial;
+    gap: 4px;
+  }
+
+  .toolBtn {
+    min-height: 36px;
+    min-width: 36px;
+    width: 36px;
+    flex: initial;
+    padding: 2px;
+    border-radius: 8px;
+  }
+
+  .toolLabel {
+    display: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chromeRoot,
   .moreMenu,

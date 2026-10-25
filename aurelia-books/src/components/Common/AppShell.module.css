@@ -2,7 +2,6 @@
 .shellRoot {
   display: flex;
   width: 100vw;
-  height: 100vh;
   height: 100dvh;
   background: var(--bg-base);
   color: var(--text-primary);
@@ -75,10 +74,10 @@
   font-weight: 600;
 }
 
-/* 2. Navigation Rail (600px - 1200px OR height < 480px landscape phone) */
+/* 2. Navigation Rail (768px - 1023px OR height <= 500px landscape phone) */
 .navRail {
   display: none;
-  width: 68px;
+  width: 72px;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-subtle);
   flex-direction: column;
@@ -154,9 +153,15 @@
   padding-top: var(--safe-top, env(safe-area-inset-top, 0px));
 }
 
-@media (max-width: 599px) and (min-height: 480px) {
+@media (max-width: 767px) and (min-height: 501px) {
   .mainContainer {
     padding-bottom: var(--app-nav-height, calc(56px + env(safe-area-inset-bottom, 0px)));
+  }
+}
+
+@media (max-width: 767px) and (max-height: 500px) {
+  .mainContainer {
+    padding-bottom: var(--app-nav-height, calc(44px + env(safe-area-inset-bottom, 0px)));
   }
 }
 
@@ -180,7 +185,7 @@
   flex-direction: column;
 }
 
-/* 4. Mobile Bottom TabBar (< 600px and height >= 480px) */
+/* 4. Mobile Bottom TabBar (< 768px) */
 .mobileTabBar {
   display: flex;
   position: fixed;
@@ -234,16 +239,24 @@
 }
 
 /* Compensate bottom padding on mobile for scrollArea */
-@media (max-width: 599px) and (min-height: 480px) {
+@media (max-width: 767px) and (min-height: 501px) {
   .scrollArea {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 }
 
+@media (max-width: 767px) and (max-height: 500px) {
+  .scrollArea {
+    padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Responsive Switching Rules */
-@media (min-width: 1200px) {
+/* Desktop (>= 1024px): 240px Sidebar */
+@media (min-width: 1024px) {
   .desktopSidebar {
     display: flex;
+    width: 240px;
   }
   .navRail,
   .mobileTabBar {
@@ -251,9 +264,11 @@
   }
 }
 
-@media (min-width: 600px) and (max-width: 1199px) {
+/* Tablet (768px – 1023px): 72px Navigation Rail */
+@media (min-width: 768px) and (max-width: 1023px) {
   .navRail {
     display: flex;
+    width: 72px;
   }
   .desktopSidebar,
   .mobileTabBar {
@@ -261,28 +276,31 @@
   }
 }
 
-/* Mobile landscape (height < 480px): use NavRail, hide bottom TabBar */
-@media (max-height: 479px) {
-  .navRail {
+/* Mobile (< 768px): Bottom Navigation Bar */
+@media (max-width: 767px) {
+  .mobileTabBar {
     display: flex;
-    width: 56px;
-    padding: var(--space-2, 8px) var(--space-1, 4px);
-  }
-  .railLogo {
-    display: none;
-  }
-  .railItem {
-    width: 44px;
-    height: 44px;
-  }
-  .railLabel {
-    display: none;
   }
   .desktopSidebar,
-  .mobileTabBar {
+  .navRail {
     display: none !important;
   }
-  .scrollArea {
-    padding-bottom: var(--space-4, 16px) !important;
+}
+
+/* Mobile landscape (height <= 500px and landscape): compact 44px Bottom Bar */
+@media (max-width: 767px) and (max-height: 500px) and (orientation: landscape) {
+  .mobileTabBar {
+    height: 44px;
+    padding: 2px var(--space-2, 8px) env(safe-area-inset-bottom, 0px);
+  }
+  .mobileTabItem {
+    min-height: 40px;
+    flex-direction: row;
+    gap: 6px;
+    padding: 2px 8px;
+  }
+  .mobileTabLabel {
+    font-size: 10px;
+    margin-top: 0;
   }
 }
